@@ -81,6 +81,9 @@ importers:
       '@types/node':
         specifier: ^18
         version: 18.19.61
+      '@types/node-hid':
+        specifier: ^1.3.4
+        version: 1.3.4
       chai:
         specifier: ^4
         version: 4.5.0
@@ -904,6 +907,9 @@ packages:
 
   '@types/mute-stream@0.0.4':
     resolution: {integrity: sha512-CPM9nzrCPPJHQNA9keH9CVkVI+WR5kMa+7XEs5jcGQ0VoAGnLv242w8lIVgwAEfmE4oufJRaTc9PNLQl0ioAow==}
+
+  '@types/node-hid@1.3.4':
+    resolution: {integrity: sha512-0ootpsYetN9vjqkDSwm/cA4fk/9yGM/PO0X8SLPE/BzXlUaBelImMWMymtF9QEoEzxY0pnhcROIJM0CNSUqO8w==}
 
   '@types/node@12.20.55':
     resolution: {integrity: sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ==}
@@ -4682,6 +4688,10 @@ snapshots:
   '@types/mocha@10.0.9': {}
 
   '@types/mute-stream@0.0.4':
+    dependencies:
+      '@types/node': 18.19.61
+
+  '@types/node-hid@1.3.4':
     dependencies:
       '@types/node': 18.19.61
 

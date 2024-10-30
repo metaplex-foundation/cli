@@ -16,11 +16,11 @@ Metaplex universal CLI
 # Usage
 <!-- usage -->
 ```sh-session
-$ npm install -g cli
+$ npm install -g @metaplex-foundation/cli
 $ mplx COMMAND
 running command...
 $ mplx (--version)
-cli/0.0.0 darwin-arm64 node-v18.20.4
+@metaplex-foundation/cli/0.0.0 darwin-arm64 node-v20.18.0
 $ mplx --help [COMMAND]
 USAGE
   $ mplx COMMAND
@@ -29,61 +29,272 @@ USAGE
 <!-- usagestop -->
 # Commands
 <!-- commands -->
-* [`mplx hello PERSON`](#mplx-hello-person)
-* [`mplx hello world`](#mplx-hello-world)
+* [`mplx autocomplete [SHELL]`](#mplx-autocomplete-shell)
+* [`mplx commands`](#mplx-commands)
+* [`mplx config`](#mplx-config)
+* [`mplx config get KEY`](#mplx-config-get-key)
+* [`mplx config set KEY VALUE`](#mplx-config-set-key-value)
+* [`mplx create asset`](#mplx-create-asset)
+* [`mplx create collection [FILE]`](#mplx-create-collection-file)
+* [`mplx fetch asset ASSET`](#mplx-fetch-asset-asset)
 * [`mplx help [COMMAND]`](#mplx-help-command)
-* [`mplx plugins`](#mplx-plugins)
-* [`mplx plugins add PLUGIN`](#mplx-plugins-add-plugin)
-* [`mplx plugins:inspect PLUGIN...`](#mplx-pluginsinspect-plugin)
-* [`mplx plugins install PLUGIN`](#mplx-plugins-install-plugin)
-* [`mplx plugins link PATH`](#mplx-plugins-link-path)
-* [`mplx plugins remove [PLUGIN]`](#mplx-plugins-remove-plugin)
-* [`mplx plugins reset`](#mplx-plugins-reset)
-* [`mplx plugins uninstall [PLUGIN]`](#mplx-plugins-uninstall-plugin)
-* [`mplx plugins unlink [PLUGIN]`](#mplx-plugins-unlink-plugin)
-* [`mplx plugins update`](#mplx-plugins-update)
+* [`mplx version`](#mplx-version)
 
-## `mplx hello PERSON`
+## `mplx autocomplete [SHELL]`
 
-Say hello
+Display autocomplete installation instructions.
 
 ```
 USAGE
-  $ mplx hello PERSON -f <value>
+  $ mplx autocomplete [SHELL] [-r]
 
 ARGUMENTS
-  PERSON  Person to say hello to
+  SHELL  (zsh|bash|powershell) Shell type
 
 FLAGS
-  -f, --from=<value>  (required) Who is saying hello
+  -r, --refresh-cache  Refresh cache (ignores displaying instructions)
 
 DESCRIPTION
-  Say hello
+  Display autocomplete installation instructions.
 
 EXAMPLES
-  $ mplx hello friend --from oclif
-  hello friend from oclif! (./src/commands/hello/index.ts)
+  $ mplx autocomplete
+
+  $ mplx autocomplete bash
+
+  $ mplx autocomplete zsh
+
+  $ mplx autocomplete powershell
+
+  $ mplx autocomplete --refresh-cache
 ```
 
-_See code: [src/commands/hello/index.ts](https://github.com/metaplex-foundation/cli/blob/v0.0.0/src/commands/hello/index.ts)_
+_See code: [@oclif/plugin-autocomplete](https://github.com/oclif/plugin-autocomplete/blob/v3.2.7/src/commands/autocomplete/index.ts)_
 
-## `mplx hello world`
+## `mplx commands`
 
-Say hello world
+List all mplx commands.
 
 ```
 USAGE
-  $ mplx hello world
+  $ mplx commands [--json] [-c id|plugin|summary|type... | --tree] [--deprecated] [-x | ] [--hidden]
+    [--no-truncate | ] [--sort id|plugin|summary|type | ]
+
+FLAGS
+  -c, --columns=<option>...  Only show provided columns (comma-separated).
+                             <options: id|plugin|summary|type>
+  -x, --extended             Show extra columns.
+      --deprecated           Show deprecated commands.
+      --hidden               Show hidden commands.
+      --no-truncate          Do not truncate output.
+      --sort=<option>        [default: id] Property to sort by.
+                             <options: id|plugin|summary|type>
+      --tree                 Show tree of commands.
+
+GLOBAL FLAGS
+  --json  Format output as json.
 
 DESCRIPTION
-  Say hello world
-
-EXAMPLES
-  $ mplx hello world
-  hello world! (./src/commands/hello/world.ts)
+  List all mplx commands.
 ```
 
-_See code: [src/commands/hello/world.ts](https://github.com/metaplex-foundation/cli/blob/v0.0.0/src/commands/hello/world.ts)_
+_See code: [@oclif/plugin-commands](https://github.com/oclif/plugin-commands/blob/v4.1.5/src/commands/commands.ts)_
+
+## `mplx config`
+
+Show the current config
+
+```
+USAGE
+  $ mplx config [-c <value>]
+
+FLAGS
+  -c, --config=<value>  path to config file. Default is ~/.config/mplx/config.json
+
+DESCRIPTION
+  Show the current config
+
+EXAMPLES
+  $ mplx config
+```
+
+_See code: [src/commands/config/index.ts](https://github.com/metaplex-foundation/cli/blob/v0.0.0/src/commands/config/index.ts)_
+
+## `mplx config get KEY`
+
+Get a config value from a key
+
+```
+USAGE
+  $ mplx config get KEY [-c <value>]
+
+ARGUMENTS
+  KEY  (rpcUrl|commitment|payer|keypair) The key to get
+
+FLAGS
+  -c, --config=<value>  path to config file. Default is ~/.config/mplx/config.json
+
+DESCRIPTION
+  Get a config value from a key
+
+EXAMPLES
+  $ mplx config get keypair
+
+  $ mplx config get payer
+
+  $ mplx config get rpcUrl
+
+  $ mplx config get commitment
+```
+
+_See code: [src/commands/config/get.ts](https://github.com/metaplex-foundation/cli/blob/v0.0.0/src/commands/config/get.ts)_
+
+## `mplx config set KEY VALUE`
+
+Set a config value from a key
+
+```
+USAGE
+  $ mplx config set KEY VALUE [-c <value>]
+
+ARGUMENTS
+  KEY    (rpcUrl|commitment|payer|keypair) The key to set
+  VALUE  The value to set
+
+FLAGS
+  -c, --config=<value>  path to config file. Default is ~/.config/mplx/config.json
+
+DESCRIPTION
+  Set a config value from a key
+
+EXAMPLES
+  $ mplx config set keypair /path/to/keypair.json
+
+  $ mplx config set payer /path/to/keypair.json
+
+  $ mplx config set rpcUrl http://localhost:8899
+
+  $ mplx config set commitment confirmed
+```
+
+_See code: [src/commands/config/set.ts](https://github.com/metaplex-foundation/cli/blob/v0.0.0/src/commands/config/set.ts)_
+
+## `mplx create asset`
+
+Create an asset
+
+```
+USAGE
+  $ mplx create asset -n <value> -u <value> [--json] [--log-level debug|warn|error|info|trace] [-k <value>] [-p
+    <value>] [-r <value>] [--commitment processed|confirmed|finalized] [-c <value>] [-s core]
+
+FLAGS
+  -c, --config=<value>       Path to config file. Default is ~/.config/mplx/config.json
+  -k, --keypair=<value>      Path to keypair file (/path/keypair.json) or ledger (e.g. usb://ledger?key=0)
+  -n, --name=<value>         (required) Asset name
+  -p, --payer=<value>        Path to keypair file (/path/keypair.json) or ledger (e.g. usb://ledger?key=0)
+  -r, --rpc=<value>          RPC URL for the cluster
+  -s, --standard=<option>    [default: core] Asset standard
+                             <options: core>
+  -u, --uri=<value>          (required) Asset metadata URI
+      --commitment=<option>  Commitment level
+                             <options: processed|confirmed|finalized>
+
+GLOBAL FLAGS
+  --json                Format output as json.
+  --log-level=<option>  [default: info] Specify level for logging.
+                        <options: debug|warn|error|info|trace>
+
+DESCRIPTION
+  Create an asset
+
+EXAMPLES
+  $ mplx create asset --json
+
+  $ mplx create asset --log-level debug
+
+  $ mplx create asset --keypair /path/to/keypair.json
+
+  $ mplx create asset --keypair usb://ledger?key=0
+
+  $ mplx create asset --rpc http://localhost:8899
+
+  $ mplx create asset --commitment finalized
+
+  $ mplx create asset -n "Cool Asset" -u "https://example.com/metadata.json"
+```
+
+_See code: [src/commands/create/asset.ts](https://github.com/metaplex-foundation/cli/blob/v0.0.0/src/commands/create/asset.ts)_
+
+## `mplx create collection [FILE]`
+
+describe the command here
+
+```
+USAGE
+  $ mplx create collection [FILE] [-f] [-n <value>]
+
+ARGUMENTS
+  FILE  file to read
+
+FLAGS
+  -f, --force
+  -n, --name=<value>  name to print
+
+DESCRIPTION
+  describe the command here
+
+EXAMPLES
+  $ mplx create collection
+```
+
+_See code: [src/commands/create/collection.ts](https://github.com/metaplex-foundation/cli/blob/v0.0.0/src/commands/create/collection.ts)_
+
+## `mplx fetch asset ASSET`
+
+Fetch an asset by mint
+
+```
+USAGE
+  $ mplx fetch asset ASSET [--json] [--log-level debug|warn|error|info|trace] [-k <value>] [-p <value>] [-r
+    <value>] [--commitment processed|confirmed|finalized] [-c <value>]
+
+ARGUMENTS
+  ASSET  Asset pubkey (mint) to fetch
+
+FLAGS
+  -c, --config=<value>       Path to config file. Default is ~/.config/mplx/config.json
+  -k, --keypair=<value>      Path to keypair file (/path/keypair.json) or ledger (e.g. usb://ledger?key=0)
+  -p, --payer=<value>        Path to keypair file (/path/keypair.json) or ledger (e.g. usb://ledger?key=0)
+  -r, --rpc=<value>          RPC URL for the cluster
+      --commitment=<option>  Commitment level
+                             <options: processed|confirmed|finalized>
+
+GLOBAL FLAGS
+  --json                Format output as json.
+  --log-level=<option>  [default: info] Specify level for logging.
+                        <options: debug|warn|error|info|trace>
+
+DESCRIPTION
+  Fetch an asset by mint
+
+EXAMPLES
+  $ mplx fetch asset --json
+
+  $ mplx fetch asset --log-level debug
+
+  $ mplx fetch asset --keypair /path/to/keypair.json
+
+  $ mplx fetch asset --keypair usb://ledger?key=0
+
+  $ mplx fetch asset --rpc http://localhost:8899
+
+  $ mplx fetch asset --commitment finalized
+
+  $ mplx fetch asset HaKyubAWuTS9AZkpUHtFkTKAHs1KKAJ3onZPmaP9zBpe
+```
+
+_See code: [src/commands/fetch/asset.ts](https://github.com/metaplex-foundation/cli/blob/v0.0.0/src/commands/fetch/asset.ts)_
 
 ## `mplx help [COMMAND]`
 
@@ -105,293 +316,23 @@ DESCRIPTION
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.16/src/commands/help.ts)_
 
-## `mplx plugins`
-
-List installed plugins.
+## `mplx version`
 
 ```
 USAGE
-  $ mplx plugins [--json] [--core]
+  $ mplx version [--json] [--verbose]
 
 FLAGS
-  --core  Show core plugins.
+  --verbose  Show additional information about the CLI.
 
 GLOBAL FLAGS
   --json  Format output as json.
 
-DESCRIPTION
-  List installed plugins.
+FLAG DESCRIPTIONS
+  --verbose  Show additional information about the CLI.
 
-EXAMPLES
-  $ mplx plugins
+    Additionally shows the architecture, node version, operating system, and versions of plugins that the CLI is using.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.15/src/commands/plugins/index.ts)_
-
-## `mplx plugins add PLUGIN`
-
-Installs a plugin into mplx.
-
-```
-USAGE
-  $ mplx plugins add PLUGIN... [--json] [-f] [-h] [-s | -v]
-
-ARGUMENTS
-  PLUGIN...  Plugin to install.
-
-FLAGS
-  -f, --force    Force npm to fetch remote resources even if a local copy exists on disk.
-  -h, --help     Show CLI help.
-  -s, --silent   Silences npm output.
-  -v, --verbose  Show verbose npm output.
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  Installs a plugin into mplx.
-
-  Uses npm to install plugins.
-
-  Installation of a user-installed plugin will override a core plugin.
-
-  Use the MPLX_NPM_LOG_LEVEL environment variable to set the npm loglevel.
-  Use the MPLX_NPM_REGISTRY environment variable to set the npm registry.
-
-ALIASES
-  $ mplx plugins add
-
-EXAMPLES
-  Install a plugin from npm registry.
-
-    $ mplx plugins add myplugin
-
-  Install a plugin from a github url.
-
-    $ mplx plugins add https://github.com/someuser/someplugin
-
-  Install a plugin from a github slug.
-
-    $ mplx plugins add someuser/someplugin
-```
-
-## `mplx plugins:inspect PLUGIN...`
-
-Displays installation properties of a plugin.
-
-```
-USAGE
-  $ mplx plugins inspect PLUGIN...
-
-ARGUMENTS
-  PLUGIN...  [default: .] Plugin to inspect.
-
-FLAGS
-  -h, --help     Show CLI help.
-  -v, --verbose
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  Displays installation properties of a plugin.
-
-EXAMPLES
-  $ mplx plugins inspect myplugin
-```
-
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.15/src/commands/plugins/inspect.ts)_
-
-## `mplx plugins install PLUGIN`
-
-Installs a plugin into mplx.
-
-```
-USAGE
-  $ mplx plugins install PLUGIN... [--json] [-f] [-h] [-s | -v]
-
-ARGUMENTS
-  PLUGIN...  Plugin to install.
-
-FLAGS
-  -f, --force    Force npm to fetch remote resources even if a local copy exists on disk.
-  -h, --help     Show CLI help.
-  -s, --silent   Silences npm output.
-  -v, --verbose  Show verbose npm output.
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  Installs a plugin into mplx.
-
-  Uses npm to install plugins.
-
-  Installation of a user-installed plugin will override a core plugin.
-
-  Use the MPLX_NPM_LOG_LEVEL environment variable to set the npm loglevel.
-  Use the MPLX_NPM_REGISTRY environment variable to set the npm registry.
-
-ALIASES
-  $ mplx plugins add
-
-EXAMPLES
-  Install a plugin from npm registry.
-
-    $ mplx plugins install myplugin
-
-  Install a plugin from a github url.
-
-    $ mplx plugins install https://github.com/someuser/someplugin
-
-  Install a plugin from a github slug.
-
-    $ mplx plugins install someuser/someplugin
-```
-
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.15/src/commands/plugins/install.ts)_
-
-## `mplx plugins link PATH`
-
-Links a plugin into the CLI for development.
-
-```
-USAGE
-  $ mplx plugins link PATH [-h] [--install] [-v]
-
-ARGUMENTS
-  PATH  [default: .] path to plugin
-
-FLAGS
-  -h, --help          Show CLI help.
-  -v, --verbose
-      --[no-]install  Install dependencies after linking the plugin.
-
-DESCRIPTION
-  Links a plugin into the CLI for development.
-
-  Installation of a linked plugin will override a user-installed or core plugin.
-
-  e.g. If you have a user-installed or core plugin that has a 'hello' command, installing a linked plugin with a 'hello'
-  command will override the user-installed or core plugin implementation. This is useful for development work.
-
-
-EXAMPLES
-  $ mplx plugins link myplugin
-```
-
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.15/src/commands/plugins/link.ts)_
-
-## `mplx plugins remove [PLUGIN]`
-
-Removes a plugin from the CLI.
-
-```
-USAGE
-  $ mplx plugins remove [PLUGIN...] [-h] [-v]
-
-ARGUMENTS
-  PLUGIN...  plugin to uninstall
-
-FLAGS
-  -h, --help     Show CLI help.
-  -v, --verbose
-
-DESCRIPTION
-  Removes a plugin from the CLI.
-
-ALIASES
-  $ mplx plugins unlink
-  $ mplx plugins remove
-
-EXAMPLES
-  $ mplx plugins remove myplugin
-```
-
-## `mplx plugins reset`
-
-Remove all user-installed and linked plugins.
-
-```
-USAGE
-  $ mplx plugins reset [--hard] [--reinstall]
-
-FLAGS
-  --hard       Delete node_modules and package manager related files in addition to uninstalling plugins.
-  --reinstall  Reinstall all plugins after uninstalling.
-```
-
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.15/src/commands/plugins/reset.ts)_
-
-## `mplx plugins uninstall [PLUGIN]`
-
-Removes a plugin from the CLI.
-
-```
-USAGE
-  $ mplx plugins uninstall [PLUGIN...] [-h] [-v]
-
-ARGUMENTS
-  PLUGIN...  plugin to uninstall
-
-FLAGS
-  -h, --help     Show CLI help.
-  -v, --verbose
-
-DESCRIPTION
-  Removes a plugin from the CLI.
-
-ALIASES
-  $ mplx plugins unlink
-  $ mplx plugins remove
-
-EXAMPLES
-  $ mplx plugins uninstall myplugin
-```
-
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.15/src/commands/plugins/uninstall.ts)_
-
-## `mplx plugins unlink [PLUGIN]`
-
-Removes a plugin from the CLI.
-
-```
-USAGE
-  $ mplx plugins unlink [PLUGIN...] [-h] [-v]
-
-ARGUMENTS
-  PLUGIN...  plugin to uninstall
-
-FLAGS
-  -h, --help     Show CLI help.
-  -v, --verbose
-
-DESCRIPTION
-  Removes a plugin from the CLI.
-
-ALIASES
-  $ mplx plugins unlink
-  $ mplx plugins remove
-
-EXAMPLES
-  $ mplx plugins unlink myplugin
-```
-
-## `mplx plugins update`
-
-Update installed plugins.
-
-```
-USAGE
-  $ mplx plugins update [-h] [-v]
-
-FLAGS
-  -h, --help     Show CLI help.
-  -v, --verbose
-
-DESCRIPTION
-  Update installed plugins.
-```
-
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v5.4.15/src/commands/plugins/update.ts)_
+_See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/v2.2.15/src/commands/version.ts)_
 <!-- commandsstop -->

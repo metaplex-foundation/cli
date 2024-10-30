@@ -4,6 +4,7 @@ import {readJsonSync} from './file.js'
 import {fromWeb3JsKeypair} from '@metaplex-foundation/umi-web3js-adapters'
 import {createUmi} from '@metaplex-foundation/umi-bundle-defaults'
 import {Keypair as Web3JsKeypair} from '@solana/web3.js'
+import { DUMMY_UMI } from './util.js'
 
 export function createSignerFromFile(path: PathOrFileDescriptor): Signer {
   if (!path) {
@@ -13,10 +14,7 @@ export function createSignerFromFile(path: PathOrFileDescriptor): Signer {
   const secretKey = new Uint8Array(readJsonSync(path))
   const keypair = fromWeb3JsKeypair(Web3JsKeypair.fromSecretKey(secretKey))
 
-  // create a temporary umi to access eddsa methods
-  const umi = createUmi('https://api.devnet.solana.com')
-
-  const signer = createSignerFromKeypair(umi, keypair)
+  const signer = createSignerFromKeypair(DUMMY_UMI, keypair)
 
   return signer
 }

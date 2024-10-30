@@ -1,8 +1,7 @@
 import {Args, Command, Flags} from '@oclif/core'
 import { BaseCommand } from '../../BaseCommand.js'
-import { create, fetchAsset } from '@metaplex-foundation/mpl-core'
-import { generateSigner } from '@metaplex-foundation/umi'
-import { jsonStringify, txSignatureToString } from '../../lib/util.js'
+import { fetchAsset } from '@metaplex-foundation/mpl-core'
+import { jsonStringify } from '../../lib/util.js'
 
 export default class Asset extends BaseCommand<typeof Asset> {
   static override description = 'Fetch an asset by mint'

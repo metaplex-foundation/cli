@@ -1,8 +1,9 @@
 import {Args, Command, Flags} from '@oclif/core'
+import { BaseCommand } from '../../BaseCommand.js'
 
 // TODO copy asset 
 
-export default class Collection extends Command {
+export default class Collection extends BaseCommand<typeof Collection> {
   static override args = {
     file: Args.string({description: 'file to read'}),
   }

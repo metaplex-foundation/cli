@@ -1,10 +1,11 @@
-import { Commitment, Signer, signerIdentity, signerPayer, Umi } from "@metaplex-foundation/umi"
+import { Commitment, createNoopSigner, generateSigner, Signer, signerIdentity, signerPayer, Umi } from "@metaplex-foundation/umi"
 import { existsSync, lstatSync, PathLike, PathOrFileDescriptor } from "fs"
 import { readJsonSync } from "./file.js"
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults"
 import { createSignerFromFile } from "./FileSigner.js"
 import { mplCore } from "@metaplex-foundation/mpl-core"
 import { createSignerFromLedgerPath } from "./LedgerSigner.js"
+import { DUMMY_UMI } from "./util.js"
 
 export type ConfigJson = {
   keypair?: string,
@@ -52,7 +53,17 @@ export const readConfig = (path: string): ConfigJson => {
 }
 
 export const createSignerFromPath = async (path: string): Promise<Signer> => {
-  return path.startsWith('usb://') ? createSignerFromLedgerPath(path) : createSignerFromFile(path)
+  if (path.startsWith('usb://')) {
+    return createSignerFromLedgerPath(path)
+  } else if (existsSync(path)) {
+    return createSignerFromFile(path)
+  } else {
+    // TODO move this warning to a better place
+    console.log('[warning]: No keypair specified, using temporary noop-signer')
+    // create no-op signer if no key is specified
+    const kp = generateSigner(DUMMY_UMI)
+    return createNoopSigner(kp.publicKey)
+  }
 }
 
 export function consolidateConfigs<T>(...configs: Partial<ConfigJson>[]): ConfigJson {

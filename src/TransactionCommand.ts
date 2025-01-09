@@ -4,8 +4,11 @@ import {Command, Flags, Interfaces} from '@oclif/core'
 
 import {Context, createContext, getDefaultConfigPath} from './lib/Context.js'
 import {StandardColors} from './lib/StandardColors.js'
+import {BaseCommand} from './BaseCommand.js'
 
-export type Flags<T extends typeof Command> = Interfaces.InferredFlags<T['flags'] & (typeof BaseCommand)['baseFlags']>
+export type Flags<T extends typeof Command> = Interfaces.InferredFlags<
+  T['flags'] & (typeof TransactionCommand)['baseFlags']
+>
 export type Args<T extends typeof Command> = Interfaces.InferredArgs<T['args']>
 
 /* 
@@ -13,7 +16,6 @@ export type Args<T extends typeof Command> = Interfaces.InferredArgs<T['args']>
   TODO - Move transactional flags and examples to another command class extension to 
   allow base command to be used for non-transactional commands.
 
-  Each should extend the previous to allow for a more granular approach.
   Command -> BaseCommand -> TransactionCommand
 
   --keypair, --payer, --commitment, --rpc
@@ -22,7 +24,7 @@ export type Args<T extends typeof Command> = Interfaces.InferredArgs<T['args']>
 
 */
 
-export abstract class BaseCommand<T extends typeof Command> extends Command {
+export abstract class TransactionCommand<T extends typeof Command> extends Command {
   static baseExamples = [
     '<%= config.bin %> <%= command.id %> --json',
     '<%= config.bin %> <%= command.id %> --log-level debug',

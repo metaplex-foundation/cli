@@ -10,15 +10,5 @@ module.exports = {
     '@oclif/plugin-version',
   ],
   topicSeparator: ' ',
-  topics: {
-    config: {
-      description: 'Manage CLI configuration',
-    },
-    create: {
-      description: 'Create digital assets',
-    },
-    fetch: {
-      description: 'Fetch digital assets',
-    },
-  },
-}
+
+};

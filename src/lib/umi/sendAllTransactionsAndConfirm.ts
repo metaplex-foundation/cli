@@ -1,6 +1,5 @@
 import {TransactionBuilder, Umi} from '@metaplex-foundation/umi'
 import cliProgress from 'cli-progress'
-import ora from 'ora'
 import confirmAllTransactions, {UmiTransactionConfirmationResult} from './confirmAllTransactions.js'
 import umiSendAllTransactions from './sendAllTransactions.js'
 import {UmiSendAllOptions} from './sendOptions.js'
@@ -39,7 +38,7 @@ const umiSendAllTransactionsAndConfirm = async (
 
   // Return summary of all transactions and write failed transactions to file
   // spinner.succeed('All transactions sent and confirmed')
-  
+
   return res.map((transaction, index) => {
     return {
       transaction,

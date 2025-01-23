@@ -9,17 +9,18 @@ import {
 } from '@metaplex-foundation/umi'
 import {Flags} from '@oclif/core'
 
+import {JsonMetadata} from '@metaplex-foundation/mpl-token-metadata'
+import {base58} from '@metaplex-foundation/umi/serializers'
 import mime from 'mime'
 import fs from 'node:fs'
 import ora from 'ora'
-import pluginConfigurator, {mapPluginDataToArray} from '../../../lib/core/pluginInquirer.js'
-import {PluginFilterType, pluginSelector} from '../../../lib/core/pluginSelector.js'
+
+import umiSendAllTransactionsAndConfirm from '../../../lib/umi/sendAllTransactionsAndConfirm.js'
 import {terminalColors, txSignatureToString} from '../../../lib/util.js'
 import {TransactionCommand} from '../../../TransactionCommand.js'
-import {JsonMetadata} from '@metaplex-foundation/mpl-token-metadata'
-import {file} from '@oclif/core/args'
-import umiSendAllTransactionsAndConfirm from '../../../lib/umi/sendAllTransactionsAndConfirm.js'
-import {base58} from '@metaplex-foundation/umi/serializers'
+import {PluginFilterType, pluginSelector} from '../../../prompts/pluginSelector.js'
+import pluginConfigurator, {mapPluginDataToArray} from '../../../prompts/pluginInquirer.js'
+import {PluginData} from '../../../lib/types/pluginData.js'
 
 /* 
   Create Possibilities:
@@ -28,9 +29,11 @@ import {base58} from '@metaplex-foundation/umi/serializers'
 
   2. Create a single Asset by providing an image file to upload and a JSON file to upload and assign to the Asset.
 
-  3. Create multiple Assets by providing a folder path with JSON files named sequentially ie (1.json, 2.json, 3.json) containing the metadata.
+  3. Create multiple Assets by providing a folder path with JSON files named sequentially ie (1.json, 2.json, 3.json) containing the offchain metadata.
 
   4. Create multiple Assets by providing a folder path both JSON files and image files named sequentially ie (1.json, 1.png, 2.json, 2.png, 3.json, 3.png) to upload and assign to the Assets.
+
+  TODO - For single Asset creation, allow for the user to mint multiple copies of the same Asset via a flag(s).
 
 */
 
@@ -59,20 +62,18 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
   static override flags = {
     // new flag group
-    name: Flags.string({name: 'name', char: 'n', description: 'Asset name'}),
-    uri: Flags.string({name: 'uri', char: 'u', description: 'URI of the Asset metadata'}),
+    name: Flags.string({name: 'name', description: 'Asset name'}),
+    uri: Flags.string({name: 'uri', description: 'URI of the Asset metadata'}),
     collectionId: Flags.string({name: 'collection', description: 'Collection ID'}),
     // new from files group
     files: Flags.boolean({
       name: 'files',
-      char: 'f',
       summary: 'Signify that the files are being uploaded -i/--image and -j/--json are required',
       description:
         'The --files -f flag allows the user to create a Core Digital asset buy providing both an image and metadata file.',
     }),
     image: Flags.directory({
       name: 'image',
-      char: 'i',
       description: 'path to image file to upload and assign to Asset',
       dependsOn: ['files'],
       exclusive: ['--name', '-n', '--uri', '-u'],
@@ -80,19 +81,14 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     }),
     json: Flags.directory({
       name: 'json',
-      char: 'j',
       description: 'path to JSON file to upload and assign to Asset',
       dependsOn: ['files'],
       exclusive: ['name', 'uri'],
       hidden: true,
     }),
-    plugins: Flags.string({name: 'plugins', description: 'Path to a json file with plugin data'}),
+    plugins: Flags.directory({name: 'plugins', description: 'Path to a json file with plugin data'}),
     directory: Flags.directory({name: 'directory', description: 'Directory of which to create Assets from'}),
   }
-
-  // static override args = {
-  //   file: Args.string({description: 'file to read'}),
-  // }
 
   public async run(): Promise<unknown> {
     const {args, flags} = await this.parse(AssetCreate)
@@ -117,7 +113,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     let pluginConfigurationData
 
     if (plugins) {
-      pluginConfigurationData = JSON.parse(fs.readFileSync(plugins, 'utf-8'))
+      pluginConfigurationData = JSON.parse(fs.readFileSync(plugins, 'utf-8')) as PluginData
     } else {
       const selectedPlugins = await pluginSelector(PluginFilterType.Asset)
 

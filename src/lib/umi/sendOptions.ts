@@ -8,4 +8,7 @@ export interface UmiSendOptions {
 
 export interface UmiSendAllOptions extends UmiSendOptions {
   batchSize?: number
+  onSendStart?: () => void
+  onSendProgress?: () => void
+  onConfirmProgress?: () => void
 }

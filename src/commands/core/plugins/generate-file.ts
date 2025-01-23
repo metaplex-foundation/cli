@@ -2,8 +2,8 @@ import {Args, Flags} from '@oclif/core'
 
 import fs from 'node:fs'
 import {BaseCommand} from '../../../BaseCommand.js'
-import pluginConfigurator, {mapPluginDataToArray} from '../../../lib/core/pluginInquirer.js'
-import {PluginFilterType, pluginSelector} from '../../../lib/core/pluginSelector.js'
+import {PluginFilterType, pluginSelector} from '../../../prompts/pluginSelector.js'
+import pluginConfigurator, {mapPluginDataToArray} from '../../../prompts/pluginInquirer.js'
 
 /* 
   Plugins - Generate File Possibilities:

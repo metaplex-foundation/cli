@@ -1,5 +1,5 @@
 import inquirer from 'inquirer'
-import {Plugin} from './pluginInquirer.js'
+import {Plugin} from '../lib/types/pluginData.js'
 
 export enum PluginFilterType {
   Common,

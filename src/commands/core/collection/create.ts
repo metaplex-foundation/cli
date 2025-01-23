@@ -1,15 +1,14 @@
-import {createCollection, plugin} from '@metaplex-foundation/mpl-core'
+import {createCollection} from '@metaplex-foundation/mpl-core'
 import {createGenericFile, generateSigner} from '@metaplex-foundation/umi'
 import {Flags} from '@oclif/core'
 
-import inquirer from 'inquirer'
 import mime from 'mime'
 import fs from 'node:fs'
 import ora from 'ora'
 import {BaseCommand} from '../../../BaseCommand.js'
-import pluginConfigurator, {mapPluginDataToArray} from '../../../lib/core/pluginInquirer.js'
 import {txSignatureToString} from '../../../lib/util.js'
-import {PluginFilterType, pluginSelector} from '../../../lib/core/pluginSelector.js'
+import pluginConfigurator, {mapPluginDataToArray} from '../../../prompts/pluginInquirer.js'
+import {PluginFilterType, pluginSelector} from '../../../prompts/pluginSelector.js'
 
 export default class CollectionCreate extends BaseCommand<typeof CollectionCreate> {
   static override description = 'Create an MPL Core Collection'

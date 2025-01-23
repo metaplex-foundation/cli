@@ -10,15 +10,7 @@ export type Args<T extends typeof Command> = Interfaces.InferredArgs<T['args']>
 
 /* 
 
-  TODO - Move transactional flags and examples to another command class extension to 
-  allow base command to be used for non-transactional commands.
-
-  Each should extend the previous to allow for a more granular approach.
-  Command -> BaseCommand -> TransactionCommand
-
-  --keypair, --payer, --commitment, --rpc
-  are not needed for non-transactional commands and could free up some shorthand flags
-  or at least remove them from the help menus where they are not of use.
+  TODO - Cleanout base command of helper flags that are not needed for non transactional commands.
 
 */
 

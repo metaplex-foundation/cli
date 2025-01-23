@@ -5,7 +5,6 @@ import mime from 'mime-types'
 import fetch from 'node-fetch'
 import fs from 'node:fs'
 import {basename} from 'node:path'
-import {abort} from 'node:process'
 import ora from 'ora'
 import {BaseCommand} from '../../../BaseCommand.js'
 
@@ -16,8 +15,10 @@ import {BaseCommand} from '../../../BaseCommand.js'
 
   2. Fetch a single Asset by providing the Asset ID and download the metadata and image to disk.
 
+  TODO
   3. Fetch multiple Assets by providing multiple Asset IDs from a .txt/.csv/json file and save metadata and image to disk (original or DAS format).
 
+  TODO
   4. Fetch multiple Assets by providing a collection ID and save metadata and image to disk (original or DAS format).
 
 */
@@ -35,10 +36,8 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
   ]
 
   static flags = {
-    download: Flags.boolean({name: 'download', char: 'd', description: 'downloads the asset data'}),
     output: Flags.string({
       name: 'output',
-      char: 'o',
       description: 'output directory of the downloaded asset. If not present current folder will be used.',
     }),
   }
@@ -49,7 +48,7 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
     const {umi} = this.context
     const asset = await fetchAsset(umi, args.asset)
 
-    if (flags.download) {
+    if (flags.output) {
       this.log(`Downloading Asset ${args.asset}`)
       const directory = flags.output || process.cwd()
 

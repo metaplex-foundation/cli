@@ -1,13 +1,10 @@
-import {Args, Flags} from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 
-import {TransactionBuilder} from '@metaplex-foundation/umi'
-import fs, {readFileSync} from 'node:fs'
+import { readFileSync } from 'node:fs'
 import ora from 'ora'
-import {BaseCommand} from '../../../BaseCommand.js'
-import burnAssetTx from '../../../lib/core/burn/burnAssetTx.js'
-import umiSendAllTransactionsAndConfirm from '../../../lib/umi/sendAllTransactionsAndConfirm.js'
-import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
+import { BaseCommand } from '../../../BaseCommand.js'
 import burnBatch from '../../../lib/core/burn/batchBurn.js'
+import burnAsset from '../../../lib/core/burn/burnAsset.js'
 
 /* 
     Options for potential list burn implementation:
@@ -66,7 +63,7 @@ export default class AssetBurn extends BaseCommand<typeof AssetBurn> {
       // Burn all assets in list
       this.log('Burning assets from list')
 
-      const assetsList = JSON.parse(readFileSync(flags.list, 'utf-8'))
+      const assetsList: string[] = JSON.parse(readFileSync(flags.list, 'utf-8'))
 
       await burnBatch(umi, assetsList, flags.collection)
     } else {
@@ -75,10 +72,8 @@ export default class AssetBurn extends BaseCommand<typeof AssetBurn> {
         this.error('No asset provided')
       }
 
-      const transaction = await burnAssetTx(umi, args.asset, flags.collection)
-
       const transactionSpinner = ora('Burning asset...').start()
-      await umiSendAndConfirmTransaction(umi, transaction)
+      await burnAsset(umi, args.asset, flags.collection)
         .then((signature) => transactionSpinner.succeed(`Asset burned: ${signature}`))
         .catch((error) => {
           transactionSpinner.fail('Failed to burn asset')

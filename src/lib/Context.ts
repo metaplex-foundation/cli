@@ -32,6 +32,10 @@ export type ConfigJson = {
     path: string
     address: string
   }[]
+  rpcs?: {
+    name: string
+    endpoint: string
+  }[]
 }
 
 export type Context = {
@@ -48,7 +52,15 @@ export const DEFAULT_CONFIG = {
   rpcUrl: 'https://api.devnet.solana.com',
 }
 
-export const CONFIG_KEYS: Array<keyof ConfigJson> = ['keypair', 'payer', 'rpcUrl', 'commitment', 'storage', 'wallets']
+export const CONFIG_KEYS: Array<keyof ConfigJson> = [
+  'keypair',
+  'payer',
+  'rpcUrl',
+  'commitment',
+  'storage',
+  'wallets',
+  'rpcs',
+]
 
 export const getDefaultConfigPath = (prefix: string): string => `${prefix}/config.json`
 

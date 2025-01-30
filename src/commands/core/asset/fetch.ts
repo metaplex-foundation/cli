@@ -1,12 +1,9 @@
-import {fetchAsset} from '@metaplex-foundation/mpl-core'
-import {Args, Flags} from '@oclif/core'
+import {Flags} from '@oclif/core'
 
-import mime from 'mime-types'
-import fetch from 'node-fetch'
 import fs from 'node:fs'
-import {basename} from 'node:path'
-import ora from 'ora'
 import {BaseCommand} from '../../../BaseCommand.js'
+import batchFetchCoreAssets from '../../../lib/core/fetch/batchFetch.js'
+import fetchCoreAsset from '../../../lib/core/fetch/fetch.js'
 
 /* 
   Fetch Possibilities:
@@ -24,10 +21,6 @@ import {BaseCommand} from '../../../BaseCommand.js'
 */
 
 export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
-  static args = {
-    asset: Args.string({description: 'Asset pubkey (mint) to fetch', required: true}),
-  }
-
   static description = 'Fetch an asset by mint'
 
   static examples = [
@@ -36,86 +29,34 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
   ]
 
   static flags = {
+    asset: Flags.string({name: 'asset', description: 'The asset ID to fetch'}),
+    assetList: Flags.directory({name: 'assetList', description: 'A file containing a list of asset IDs to fetch'}),
     output: Flags.string({
       name: 'output',
       description: 'output directory of the downloaded asset. If not present current folder will be used.',
     }),
+    image: Flags.boolean({
+      name: 'image',
+      description: 'Download the image file',
+    }),
+    metadata: Flags.boolean({
+      name: 'metadata',
+      description: 'Download the offchain metadata file',
+    }),
   }
 
-  public async run(): Promise<unknown> {
+  public async run() {
     const {args, flags} = await this.parse(AssetFetch)
 
     const {umi} = this.context
-    const asset = await fetchAsset(umi, args.asset)
 
-    if (flags.output) {
-      this.log(`Downloading Asset ${args.asset}`)
-      const directory = flags.output || process.cwd()
-
-      // download JSON metadata
-      const uri = asset.uri
-
-      const metadataSpinner = ora('Downloading Metadata...').start()
-      //TODO: Replace 'any' with offchain object type.
-      const jsonFile: any = await fetch(uri)
-        .then(async (res) => {
-          metadataSpinner.succeed(`Metadata downloaded`)
-          return await res.json()
-        })
-        .catch((err) => {
-          metadataSpinner.fail(`Failed to fetch offchain metadata. ${err}`)
-        })
-
-      // download image
-      const imageSpinner = ora('Downloading image...').start()
-      const image = await fetch(jsonFile.image)
-        .then(async (res) => {
-          const contentType = res.headers.get('content-type')
-
-          const ext = contentType && mime.extension(contentType)
-
-          const fileName = basename(jsonFile.image) + (ext && `.${ext}`)
-
-          const data = await res.arrayBuffer()
-
-          imageSpinner.succeed('Image download')
-          return {
-            fileName,
-            ext,
-            data,
-          }
-        })
-        .catch((err) => {
-          metadataSpinner.fail(`Failed to fetch offchain metadata. ${err}`)
-        })
-
-      // Write files to directory
-      if (!jsonFile && !image) {
-        this.log('No files to write to disk. Aborting.')
-        return
-      }
-
-      const fileWritingSpinner = ora('Writing files to directory...')
-
-      const assetDirectory = directory + `/${args.asset}`
-
-      const dirExists = fs.existsSync(assetDirectory)
-
-      if (!dirExists && (jsonFile || image)) {
-        fs.mkdirSync(assetDirectory, {recursive: true})
-      }
-
-      //TODO: Error checks on write
-      // write metadata file to disk
-      jsonFile && fs.writeFileSync(assetDirectory + '/metadata.json', JSON.stringify(jsonFile, null, 2))
-
-      // write image file to disk
-      image && fs.writeFileSync(assetDirectory + `/image.${image.ext}`, new Uint8Array(image.data))
-
-      fileWritingSpinner.succeed(`Files written to ${assetDirectory}`)
+    if (flags.asset) {
+      // fetch a single asset
+      await fetchCoreAsset(umi, flags.asset, {groupFiles: false, outputPath: flags.output})
+    } else if (flags.assetList) {
+      // fetch multiple assets
+      const assets = fs.readFileSync(flags.assetList, 'utf-8').split('\n')
+      await batchFetchCoreAssets(umi, assets, {groupFiles: false, outputDirectory: flags.output})
     }
-
-    // this.log(jsonStringify(asset, 2))
-    return asset
   }
 }

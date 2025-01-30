@@ -15,22 +15,10 @@ export type Args<T extends typeof Command> = Interfaces.InferredArgs<T['args']>
 */
 
 export abstract class BaseCommand<T extends typeof Command> extends Command {
-  static baseExamples = [
-    '<%= config.bin %> <%= command.id %> --json',
-    '<%= config.bin %> <%= command.id %> --log-level debug',
-    '<%= config.bin %> <%= command.id %> --keypair /path/to/keypair.json',
-    '<%= config.bin %> <%= command.id %> --keypair usb://ledger?key=0',
-    '<%= config.bin %> <%= command.id %> --rpc http://localhost:8899',
-    '<%= config.bin %> <%= command.id %> --commitment finalized',
-  ]
+  static baseExamples = []
 
   // define flags that can be inherited by any command that extends BaseCommand
   static baseFlags = {
-    commitment: Flags.string({
-      options: ['processed', 'confirmed', 'finalized'] as const,
-      summary: 'Commitment level',
-      helpGroup: 'GLOBAL',
-    }),
     config: Flags.file({
       char: 'c',
       description: 'Path to config file. Default is ~/.config/mplx/config.json',
@@ -50,11 +38,6 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
     payer: Flags.string({
       char: 'p',
       summary: 'Path to keypair file (/path/keypair.json) or ledger (e.g. usb://ledger?key=0)',
-      helpGroup: 'GLOBAL',
-    }),
-    rpc: Flags.string({
-      char: 'r',
-      summary: 'RPC URL for the cluster',
       helpGroup: 'GLOBAL',
     }),
   }

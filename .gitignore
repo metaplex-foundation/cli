@@ -7,6 +7,9 @@
 /node_modules
 oclif.manifest.json
 
+# test folders
+/asset
+/collection
 
 yarn.lock
 package-lock.json

@@ -11,9 +11,11 @@ import {
 import {createUmi} from '@metaplex-foundation/umi-bundle-defaults'
 import {existsSync, lstatSync} from 'node:fs'
 
+import {IrysUploaderOptions} from '@metaplex-foundation/umi-uploader-irys'
 import {createSignerFromFile} from './FileSigner.js'
 import {createSignerFromLedgerPath} from './LedgerSigner.js'
 import {readJsonSync} from './file.js'
+import initStorageProvider from './uploader/initStorageProvider.js'
 import {DUMMY_UMI} from './util.js'
 
 export type ConfigJson = {
@@ -21,6 +23,19 @@ export type ConfigJson = {
   keypair?: string
   payer?: string
   rpcUrl?: string
+  storage?: {
+    name: 'irys' | 'arTurbo'
+    options: IrysUploaderOptions
+  }
+  wallets?: {
+    name: string
+    path: string
+    address: string
+  }[]
+  rpcs?: {
+    name: string
+    endpoint: string
+  }[]
 }
 
 export type Context = {
@@ -37,7 +52,15 @@ export const DEFAULT_CONFIG = {
   rpcUrl: 'https://api.devnet.solana.com',
 }
 
-export const CONFIG_KEYS: Array<keyof ConfigJson> = ['keypair', 'payer', 'rpcUrl', 'commitment']
+export const CONFIG_KEYS: Array<keyof ConfigJson> = [
+  'keypair',
+  'payer',
+  'rpcUrl',
+  'commitment',
+  'storage',
+  'wallets',
+  'rpcs',
+]
 
 export const getDefaultConfigPath = (prefix: string): string => `${prefix}/config.json`
 
@@ -97,11 +120,17 @@ export const createContext = async (configPath: string, overrides: ConfigJson): 
   const signer = await createSignerFromPath(config.keypair!)
 
   const payer = config.payer ? await createSignerFromPath(config.payer) : signer
+
   const umi = createUmi(config.rpcUrl!, {
     commitment: config.commitment!,
   })
 
   umi.use(signerIdentity(signer)).use(signerPayer(payer)).use(mplCore())
+
+  if (config.storage) {
+    const storageProvider = initStorageProvider(config)
+    storageProvider && umi.use(storageProvider)
+  }
 
   return {
     commitment: config.commitment!,

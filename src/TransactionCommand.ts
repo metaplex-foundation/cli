@@ -4,21 +4,38 @@ import {Command, Flags, Interfaces} from '@oclif/core'
 
 import {Context, createContext, getDefaultConfigPath} from './lib/Context.js'
 import {StandardColors} from './lib/StandardColors.js'
+import {BaseCommand} from './BaseCommand.js'
 
-export type Flags<T extends typeof Command> = Interfaces.InferredFlags<T['flags'] & (typeof BaseCommand)['baseFlags']>
+export type Flags<T extends typeof Command> = Interfaces.InferredFlags<
+  T['flags'] & (typeof TransactionCommand)['baseFlags']
+>
 export type Args<T extends typeof Command> = Interfaces.InferredArgs<T['args']>
 
 /* 
 
-  TODO - Cleanout base command of helper flags that are not needed for non transactional commands.
+  TODO - Move transactional flags and examples to another command class extension to 
+  allow base command to be used for non-transactional commands.
+
 
 */
 
-export abstract class BaseCommand<T extends typeof Command> extends Command {
-  static baseExamples = []
+export abstract class TransactionCommand<T extends typeof Command> extends Command {
+  static baseExamples = [
+    '<%= config.bin %> <%= command.id %> --json',
+    '<%= config.bin %> <%= command.id %> --log-level debug',
+    '<%= config.bin %> <%= command.id %> --keypair /path/to/keypair.json',
+    '<%= config.bin %> <%= command.id %> --keypair usb://ledger?key=0',
+    '<%= config.bin %> <%= command.id %> --rpc http://localhost:8899',
+    '<%= config.bin %> <%= command.id %> --commitment finalized',
+  ]
 
   // define flags that can be inherited by any command that extends BaseCommand
   static baseFlags = {
+    commitment: Flags.string({
+      options: ['processed', 'confirmed', 'finalized'] as const,
+      summary: 'Commitment level',
+      helpGroup: 'GLOBAL',
+    }),
     config: Flags.file({
       char: 'c',
       description: 'Path to config file. Default is ~/.config/mplx/config.json',
@@ -38,6 +55,11 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
     payer: Flags.string({
       char: 'p',
       summary: 'Path to keypair file (/path/keypair.json) or ledger (e.g. usb://ledger?key=0)',
+      helpGroup: 'GLOBAL',
+    }),
+    rpc: Flags.string({
+      char: 'r',
+      summary: 'RPC URL for the cluster',
       helpGroup: 'GLOBAL',
     }),
   }

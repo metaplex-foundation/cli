@@ -1,14 +1,11 @@
 import {Args, Command, Flags} from '@oclif/core'
-import { BaseCommand } from '../../BaseCommand.js'
 
-// TODO copy asset 
-
-export default class Collection extends BaseCommand<typeof Collection> {
+export default class Core extends Command {
   static override args = {
     file: Args.string({description: 'file to read'}),
   }
 
-  static override description = 'describe the command here'
+  static override description = 'MPL Core Program'
 
   static override examples = [
     '<%= config.bin %> <%= command.id %>',
@@ -22,10 +19,10 @@ export default class Collection extends BaseCommand<typeof Collection> {
   }
 
   public async run(): Promise<void> {
-    const {args, flags} = await this.parse(Collection)
+    const {args, flags} = await this.parse(Core)
 
     const name = flags.name ?? 'world'
-    this.log(`hello ${name} from /Users/nhan/src/cli/src/commands/create/collection.ts`)
+    this.log(`hello ${name} from C:\\Users\\tony\\Development\\metaplex\\cli\\src\\commands\\core.ts`)
     if (args.file && flags.force) {
       this.log(`you input --force and --file: ${args.file}`)
     }

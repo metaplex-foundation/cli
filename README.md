@@ -1,338 +1,207 @@
-cli
-=================
-
-Metaplex universal CLI
-
+# Metaplex CLI
 
 [![oclif](https://img.shields.io/badge/cli-oclif-brightgreen.svg)](https://oclif.io)
 [![Version](https://img.shields.io/npm/v/cli.svg)](https://npmjs.org/package/cli)
 [![Downloads/week](https://img.shields.io/npm/dw/cli.svg)](https://npmjs.org/package/cli)
 
+A powerful command-line interface for interacting with the Metaplex ecosystem on Solana. This CLI provides tools for managing digital assets, collections, tokens, and more.
 
-<!-- toc -->
-* [Usage](#usage)
-* [Commands](#commands)
-<!-- tocstop -->
-# Usage
-<!-- usage -->
-```sh-session
-$ npm install -g @metaplex-foundation/cli
-$ mplx COMMAND
-running command...
-$ mplx (--version)
-@metaplex-foundation/cli/0.0.0 darwin-arm64 node-v20.18.0
-$ mplx --help [COMMAND]
-USAGE
-  $ mplx COMMAND
-...
-```
-<!-- usagestop -->
-# Commands
-<!-- commands -->
-* [`mplx autocomplete [SHELL]`](#mplx-autocomplete-shell)
-* [`mplx commands`](#mplx-commands)
-* [`mplx config`](#mplx-config)
-* [`mplx config get KEY`](#mplx-config-get-key)
-* [`mplx config set KEY VALUE`](#mplx-config-set-key-value)
-* [`mplx create asset`](#mplx-create-asset)
-* [`mplx create collection [FILE]`](#mplx-create-collection-file)
-* [`mplx fetch asset ASSET`](#mplx-fetch-asset-asset)
-* [`mplx help [COMMAND]`](#mplx-help-command)
-* [`mplx version`](#mplx-version)
+## Table of Contents
 
-## `mplx autocomplete [SHELL]`
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Command Structure](#command-structure)
+- [Documentation](#documentation)
+- [Development](#development)
+- [Contributing](#contributing)
 
-Display autocomplete installation instructions.
+## Installation
 
-```
-USAGE
-  $ mplx autocomplete [SHELL] [-r]
-
-ARGUMENTS
-  SHELL  (zsh|bash|powershell) Shell type
-
-FLAGS
-  -r, --refresh-cache  Refresh cache (ignores displaying instructions)
-
-DESCRIPTION
-  Display autocomplete installation instructions.
-
-EXAMPLES
-  $ mplx autocomplete
-
-  $ mplx autocomplete bash
-
-  $ mplx autocomplete zsh
-
-  $ mplx autocomplete powershell
-
-  $ mplx autocomplete --refresh-cache
+### NPM Installation (Coming Soon)
+```sh
+npm install -g @metaplex-foundation/cli
 ```
 
-_See code: [@oclif/plugin-autocomplete](https://github.com/oclif/plugin-autocomplete/blob/v3.2.7/src/commands/autocomplete/index.ts)_
-
-## `mplx commands`
-
-List all mplx commands.
-
-```
-USAGE
-  $ mplx commands [--json] [-c id|plugin|summary|type... | --tree] [--deprecated] [-x | ] [--hidden]
-    [--no-truncate | ] [--sort id|plugin|summary|type | ]
-
-FLAGS
-  -c, --columns=<option>...  Only show provided columns (comma-separated).
-                             <options: id|plugin|summary|type>
-  -x, --extended             Show extra columns.
-      --deprecated           Show deprecated commands.
-      --hidden               Show hidden commands.
-      --no-truncate          Do not truncate output.
-      --sort=<option>        [default: id] Property to sort by.
-                             <options: id|plugin|summary|type>
-      --tree                 Show tree of commands.
-
-GLOBAL FLAGS
-  --json  Format output as json.
-
-DESCRIPTION
-  List all mplx commands.
+### Development Installation
+```sh
+git clone https://github.com/metaplex-foundation/cli.git
+cd cli
+npm install
+npm run build
+npm run mplx
 ```
 
-_See code: [@oclif/plugin-commands](https://github.com/oclif/plugin-commands/blob/v4.1.5/src/commands/commands.ts)_
+When running the development installation, you can use the `npm run mplx <command>` command to start the CLI.
 
-## `mplx config`
+## Quick Start
 
-Show the current config
-
-```
-USAGE
-  $ mplx config [-c <value>]
-
-FLAGS
-  -c, --config=<value>  path to config file. Default is ~/.config/mplx/config.json
-
-DESCRIPTION
-  Show the current config
-
-EXAMPLES
-  $ mplx config
+1. Configure your environment:
+```sh
+mplx config set rpcUrl https://api.devnet.solana.com
+mplx config set keypair /path/to/your/keypair.json
 ```
 
-_See code: [src/commands/config/index.ts](https://github.com/metaplex-foundation/cli/blob/v0.0.0/src/commands/config/index.ts)_
-
-## `mplx config get KEY`
-
-Get a config value from a key
-
-```
-USAGE
-  $ mplx config get KEY [-c <value>]
-
-ARGUMENTS
-  KEY  (rpcUrl|commitment|payer|keypair) The key to get
-
-FLAGS
-  -c, --config=<value>  path to config file. Default is ~/.config/mplx/config.json
-
-DESCRIPTION
-  Get a config value from a key
-
-EXAMPLES
-  $ mplx config get keypair
-
-  $ mplx config get payer
-
-  $ mplx config get rpcUrl
-
-  $ mplx config get commitment
+2. Create your first asset:
+```sh
+mplx core asset create --name "My Asset" --uri "https://example.com/metadata.json"
 ```
 
-_See code: [src/commands/config/get.ts](https://github.com/metaplex-foundation/cli/blob/v0.0.0/src/commands/config/get.ts)_
-
-## `mplx config set KEY VALUE`
-
-Set a config value from a key
-
-```
-USAGE
-  $ mplx config set KEY VALUE [-c <value>]
-
-ARGUMENTS
-  KEY    (rpcUrl|commitment|payer|keypair) The key to set
-  VALUE  The value to set
-
-FLAGS
-  -c, --config=<value>  path to config file. Default is ~/.config/mplx/config.json
-
-DESCRIPTION
-  Set a config value from a key
-
-EXAMPLES
-  $ mplx config set keypair /path/to/keypair.json
-
-  $ mplx config set payer /path/to/keypair.json
-
-  $ mplx config set rpcUrl http://localhost:8899
-
-  $ mplx config set commitment confirmed
+3. View help for any command:
+```sh
+mplx help [COMMAND]
 ```
 
-_See code: [src/commands/config/set.ts](https://github.com/metaplex-foundation/cli/blob/v0.0.0/src/commands/config/set.ts)_
+## Command Structure
 
-## `mplx create asset`
+Commands follow the format: `mplx <program> <object> <command> [flags]`
 
-Create an asset
-
-```
-USAGE
-  $ mplx create asset -n <value> -u <value> [--json] [--log-level debug|warn|error|info|trace] [-k <value>] [-p
-    <value>] [-r <value>] [--commitment processed|confirmed|finalized] [-c <value>] [-s core]
-
-FLAGS
-  -c, --config=<value>       Path to config file. Default is ~/.config/mplx/config.json
-  -k, --keypair=<value>      Path to keypair file (/path/keypair.json) or ledger (e.g. usb://ledger?key=0)
-  -n, --name=<value>         (required) Asset name
-  -p, --payer=<value>        Path to keypair file (/path/keypair.json) or ledger (e.g. usb://ledger?key=0)
-  -r, --rpc=<value>          RPC URL for the cluster
-  -s, --standard=<option>    [default: core] Asset standard
-                             <options: core>
-  -u, --uri=<value>          (required) Asset metadata URI
-      --commitment=<option>  Commitment level
-                             <options: processed|confirmed|finalized>
-
-GLOBAL FLAGS
-  --json                Format output as json.
-  --log-level=<option>  [default: info] Specify level for logging.
-                        <options: debug|warn|error|info|trace>
-
-DESCRIPTION
-  Create an asset
-
-EXAMPLES
-  $ mplx create asset --json
-
-  $ mplx create asset --log-level debug
-
-  $ mplx create asset --keypair /path/to/keypair.json
-
-  $ mplx create asset --keypair usb://ledger?key=0
-
-  $ mplx create asset --rpc http://localhost:8899
-
-  $ mplx create asset --commitment finalized
-
-  $ mplx create asset -n "Cool Asset" -u "https://example.com/metadata.json"
+Example:
+```sh
+mplx core asset create --name "Asset Name" --uri "metadata.json"
 ```
 
-_See code: [src/commands/create/asset.ts](https://github.com/metaplex-foundation/cli/blob/v0.0.0/src/commands/create/asset.ts)_
+## Documentation
 
-## `mplx create collection [FILE]`
+The CLI is organized into several main command groups:
 
-describe the command here
+- [Core Commands](docs/core.md)
+  - Asset management
+  - Collection management
+  - Plugin system
 
-```
-USAGE
-  $ mplx create collection [FILE] [-f] [-n <value>]
+- [Configuration Commands](docs/config.md)
+  - RPC settings
+  - Wallet management
+  - Explorer preferences
 
-ARGUMENTS
-  FILE  file to read
+- [Toolbox Commands](docs/toolbox.md)
+  - SOL operations
+  - Token management
+  - File uploads
+  - Rent calculations
 
-FLAGS
-  -f, --force
-  -n, --name=<value>  name to print
+Each command group has detailed documentation with examples and best practices.
 
-DESCRIPTION
-  describe the command here
+## Common Commands
 
-EXAMPLES
-  $ mplx create collection
-```
+### Asset Management
+```sh
+# Create an asset
+mplx core asset create --name "Asset" --uri "metadata.json"
 
-_See code: [src/commands/create/collection.ts](https://github.com/metaplex-foundation/cli/blob/v0.0.0/src/commands/create/collection.ts)_
-
-## `mplx fetch asset ASSET`
-
-Fetch an asset by mint
-
-```
-USAGE
-  $ mplx fetch asset ASSET [--json] [--log-level debug|warn|error|info|trace] [-k <value>] [-p <value>] [-r
-    <value>] [--commitment processed|confirmed|finalized] [-c <value>]
-
-ARGUMENTS
-  ASSET  Asset pubkey (mint) to fetch
-
-FLAGS
-  -c, --config=<value>       Path to config file. Default is ~/.config/mplx/config.json
-  -k, --keypair=<value>      Path to keypair file (/path/keypair.json) or ledger (e.g. usb://ledger?key=0)
-  -p, --payer=<value>        Path to keypair file (/path/keypair.json) or ledger (e.g. usb://ledger?key=0)
-  -r, --rpc=<value>          RPC URL for the cluster
-      --commitment=<option>  Commitment level
-                             <options: processed|confirmed|finalized>
-
-GLOBAL FLAGS
-  --json                Format output as json.
-  --log-level=<option>  [default: info] Specify level for logging.
-                        <options: debug|warn|error|info|trace>
-
-DESCRIPTION
-  Fetch an asset by mint
-
-EXAMPLES
-  $ mplx fetch asset --json
-
-  $ mplx fetch asset --log-level debug
-
-  $ mplx fetch asset --keypair /path/to/keypair.json
-
-  $ mplx fetch asset --keypair usb://ledger?key=0
-
-  $ mplx fetch asset --rpc http://localhost:8899
-
-  $ mplx fetch asset --commitment finalized
-
-  $ mplx fetch asset HaKyubAWuTS9AZkpUHtFkTKAHs1KKAJ3onZPmaP9zBpe
+# Burn an asset
+mplx core asset burn <assetId>
 ```
 
-_See code: [src/commands/fetch/asset.ts](https://github.com/metaplex-foundation/cli/blob/v0.0.0/src/commands/fetch/asset.ts)_
+### Token Operations
+```sh
+# Create a token
+mplx toolbox token create --wizard
 
-## `mplx help [COMMAND]`
-
-Display help for mplx.
-
-```
-USAGE
-  $ mplx help [COMMAND...] [-n]
-
-ARGUMENTS
-  COMMAND...  Command to show help for.
-
-FLAGS
-  -n, --nested-commands  Include all nested commands in the output.
-
-DESCRIPTION
-  Display help for mplx.
+# Upload files
+mplx toolbox upload file ./image.png
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v6.2.16/src/commands/help.ts)_
+### Configuration
+```sh
+# View config
+mplx config get
 
-## `mplx version`
+# Interactive RPC Configuration
+mplx config rpcs set --wizard
+# This will guide you through:
+# 1. Selecting a cluster (mainnet, devnet, testnet)
+# 2. Choosing from preset RPCs or entering a custom URL
+# 3. Testing the connection
+# 4. Saving the configuration
 
+# Manual RPC Configuration
+mplx config rpcs set --url https://api.devnet.solana.com
+
+# Interactive Wallet Configuration
+mplx config wallets set --wizard
+# This will guide you through:
+# 1. Selecting wallet type (keypair file, ledger)
+# 2. Setting up wallet path or ledger options
+# 3. Verifying wallet access
+# 4. Setting as default wallet
+
+# Manual Wallet Configuration
+mplx config wallets set --path /path/to/keypair.json
+
+# Interactive Explorer Configuration
+mplx config explorer set --wizard
+# This will guide you through:
+# 1. Selecting preferred explorer
+# 2. Setting default view options
 ```
-USAGE
-  $ mplx version [--json] [--verbose]
 
-FLAGS
-  --verbose  Show additional information about the CLI.
+### Interactive Configuration Tips
 
-GLOBAL FLAGS
-  --json  Format output as json.
+The CLI provides wizard-based configuration for easier setup:
 
-FLAG DESCRIPTIONS
-  --verbose  Show additional information about the CLI.
-
-    Additionally shows the architecture, node version, operating system, and versions of plugins that the CLI is using.
+#### Add and Manage Multiple RPCs
+```sh
+$ mplx config rpcs add rpc1 https://my-custom-rpc.com/rpc
 ```
 
-_See code: [@oclif/plugin-version](https://github.com/oclif/plugin-version/blob/v2.2.15/src/commands/version.ts)_
-<!-- commandsstop -->
+Set the active RPC
+```sh
+$ mplx config rpcs set
+
+? Select an RPC (Use arrow keys)
+❯ rpc1                 https://my-custom-rpc.com/rpc123456789
+  rpc2                 https://my-custom-rpc.com/rpc987654321
+```
+
+List all RPCs
+```sh
+$ mplx config rpcs list
+
+Installed RPCs:
+rpc1: https://my-custom-rpc.com/rpc123456789
+rpc2: https://my-custom-rpc.com/rpc987654321
+```
+
+#### Add and Manage Mutiple Wallets
+Add a new wallet
+```sh
+$ mplx config wallets set wallet1 ./path/to/keypair.json
+```
+
+List all wallets
+```sh
+$ mplx config wallets list
+
+Installed Wallets:
+wallet1: /path/to/keypair.json
+wallet2: /path/to/keypair2.json
+```
+
+Set the active wallet
+```sh
+$ mplx config wallets set
+
+? Select a wallet: (Use arrow keys)
+❯ wallet1    address...
+  wallet2    address...
+```
+
+
+
+The wizards provide:
+- Step-by-step guidance
+- Validation of inputs
+- Connection testing
+- Default value suggestions
+- Automatic configuration saving
+
+## License
+
+Metaplex License
+
+## Additional Resources
+
+- [Metaplex Documentation](https://docs.metaplex.com)
+- [Solana Documentation](https://docs.solana.com)
+- [Discord Community](https://discord.gg/metaplex)

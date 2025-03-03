@@ -35,18 +35,64 @@ When running the development installation, you can use the `npm run mplx <comman
 
 ## Quick Start
 
-1. Configure your environment:
+This CLI is designed to be used with multiple RPCs and wallets. You can add and manage multiple RPCs and wallets.
+
+1. RPC Configuration:
 ```sh
-mplx config set rpcUrl https://api.devnet.solana.com
-mplx config set keypair /path/to/your/keypair.json
+# Add a new RPC
+mplx config rpcs add rpc1 https://my-custom-rpc.com/rpc
+
+# List all RPCs
+mplx config rpcs list
+
+# Switch active RPC
+mplx config rpcs set
+
+? Select an RPC (Use arrow keys)
+❯ rpc1                 https://my-custom-rpc.com/rpc123456789
+  rpc2                 https://my-custom-rpc.com/rpc987654321
 ```
 
-2. Create your first asset:
+2. Manage Multiple Wallets:
 ```sh
+# Add a new wallet
+mplx config wallets set wallet1 ./path/to/keypair.json
+
+# List all wallets
+mplx config wallets list
+
+# Switch active wallet
+mplx config wallets set
+
+? Select a wallet: (Use arrow keys)
+❯ wallet1    address...
+  wallet2    address...
+```
+
+3. Create your first token:
+```sh
+# Interactive token creation
+mplx toolbox token create --wizard
+
+# Or create with specific parameters
+mplx toolbox token create \
+  --name "My Token" \
+  --symbol "TOKEN" \
+  --decimals 9 \
+  --image ./token-logo.png \
+  --mint 1000000000
+```
+
+4. Create your first Core asset:
+```sh
+# Create an asset
 mplx core asset create --name "My Asset" --uri "https://example.com/metadata.json"
+
+# Or create with files
+mplx core asset create --files --image ./image.png --json ./metadata.json
 ```
 
-3. View help for any command:
+5. View help for any command:
 ```sh
 mplx help [COMMAND]
 ```

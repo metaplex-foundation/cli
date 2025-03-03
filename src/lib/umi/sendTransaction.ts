@@ -1,9 +1,9 @@
 import { setComputeUnitPrice } from '@metaplex-foundation/mpl-toolbox'
-import { BlockhashWithExpiryBlockHeight, TransactionBuilder, TransactionSignature, Umi } from '@metaplex-foundation/umi'
+import { BlockhashWithExpiryBlockHeight, Signer, TransactionBuilder, TransactionSignature, Umi } from '@metaplex-foundation/umi'
 import { UmiSendOptions } from './sendOptions.js'
 
 export interface UmiTransactionResponce {
-  signature: TransactionSignature | null
+  signature: TransactionSignature | null | string
   blockhash: BlockhashWithExpiryBlockHeight | null
   err: string | null
 }
@@ -37,12 +37,18 @@ const umiSendTransaction = async (
     )
   }
 
-  const signedTx = await transaction.buildAndSign(umi).catch((error) => {
+  let signedTx = await transaction.buildAndSign(umi).catch((error) => {
     throw new Error(`Error building and signing transaction: ${error.message}`)
   })
 
+  // console.log('SignedTx: ', signedTx)
+
+  signedTx = await umi.identity.signTransaction(signedTx)
+
+  // console.log('Umi Identity SignedTx: ', signedTx)
+
   return await umi.rpc
-    .sendTransaction(signedTx, {commitment})
+    .sendTransaction(signedTx, { commitment, skipPreflight: sendOptions?.skipPreflight })
     .then((signature) => {
       return {
         signature,

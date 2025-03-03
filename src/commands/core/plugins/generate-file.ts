@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import {BaseCommand} from '../../../BaseCommand.js'
 import {PluginFilterType, pluginSelector} from '../../../prompts/pluginSelector.js'
 import pluginConfigurator, {mapPluginDataToArray} from '../../../prompts/pluginInquirer.js'
+import { Plugin } from '../../../lib/types/pluginData.js'
 
 /* 
   Plugins - Generate File Possibilities:
@@ -42,9 +43,9 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
       this.error('Please provide a --asset or --collection flag to generate plugin data')
     }
 
-    const selectedPlugins = await pluginSelector(PluginFilterType.Asset)
+    const selectedPlugins = await pluginSelector({filter: flags.asset ? PluginFilterType.Asset : PluginFilterType.Collection})
 
-    const pluginData = await pluginConfigurator(selectedPlugins)
+    const pluginData = await pluginConfigurator(selectedPlugins as Plugin[])
 
     let destination = flags.output || process.cwd()
 

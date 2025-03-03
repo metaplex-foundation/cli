@@ -1,57 +1,58 @@
-import {TransactionBuilder, Umi} from '@metaplex-foundation/umi'
-import {UmiSendAllOptions} from './sendOptions.js'
-import umiSendTransaction, {UmiTransactionResponce} from './sendTransaction.js'
+import { TransactionBuilder, Umi } from '@metaplex-foundation/umi'
+import { UmiSendAllOptions } from './sendOptions.js'
+import umiSendTransaction, { UmiTransactionResponce } from './sendTransaction.js'
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 const umiSendAllTransactions = async (
   umi: Umi,
-  transactions: TransactionBuilder[],
+  transactions: (TransactionBuilder | null)[],
   options?: UmiSendAllOptions,
-  onProgress?: () => void,
+  onProgress?: (index: number, response: UmiTransactionResponce) => void,
 ): Promise<UmiTransactionResponce[]> => {
-  const batchDefaultSize = options?.batchSize || 5
-  const transactionsPerSecond = 1 // Set default to 5 TPS
-  const batchInterval = 1000 / transactionsPerSecond // Time between sending transactions (in ms)
-
+  const transactionsPerSecond = 3 // Set default to 1 TPS
+  const txInterval = 1000 / transactionsPerSecond // Time between sending transactions (in ms)
   let results: UmiTransactionResponce[] = []
-  const transactionBatches: TransactionBuilder[][] = []
 
-  // Batch transactions in groups of the specified batch size (default is 5)
-  for (let i = 0; i < transactions.length; i += batchDefaultSize) {
-    const transactionBatch = transactions.slice(i, i + batchDefaultSize)
-    transactionBatches.push(transactionBatch)
-  }
-
-  // Send batches with a delay to respect the transactions per second rate
-  for (const batch of transactionBatches) {
-    const batchPromises = batch.map(async (tx) => {
-      if (!tx) {
-        return {
-          signature: null,
-          blockhash: null,
-          err: 'Error Building Transaction, Asset possibly already burned.',
-        }
-      }
-
-      return umiSendTransaction(umi, tx, options)
-        .then((response) => {
-          onProgress && onProgress()
-          results.push(response)
-        })
-        .catch((error) => {
-          onProgress && onProgress()
-          results.push(error)
-        })
-    })
-
-    // Wait for all transactions in the batch to complete before proceeding
-    await Promise.all(batchPromises)
-
-    // Wait for the required interval before sending the next batch of transactions
-    if (batchPromises.length > 0) {
-      await delay(batchInterval * batchPromises.length) // Wait before sending next batch of transactions
+  // Process transactions sequentially
+  let index = 0
+  for (const tx of transactions) {
+    if (!tx) {
+      console.log(`Transaction ${index} is null`)
+      onProgress && onProgress(index, {
+        signature: null,
+        blockhash: null,
+        err: 'Error Building Transaction',
+      })
+      index++
+      results.push({
+        signature: null,
+        blockhash: null,
+        err: 'Error Building Transaction',
+      })
+      continue
     }
+
+    try {
+      console.log(`Sending Transaction ${index} from umiSendAllTransactions`)
+      const response = await umiSendTransaction(umi, tx, options)
+      onProgress && onProgress(index, response)
+      results.push(response)
+    } catch (error) {
+      // console.log(`Error sending Transaction ${index} from umiSendAllTransactions:`, error)
+      const errorResponse = {
+        signature: null,
+        blockhash: null,
+        err: error instanceof Error ? error.message : String(error),
+      }
+      onProgress && onProgress(index, errorResponse)
+      results.push(errorResponse)
+    }
+
+    index++
+
+    // Wait for the interval before processing the next transaction
+    await delay(txInterval)
   }
 
   return results

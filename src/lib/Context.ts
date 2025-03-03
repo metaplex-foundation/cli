@@ -1,4 +1,4 @@
-import {mplCore} from '@metaplex-foundation/mpl-core'
+import { mplCore } from '@metaplex-foundation/mpl-core'
 import {
   Commitment,
   Signer,
@@ -8,15 +8,17 @@ import {
   signerIdentity,
   signerPayer,
 } from '@metaplex-foundation/umi'
-import {createUmi} from '@metaplex-foundation/umi-bundle-defaults'
-import {existsSync, lstatSync} from 'node:fs'
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
+import { existsSync, lstatSync } from 'node:fs'
 
-import {IrysUploaderOptions} from '@metaplex-foundation/umi-uploader-irys'
-import {createSignerFromFile} from './FileSigner.js'
-import {createSignerFromLedgerPath} from './LedgerSigner.js'
-import {readJsonSync} from './file.js'
+import { IrysUploaderOptions } from '@metaplex-foundation/umi-uploader-irys'
+import { createSignerFromFile } from './FileSigner.js'
+import { createSignerFromLedgerPath } from './LedgerSigner.js'
+import { readJsonSync } from './file.js'
 import initStorageProvider from './uploader/initStorageProvider.js'
-import {DUMMY_UMI} from './util.js'
+import { DUMMY_UMI } from './util.js'
+import { mplToolbox } from '@metaplex-foundation/mpl-toolbox'
+import { mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
 
 export type ConfigJson = {
   commitment?: Commitment
@@ -36,6 +38,7 @@ export type ConfigJson = {
     name: string
     endpoint: string
   }[]
+  explorer?: string
 }
 
 export type Context = {
@@ -44,6 +47,7 @@ export type Context = {
   rpcUrl: string
   signer: Signer
   umi: Umi
+  explorer: string
 }
 
 export const DEFAULT_CONFIG = {
@@ -60,6 +64,7 @@ export const CONFIG_KEYS: Array<keyof ConfigJson> = [
   'storage',
   'wallets',
   'rpcs',
+  'explorer',
 ]
 
 export const getDefaultConfigPath = (prefix: string): string => `${prefix}/config.json`
@@ -125,12 +130,18 @@ export const createContext = async (configPath: string, overrides: ConfigJson): 
     commitment: config.commitment!,
   })
 
-  umi.use(signerIdentity(signer)).use(signerPayer(payer)).use(mplCore())
+  umi.use(signerIdentity(signer))
+  .use(signerPayer(payer))
+  .use(mplCore())
+  .use(mplTokenMetadata())
+  .use(mplToolbox())
 
   if (config.storage) {
-    const storageProvider = initStorageProvider(config)
+    const storageProvider = await initStorageProvider(umi, config)
     storageProvider && umi.use(storageProvider)
   }
+
+  console.log({config})
 
   return {
     commitment: config.commitment!,
@@ -138,5 +149,6 @@ export const createContext = async (configPath: string, overrides: ConfigJson): 
     rpcUrl: config.rpcUrl!,
     signer,
     umi,
+    explorer: config.explorer || 'solanaExplorer',
   }
 }

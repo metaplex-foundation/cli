@@ -59,6 +59,7 @@ export abstract class TransactionCommand<T extends typeof Command> extends Comma
     }),
     rpc: Flags.string({
       char: 'r',
+      name: 'rpc',
       summary: 'RPC URL for the cluster',
       helpGroup: 'GLOBAL',
     }),
@@ -94,12 +95,15 @@ export abstract class TransactionCommand<T extends typeof Command> extends Comma
     this.flags = flags as Flags<T>
     this.args = args as Args<T>
 
+    console.log('flags', this.flags)
+
     const configPath = this.flags.config ?? getDefaultConfigPath(this.config.configDir)
     this.context = await createContext(configPath, {
       commitment: this.flags.commitment as Commitment | undefined,
       keypair: this.flags.keypair,
       payer: this.flags.payer,
       rpcUrl: this.flags.rpc,
+      explorer: this.flags.explorer,
     })
   }
 

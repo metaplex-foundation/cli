@@ -1,7 +1,6 @@
-import {TransactionBuilder, Umi} from '@metaplex-foundation/umi'
-import fs from 'node:fs'
-import burnAssetTx from './burnAssetTx.js'
+import { TransactionBuilder, Umi } from '@metaplex-foundation/umi'
 import umiSendAllTransactionsAndConfirm from '../../umi/sendAllTransactionsAndConfirm.js'
+import burnAssetTx from './burnAssetTx.js'
 
 interface BurnBatchOptions {
   onSendStart?: () => void
@@ -38,36 +37,36 @@ const burnBatch = async (
     transactions.filter((tx) => tx !== null) as TransactionBuilder[],
   )
 
-  //vaidate all transactions were successful
+  // //vaidate all transactions were successful
 
-  const failedTransactions = res
-    .map((transaction, index) => {
-      return {
-        assetId: assets[index] as string,
-        results: transaction,
-      }
-    })
-    .filter((transaction) => {
-      return (
-        !transaction.results ||
-        transaction.results.transaction.err ||
-        transaction.results.confirmation?.result?.value.err
-      )
-    })
+  // const failedTransactions = res
+  //   .map((transaction, index) => {
+  //     return {
+  //       assetId: assets[index] as string,
+  //       results: transaction,
+  //     }
+  //   })
+  //   .filter((transaction) => {
+  //     return (
+  //       !transaction.results ||
+  //       transaction.results.transaction.err ||
+  //       transaction.results.confirmation?.result?.value.err
+  //     )
+  //   })
 
-  buildErrors.map((error) => {
-    const assetId = error.assetId
+  // buildErrors.map((error) => {
+  //   const assetId = error.assetId
 
-    const failedIndex = failedTransactions.findIndex((transaction) => transaction.assetId === assetId)
+  //   const failedIndex = failedTransactions.findIndex((transaction) => transaction.assetId === assetId)
 
-    failedTransactions[failedIndex].results.transaction.err = error.error
-  })
+  //   failedTransactions[failedIndex].results.transaction.err = error.error
+  // })
 
-  console.log('Failed Transactions:', failedTransactions.length)
+  // console.log('Failed Transactions:', failedTransactions.length)
 
-  if (failedTransactions.length > 0) {
-    fs.writeFileSync('failedBurns.json', JSON.stringify(failedTransactions, null, 2))
-  }
+  // if (failedTransactions.length > 0) {
+  //   fs.writeFileSync('failedBurns.json', JSON.stringify(failedTransactions, null, 2))
+  // }
 
   // TODO handle cache
 }

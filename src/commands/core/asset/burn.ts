@@ -1,15 +1,39 @@
 import { Args, Flags } from '@oclif/core'
 
+import { TransactionBuilder } from '@metaplex-foundation/umi'
+import { base58 } from '@metaplex-foundation/umi/serializers'
 import { readFileSync } from 'node:fs'
 import ora from 'ora'
 import { BaseCommand } from '../../../BaseCommand.js'
-import burnBatch from '../../../lib/core/burn/batchBurn.js'
-import burnAsset from '../../../lib/core/burn/burnAsset.js'
+import burnAssetTx from '../../../lib/core/burn/burnAssetTx.js'
+import confirmAllTransactions, { UmiTransactionConfirmationResult } from '../../../lib/umi/confirmAllTransactions.js'
+import umiSendAllTransactions from '../../../lib/umi/sendAllTransactions.js'
+import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
+import { UmiTransactionResponce } from '../../../lib/umi/sendTransaction.js'
+
+import fs from 'node:fs'
+import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
+
+interface BurnAssetData {
+  asset: string
+  tx?: {
+    transaction?: UmiTransactionResponce
+    confirmation?: UmiTransactionConfirmationResult
+  }
+  err?: string
+}
+
+interface BurnListCache {
+  name: 'burnAssetsListCache'
+  collection?: string
+  file: string
+  items: BurnAssetData[]
+}
 
 /* 
     Options for potential list burn implementation:
 
-    1?. JSON file with array of strings (assetIds) to burn
+    1 - Implemented. JSON file with array of strings (assetIds) to burn
 
         [asset1, asset2, asset3]
 
@@ -22,7 +46,7 @@ import burnAsset from '../../../lib/core/burn/burnAsset.js'
             {asset: asset3, collection: collection3},
         ]
 
-    3?. JSON file with array of objects containing strings (assetIds) and optional collection flag.
+    3 - Implemented. JSON file with array of objects containing strings (assetIds) and optional collection flag.
 
         burn --list ./assetsToBurn.json --collection collectionId
 
@@ -31,7 +55,7 @@ import burnAsset from '../../../lib/core/burn/burnAsset.js'
 
 export default class AssetBurn extends BaseCommand<typeof AssetBurn> {
   static args = {
-    asset: Args.string({description: 'Burn at single asset by mint'}),
+    asset: Args.string({ description: 'Burn at single asset by mint' }),
   }
 
   static description = 'Burn a single Asset or a list of Assets'
@@ -55,9 +79,9 @@ export default class AssetBurn extends BaseCommand<typeof AssetBurn> {
   }
 
   public async run(): Promise<unknown> {
-    const {args, flags} = await this.parse(AssetBurn)
+    const { args, flags } = await this.parse(AssetBurn)
 
-    const {umi} = this.context
+    const { umi, explorer } = this.context
 
     if (flags.list) {
       // Burn all assets in list
@@ -65,22 +89,127 @@ export default class AssetBurn extends BaseCommand<typeof AssetBurn> {
 
       const assetsList: string[] = JSON.parse(readFileSync(flags.list, 'utf-8'))
 
-      await burnBatch(umi, assetsList, flags.collection)
+      // await burnBatch(umi, assetsList, flags.collection)
+
+      let cache: BurnListCache = {
+        name: 'burnAssetsListCache',
+        file: flags.list,
+        items: assetsList.map((asset: string) => ({ asset: asset, tx: {} })),
+      }
+
+      // generate transactions for each asset
+
+      const transactions: (TransactionBuilder | null)[] = await Promise.all(
+        assetsList.map(async (asset: string, index: number) => {
+          const txBuilder = await burnAssetTx(umi, asset, flags.collection).catch((error) => {
+            cache.items[index].err = error
+            return null
+          })
+          return txBuilder
+        }),
+      )
+
+      const currentDirectory = process.cwd()
+
+      // send transactions
+
+      const startTime = Date.now()
+
+      const sendRes = await umiSendAllTransactions(umi, transactions, undefined, (index, response) => {
+        // console.log(`Sent Transaction ${index} repsonses: ${JSON.stringify(response)}`)
+        // // add transaction to assetDataArray
+        // console.log(`Adding transaction to cache ${index}`)
+        // console.log(cache.items[index])
+        // console.log(response)
+        cache.items[index].tx = {
+          ...cache.items[index].tx,
+          transaction: {
+            ...response,
+            signature: response.signature ? base58.deserialize(response.signature as Uint8Array)[0] : null
+          }
+
+        }
+
+        console.log({ cacheItem: cache.items[index].tx })
+        fs.writeFileSync(currentDirectory + '/burn-cache.json', JSON.stringify(cache, null, 2))
+        return response
+      })
+
+
+      console.log({ sendRes })
+
+      await confirmAllTransactions(umi, cache.items.map((item) => item.tx?.transaction), undefined, (index, response) => {
+        // add confirmation to assetDataArray
+
+        console.log({ response })
+
+        cache.items[index].tx = {
+          ...cache.items[index].tx,
+          confirmation: response
+        }
+
+        console.log({ cacheItem: cache.items[index].tx })
+        fs.writeFileSync(currentDirectory + '/burn-cache.json', JSON.stringify(cache, null, 2))
+      })
+
+      // Validate all transactions were successful and log results
+
+      const failedTransactions = cache.items.filter((item) => item.tx?.transaction?.err || !item.tx?.confirmation?.confirmed)
+
+      if (failedTransactions.length > 0) {
+        this.error(`All transactions did not confirm successfully, please check the cache file for more details\n
+          Failed transactions: ${failedTransactions.length} of ${assetsList.length}\n
+          Failed transactions: ${failedTransactions.map((item) => item.asset).join(', ')}\n
+          Cache file: ${currentDirectory}/burn-cache.json
+          `)
+      } else {
+        this.logSuccess(`All transactions confirmed successfully\n
+Transactions confirmed: ${cache.items.length} of ${assetsList.length}\n
+Cache file: ${currentDirectory}/burn-cache.json
+          `)
+      }
+
+
     } else {
       // Burn single asset
       if (!args.asset) {
         this.error('No asset provided')
       }
 
+      // const canBurn = await validateBurn(umi, {
+      //   asset,
+      //   authority: umi.identity.publicKey
+      // })
+
+      // console.log({ canBurn })
+
+      // if (!canBurn) {
+
       const transactionSpinner = ora('Burning asset...').start()
-      await burnAsset(umi, args.asset, flags.collection)
-        .then((signature) => transactionSpinner.succeed(`Asset burned: ${signature}`))
-        .catch((error) => {
-          transactionSpinner.fail('Failed to burn asset')
-          this.error(error)
-        })
+      const burnTx = await burnAssetTx(umi, args.asset, flags.collection)
+
+      if (!burnTx) {
+        transactionSpinner.fail('Failed to build transaction')
+        this.error('Failed to build transaction')
+        return
+      }
+
+      const result = await umiSendAndConfirmTransaction(umi, burnTx)
+
+      if (result.transaction.err) {
+        transactionSpinner.fail('Failed to burn asset')
+        this.error(result.transaction.err)
+      } else {
+        const signature = base58.deserialize(result.transaction.signature! as Uint8Array)[0]
+        transactionSpinner.succeed(`Asset burned: ${args.asset}`)
+        this.logSuccess(`--------------------------------
+  Signature: ${signature}
+  Explorer: ${generateExplorerUrl(explorer as ExplorerType, signature, 'transaction')}
+--------------------------------`)
+      }
     }
 
     return
   }
 }
+

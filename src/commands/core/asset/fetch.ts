@@ -1,39 +1,35 @@
-import {Flags} from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 
 import fs from 'node:fs'
-import {BaseCommand} from '../../../BaseCommand.js'
 import batchFetchCoreAssets from '../../../lib/core/fetch/batchFetch.js'
 import fetchCoreAsset from '../../../lib/core/fetch/fetch.js'
+import { TransactionCommand } from '../../../TransactionCommand.js'
 
 /* 
   Fetch Possibilities:
 
   1. Fetch a single Asset by providing the Asset ID and display the metadata.
 
+  TODO
   2. Fetch a single Asset by providing the Asset ID and download the metadata and image to disk.
 
   TODO
   3. Fetch multiple Assets by providing multiple Asset IDs from a .txt/.csv/json file and save metadata and image to disk (original or DAS format).
-
-  TODO
-  4. Fetch multiple Assets by providing a collection ID and save metadata and image to disk (original or DAS format).
-
 */
 
-export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
+export default class AssetFetch extends TransactionCommand<typeof AssetFetch> {
   static description = 'Fetch an asset by mint'
 
   static examples = [
-    ...super.baseExamples,
-    '<%= config.bin %> <%= command.id %> HaKyubAWuTS9AZkpUHtFkTKAHs1KKAJ3onZPmaP9zBpe',
+    '<%= config.bin %> <%= command.id %> <assetId>',
+    '<%= config.bin %> <%= command.id %> <assetId> --output ./assets',
   ]
 
   static flags = {
-    asset: Flags.string({name: 'asset', description: 'The asset ID to fetch'}),
-    assetList: Flags.directory({name: 'assetList', description: 'A file containing a list of asset IDs to fetch'}),
+    assetList: Flags.file({ name: 'assetList', description: 'A file containing a list of asset IDs to fetch' }),
     output: Flags.string({
       name: 'output',
-      description: 'output directory of the downloaded asset. If not present current folder will be used.',
+      description: 'Output directory of the downloaded asset(s)',
     }),
     image: Flags.boolean({
       name: 'image',
@@ -45,18 +41,28 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
     }),
   }
 
+  static args = {
+    asset: Args.string({ name: 'asset', description: 'The asset ID to fetch' }),
+  }
+
   public async run() {
-    const {args, flags} = await this.parse(AssetFetch)
+    const { args, flags } = await this.parse(AssetFetch)
 
-    const {umi} = this.context
+    const { umi } = this.context
 
-    if (flags.asset) {
+
+    if (args.asset) {
       // fetch a single asset
-      await fetchCoreAsset(umi, flags.asset, {groupFiles: false, outputPath: flags.output})
+      await fetchCoreAsset(umi, args.asset, { outputPath: flags.output, image: flags.image, metadata: flags.metadata})
+
     } else if (flags.assetList) {
+
+      if (!flags.output) {
+        this.error('Output directory --output is required')
+      }
       // fetch multiple assets
       const assets = fs.readFileSync(flags.assetList, 'utf-8').split('\n')
-      await batchFetchCoreAssets(umi, assets, {groupFiles: false, outputDirectory: flags.output})
+      await batchFetchCoreAssets(umi, assets, { outputDirectory: flags.output })
     }
   }
 }

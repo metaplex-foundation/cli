@@ -5,13 +5,21 @@ import {
 import { isPublicKey, publicKey } from '@metaplex-foundation/umi'
 import inquirer from 'inquirer'
 import { Plugin, PluginData } from '../lib/types/pluginData.js'
-import { terminalColors } from '../lib/util.js'
+import { terminalColors } from '../lib/StandardColors.js'
+
 
 export const mapPluginDataToArray = (data: PluginData): CreateCollectionArgsPlugin[] => {
   return Object.values(data)
 }
 
-const pluginConfigurator = async (plugins: Array<Plugin>) => {
+type Answers = {
+  // Define your expected answer types here
+  name?: string;
+  uri?: string;
+  // ... other properties
+}
+
+const pluginConfigurator = async (plugins: Array<Plugin>): Promise<PluginData> => {
   const pluginData: PluginData = {}
 
   for (const plugin of plugins) {

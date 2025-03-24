@@ -20,7 +20,7 @@ interface BurnAssetData {
     transaction?: UmiTransactionResponce
     confirmation?: UmiTransactionConfirmationResult
   }
-  err?: string
+  err?: unknown
 }
 
 interface BurnListCache {

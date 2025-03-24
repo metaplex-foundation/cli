@@ -82,9 +82,14 @@ export default class CollectionCreate extends BaseCommand<typeof CollectionCreat
             })
 
             const transactionSpinner = ora('Adding plugin...').start()
-        const res = await umiSendAndConfirmTransaction(umi, addPluginIx)
-        transactionSpinner.succeed("Plugin added successfully")
-        
+            try {
+                const res = await umiSendAndConfirmTransaction(umi, addPluginIx)
+                transactionSpinner.succeed("Plugin added successfully")
+                // rest of success handling
+            } catch (error) {
+                transactionSpinner.fail(`Failed to add plugin: ${error.message}`)
+                throw error
+            }
         console.log(
             `--------------------------------\n
       Asset: ${asset}\n

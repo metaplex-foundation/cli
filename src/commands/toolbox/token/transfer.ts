@@ -29,7 +29,7 @@ import { readFile } from '../../../lib/util.js'
 */
 
 export default class ToolboxTokenTransfer extends TransactionCommand<typeof ToolboxTokenTransfer> {
-    static override description = 'Airdrop SOL to an address'
+    static override description = 'Transfer tokens to a destination address'
 
     static override examples = [
         '<%= config.bin %> <%= command.id %> toolbox token transfer <mintAddress> <amount>',

@@ -80,6 +80,8 @@ export default class ToolboxTokenUpdate extends TransactionCommand<typeof Toolbo
         }
 
         const jsonUploadSpinner = ora("Uploading JSON file...s")
+-        const jsonUploadSpinner = ora("Uploading JSON file...s")
++        const jsonUploadSpinner = ora("Uploading JSON file...").start()
         const newMetadataUri = await uploadJson(umi, newMetadata);
         jsonUploadSpinner.succeed("Uploaded JSON")
 

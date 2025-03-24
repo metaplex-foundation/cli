@@ -13,7 +13,7 @@ export enum LinkType {
     Account = 'account'
 }
 
-export type Explorer = 'solanaExplorer' | 'solscan' | 'solanafm' | 'core'
+export type Explorer = 'solanaExplorer' | 'solscan' | 'solanaFm' | 'core'
 
 const explorer = {
     solanaExplorer: {

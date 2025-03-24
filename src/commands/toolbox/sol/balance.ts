@@ -5,7 +5,7 @@ import { TransactionCommand } from '../../../TransactionCommand.js'
 import { shortenAddress } from '../../../lib/util.js'
 
 export default class ToolboxSolBalance extends TransactionCommand<typeof ToolboxSolBalance> {
-    static override description = 'Airdrop SOL to an address'
+    static override description = 'Check SOL balance of an address'
 
     static override examples = [
         '<%= config.bin %> <%= command.id %> <address>',

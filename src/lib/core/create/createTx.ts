@@ -1,7 +1,7 @@
-import {CollectionV1, create, createV1} from '@metaplex-foundation/mpl-core'
-import {generateSigner, publicKey, Signer, TransactionBuilder, Umi} from '@metaplex-foundation/umi'
-import {PluginData} from '../../types/pluginData.js'
-import {mapPluginDataToArray} from '../../../prompts/pluginInquirer.js'
+import { CollectionV1, create, createV1 } from '@metaplex-foundation/mpl-core'
+import { generateSigner, PublicKey, publicKey, Signer, TransactionBuilder, Umi } from '@metaplex-foundation/umi'
+import { PluginData } from '../../types/pluginData.js'
+import { mapPluginDataToArray } from '../../../prompts/pluginInquirer.js'
 
 interface CreateAssetOptions {
   assetSigner?: Signer
@@ -12,10 +12,15 @@ interface CreateAssetOptions {
   plugins?: PluginData
 }
 
-const createAssetTx = async (umi: Umi, options: CreateAssetOptions): Promise<TransactionBuilder> => {
+interface CreateAssetTxResult {
+  asset?: PublicKey,
+  tx: TransactionBuilder
+}
+
+const createAssetTx = async (umi: Umi, options: CreateAssetOptions): Promise<CreateAssetTxResult> => {
   const assetSigner = options.assetSigner || generateSigner(umi)
 
-  return create(umi, {
+  const tx = create(umi, {
     asset: assetSigner,
     name: options.name,
     uri: options.uri,
@@ -23,6 +28,11 @@ const createAssetTx = async (umi: Umi, options: CreateAssetOptions): Promise<Tra
     owner: options.owner ? publicKey(options.owner) : undefined,
     plugins: options.plugins ? mapPluginDataToArray(options.plugins) : undefined,
   })
+
+  return {
+    asset: assetSigner.publicKey,
+    tx,
+  }
 }
 
 export default createAssetTx

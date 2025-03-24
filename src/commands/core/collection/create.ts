@@ -1,14 +1,15 @@
-import {createCollection} from '@metaplex-foundation/mpl-core'
-import {createGenericFile, generateSigner} from '@metaplex-foundation/umi'
-import {Flags} from '@oclif/core'
+import { createCollection } from '@metaplex-foundation/mpl-core'
+import { createGenericFile, generateSigner } from '@metaplex-foundation/umi'
+import { Flags } from '@oclif/core'
 
 import mime from 'mime'
 import fs from 'node:fs'
 import ora from 'ora'
-import {BaseCommand} from '../../../BaseCommand.js'
-import {txSignatureToString} from '../../../lib/util.js'
-import pluginConfigurator, {mapPluginDataToArray} from '../../../prompts/pluginInquirer.js'
-import {PluginFilterType, pluginSelector} from '../../../prompts/pluginSelector.js'
+import { BaseCommand } from '../../../BaseCommand.js'
+import { txSignatureToString } from '../../../lib/util.js'
+import pluginConfigurator, { mapPluginDataToArray } from '../../../prompts/pluginInquirer.js'
+import { PluginFilterType, pluginSelector } from '../../../prompts/pluginSelector.js'
+import { Plugin } from '../../../lib/types/pluginData.js'
 
 export default class CollectionCreate extends BaseCommand<typeof CollectionCreate> {
   static override description = 'Create an MPL Core Collection'
@@ -22,8 +23,8 @@ export default class CollectionCreate extends BaseCommand<typeof CollectionCreat
 
   static override flags = {
     // new flag group
-    name: Flags.string({name: 'name', char: 'n', description: 'Collections name'}),
-    uri: Flags.string({name: 'uri', char: 'u', description: 'URI of the Collection metadata'}),
+    name: Flags.string({ name: 'name', char: 'n', description: 'Collections name' }),
+    uri: Flags.string({ name: 'uri', char: 'u', description: 'URI of the Collection metadata' }),
     // new from files group
     files: Flags.boolean({
       name: 'files',
@@ -55,10 +56,10 @@ export default class CollectionCreate extends BaseCommand<typeof CollectionCreat
   // }
 
   public async run(): Promise<unknown> {
-    const {args, flags} = await this.parse(CollectionCreate)
-    const {image, json, name, uri, files} = flags
+    const { args, flags } = await this.parse(CollectionCreate)
+    const { image, json, name, uri, files } = flags
 
-    const {umi} = this.context
+    const { umi } = this.context
 
     let collectionName = name || undefined
     let metadataUri = uri || undefined
@@ -83,12 +84,12 @@ export default class CollectionCreate extends BaseCommand<typeof CollectionCreat
     // Plugin Selection
     //
 
-    const selectedPlugins = await pluginSelector(PluginFilterType.Collection)
+    const selectedPlugins = await pluginSelector({filter: PluginFilterType.Collection})
 
     let pluginConfigurationData
 
     if (selectedPlugins) {
-      pluginConfigurationData = await pluginConfigurator(selectedPlugins)
+      pluginConfigurationData = await pluginConfigurator(selectedPlugins as Plugin[])
       console.log(pluginConfigurationData)
     }
 
@@ -109,7 +110,7 @@ export default class CollectionCreate extends BaseCommand<typeof CollectionCreat
       const imageFile = fs.readFileSync(image)
       const mimeType = mime.getType(image)
       const genericFile = createGenericFile(imageFile, image, {
-        tags: mimeType ? [{name: 'mimeType', value: mimeType}] : [],
+        tags: mimeType ? [{ name: 'mimeType', value: mimeType }] : [],
       })
       const uploadResult = await umi.uploader
         .upload([genericFile])

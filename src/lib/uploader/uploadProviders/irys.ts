@@ -1,6 +1,8 @@
-import {irysUploader, IrysUploaderOptions} from '@metaplex-foundation/umi-uploader-irys'
+import { Umi } from '@metaplex-foundation/umi'
+import { irysUploader, IrysUploaderOptions } from '@metaplex-foundation/umi-uploader-irys'
 
-const initIrysUploader = (options: IrysUploaderOptions) => {
+const initIrysUploader = async (umi: Umi, options: IrysUploaderOptions) => {
+
   return irysUploader(options)
 }
 

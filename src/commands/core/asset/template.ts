@@ -1,12 +1,12 @@
-import {Flags} from '@oclif/core'
+import { Flags } from '@oclif/core'
 import fs from 'node:fs'
 
-import {BaseCommand} from '../../../BaseCommand.js'
-import {openDirectory} from '../../../lib/util.js'
+import { BaseCommand } from '../../../BaseCommand.js'
+import { openDirectory } from '../../../lib/util.js'
 import ora from 'ora'
 import assetTemplate from '../../../lib/core/templates/offchainAssetTemplate.js'
-import path, {dirname} from 'node:path'
-import {fileURLToPath} from 'node:url'
+import path, { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 /* 
   Tempalte Possibilities:
@@ -25,12 +25,12 @@ export default class AssetTemplate extends BaseCommand<typeof AssetTemplate> {
   ]
 
   static override flags = {
-    output: Flags.string({char: 'o', description: 'Destination for the template files'}),
+    output: Flags.string({ char: 'o', description: 'Destination for the template files' }),
   }
 
   public async run(): Promise<unknown> {
-    const {flags} = await this.parse(AssetTemplate)
-    const {output} = flags
+    const { flags } = await this.parse(AssetTemplate)
+    const { output } = flags
 
     // eslint-disable-next-line no-warning-comments
     // TODO create different assets types
@@ -43,11 +43,11 @@ export default class AssetTemplate extends BaseCommand<typeof AssetTemplate> {
 
     if (!dirExists) {
       spinner.text = 'Creating directory...'
-      fs.mkdirSync(directory, {recursive: true})
+      fs.mkdirSync(directory, { recursive: true })
     }
 
     spinner.text = 'Writing Asset template files...'
-    fs.mkdirSync(directory + '/asset', {recursive: true})
+    fs.mkdirSync(directory + '/asset', { recursive: true })
     fs.writeFileSync(directory + '/asset/metadata.json', JSON.stringify(assetTemplate, null, 2))
 
     // TODO: Fix copying placeholder image

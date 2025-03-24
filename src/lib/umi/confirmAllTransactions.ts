@@ -1,8 +1,9 @@
-import {RpcConfirmTransactionResult, Umi} from '@metaplex-foundation/umi'
+import { RpcConfirmTransactionResult, Umi } from '@metaplex-foundation/umi'
 import confirmTransaction from './confirmTransaction.js'
 
-import {UmiSendAllOptions} from './sendOptions.js'
-import {UmiTransactionResponce} from './sendTransaction.js'
+import { UmiSendAllOptions } from './sendOptions.js'
+import { UmiTransactionResponce } from './sendTransaction.js'
+import { base58 } from '@metaplex-foundation/umi/serializers'
 
 export interface UmiTransactionConfirmationResult {
   confirmed: boolean
@@ -11,20 +12,35 @@ export interface UmiTransactionConfirmationResult {
 
 const confirmAllTransactions = async (
   umi: Umi,
-  transactions: UmiTransactionResponce[],
+  transactions: (UmiTransactionResponce | undefined)[],
   sendOptions?: UmiSendAllOptions,
-  onProgress?: () => void,
+  onProgress?: (index: number, result: UmiTransactionConfirmationResult) => void,
 ): Promise<UmiTransactionConfirmationResult[]> => {
   // TODO - Add batch confirmation rather than one by one
 
+  console.log(`Confirming ${transactions.length} transactions`)
+
   let confirmations: UmiTransactionConfirmationResult[] = []
+  
 
+  let index = 0
   for (const transaction of transactions) {
-    if (!transaction.signature) continue
+    console.log(`Confirming transaction ${index}`)
+    if (!transaction?.signature) continue
 
-    const res = await confirmTransaction(umi, transaction, sendOptions)
+    let signature = transaction.signature
+    // if passing in cache with a string signature, convert to Uint8Array
+    if (typeof signature === 'string') {
+      signature = base58.serialize(signature)
+    }
+
+    const res = await confirmTransaction(umi, {
+      ...transaction,
+      signature
+    }, sendOptions)
     confirmations.push(res)
-    onProgress && onProgress()
+    onProgress && onProgress(index, res)
+    index++
   }
 
   return confirmations

@@ -1,20 +1,20 @@
-import {fetchAsset} from '@metaplex-foundation/mpl-core'
-import {Args, Flags} from '@oclif/core'
+import { fetchAsset } from '@metaplex-foundation/mpl-core'
+import { Args, Flags } from '@oclif/core'
 
 import mime from 'mime-types'
 import fetch from 'node-fetch'
 import fs from 'node:fs'
-import {basename} from 'node:path'
-import {abort} from 'node:process'
+import { basename } from 'node:path'
+import { abort } from 'node:process'
 import ora from 'ora'
-import {BaseCommand} from '../../../BaseCommand.js'
+import { BaseCommand } from '../../../BaseCommand.js'
 
 //TODO: Refactor both fetch Asset and Collection to one fetch function with
 // Asset/Collection type as optional argument.
 
 export default class CollectionFetch extends BaseCommand<typeof CollectionFetch> {
   static args = {
-    collection: Args.string({description: 'Collection pubkey (mint) to fetch', required: true}),
+    collection: Args.string({ description: 'Collection pubkey (mint) to fetch', required: true }),
   }
 
   static description = 'Fetch an Collection by pubkey'
@@ -25,7 +25,6 @@ export default class CollectionFetch extends BaseCommand<typeof CollectionFetch>
   ]
 
   static flags = {
-    download: Flags.boolean({name: 'download', char: 'd', description: 'downloads the asset data'}),
     output: Flags.string({
       name: 'output',
       char: 'o',
@@ -34,12 +33,12 @@ export default class CollectionFetch extends BaseCommand<typeof CollectionFetch>
   }
 
   public async run(): Promise<unknown> {
-    const {args, flags} = await this.parse(CollectionFetch)
+    const { args, flags } = await this.parse(CollectionFetch)
 
-    const {umi} = this.context
+    const { umi } = this.context
     const asset = await fetchAsset(umi, args.collection)
 
-    if (flags.download) {
+    if (flags.output) {
       this.log(`Downloading Collection ${args.collection}`)
       const directory = flags.output || process.cwd()
 
@@ -93,7 +92,7 @@ export default class CollectionFetch extends BaseCommand<typeof CollectionFetch>
       const dirExists = fs.existsSync(assetDirectory)
 
       if (!dirExists && (jsonFile || image)) {
-        fs.mkdirSync(assetDirectory, {recursive: true})
+        fs.mkdirSync(assetDirectory, { recursive: true })
       }
 
       //TODO: Error checks on write

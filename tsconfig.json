@@ -10,6 +10,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
+    "composite": true
   },
   "include": ["./src/**/*"],
   "ts-node": {

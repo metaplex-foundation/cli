@@ -1,11 +1,12 @@
-import {Umi} from '@metaplex-foundation/umi'
-import {PluginData} from '../../types/pluginData.js'
-import uploadFile from '../../uploader/uploadFile.js'
+import { fetchCollection } from '@metaplex-foundation/mpl-core'
+import { PublicKey, Umi } from '@metaplex-foundation/umi'
 import fs from 'node:fs'
+import { PluginData } from '../../types/pluginData.js'
+import { UmiSendAndConfirmResponce } from '../../umi/sendAllTransactionsAndConfirm.js'
+import umiSendAndConfirmTransaction from '../../umi/sendAndConfirm.js'
+import uploadFile from '../../uploader/uploadFile.js'
 import uploadJson from '../../uploader/uploadJson.js'
 import createAssetTx from './createTx.js'
-import {fetchCollection} from '@metaplex-foundation/mpl-core'
-import umiSendAndConfirmTransaction from '../../umi/sendAndConfirm.js'
 
 interface CreateAssetWithFilesOptions {
   owner?: string
@@ -15,7 +16,12 @@ interface CreateAssetWithFilesOptions {
   pluginsPath?: string
 }
 
-const createAssetFromFiles = async (umi: Umi, options: CreateAssetWithFilesOptions) => {
+interface CreateAssetFromFilesResult {
+  asset: PublicKey
+  tx: UmiSendAndConfirmResponce
+}
+
+const createAssetFromFiles = async (umi: Umi, options: CreateAssetWithFilesOptions)=> {
   // validation
 
   let assetName
@@ -66,8 +72,12 @@ const createAssetFromFiles = async (umi: Umi, options: CreateAssetWithFilesOptio
   })
 
   // send createTx
+  const res = await umiSendAndConfirmTransaction(umi, createTx.tx)
 
-  return await umiSendAndConfirmTransaction(umi, createTx)
+  // return {
+  //   asset: createTx.asset,
+  //   tx: res,
+  // }
 }
 
 export default createAssetFromFiles

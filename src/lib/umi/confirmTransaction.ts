@@ -1,7 +1,7 @@
-import {Umi} from '@metaplex-foundation/umi'
-import {UmiTransactionConfirmationResult} from './confirmAllTransactions.js'
-import {UmiSendOptions} from './sendOptions.js'
-import {UmiTransactionResponce} from './sendTransaction.js'
+import { Umi } from '@metaplex-foundation/umi'
+import { UmiTransactionConfirmationResult } from './confirmAllTransactions.js'
+import { UmiSendOptions } from './sendOptions.js'
+import { UmiTransactionResponce } from './sendTransaction.js'
 
 const umiConfirmTransaction = async (
   umi: Umi,
@@ -16,8 +16,8 @@ const umiConfirmTransaction = async (
     throw new Error('Transaction blockhash not found')
   }
 
-  const confirmation = await umi.rpc.confirmTransaction(transaction.signature, {
-    strategy: {type: 'blockhash', ...transaction.blockhash},
+  const confirmation = await umi.rpc.confirmTransaction(transaction.signature as Uint8Array, {
+    strategy: { type: 'blockhash', ...transaction.blockhash },
     commitment: sendOptions?.commitment || 'confirmed',
   })
 

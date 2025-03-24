@@ -1,0 +1,4 @@
+
+
+export const MAINNET_GENESIS_HASH = "GH7ome3EiwEr7tu9JuTh2dpYWBJK3z69Xm1ZE3MEE6JC"
+

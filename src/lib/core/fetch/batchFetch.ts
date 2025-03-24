@@ -3,8 +3,6 @@ import fetchCoreAsset from './fetch.js'
 
 interface BatchFetchCoreAssetOptions {
   outputDirectory?: string
-  groupFiles?: boolean
-  tps?: number
 }
 
 const batchFetchCoreAssets = async (umi: Umi, assets: string[], options: BatchFetchCoreAssetOptions) => {
@@ -15,7 +13,7 @@ const batchFetchCoreAssets = async (umi: Umi, assets: string[], options: BatchFe
 
     // fetch asset
     await fetchCoreAsset(umi, asset, {
-      outputPath: options.groupFiles ? options.outputDirectory + '/' + asset : undefined,
+      outputPath: options.outputDirectory + '/' + asset,
     })
   }
 }

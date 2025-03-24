@@ -1,9 +1,9 @@
 // src/baseCommand.ts
-import {Commitment} from '@metaplex-foundation/umi'
-import {Command, Flags, Interfaces} from '@oclif/core'
+import { Commitment } from '@metaplex-foundation/umi'
+import { Command, Flags, Interfaces } from '@oclif/core'
 
-import {Context, createContext, getDefaultConfigPath} from './lib/Context.js'
-import {StandardColors} from './lib/StandardColors.js'
+import { Context, createContext, getDefaultConfigPath } from './lib/Context.js'
+import { StandardColors } from './lib/StandardColors.js'
 
 export type Flags<T extends typeof Command> = Interfaces.InferredFlags<T['flags'] & (typeof BaseCommand)['baseFlags']>
 export type Args<T extends typeof Command> = Interfaces.InferredArgs<T['args']>
@@ -40,6 +40,12 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
       summary: 'Path to keypair file (/path/keypair.json) or ledger (e.g. usb://ledger?key=0)',
       helpGroup: 'GLOBAL',
     }),
+    rpc: Flags.string({
+      char: 'r',
+      name: 'rpc',
+      summary: 'RPC URL for the cluster',
+      helpGroup: 'GLOBAL',
+    }),
   }
 
   // add the --json flag
@@ -49,7 +55,7 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
   public context!: Context
   protected flags!: Flags<T>
 
-  protected async catch(err: {exitCode?: number} & Error): Promise<unknown> {
+  protected async catch(err: { exitCode?: number } & Error): Promise<unknown> {
     // add any custom logic to handle errors from the command
     // or simply return the parent class error handling
     return super.catch(err)
@@ -62,7 +68,7 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
 
   public async init(): Promise<void> {
     await super.init()
-    const {args, flags} = await this.parse({
+    const { args, flags } = await this.parse({
       args: this.ctor.args,
       baseFlags: (super.ctor as typeof BaseCommand).baseFlags,
       enableJsonFlag: this.ctor.enableJsonFlag,

@@ -1,14 +1,14 @@
-import {AssetV1, fetchAsset, fetchCollection, update} from '@metaplex-foundation/mpl-core'
-import {fetchJsonMetadata, JsonMetadata} from '@metaplex-foundation/mpl-token-metadata'
-import {createGenericFile, publicKey, Umi} from '@metaplex-foundation/umi'
-import {Args, Flags} from '@oclif/core'
+import { AssetV1, fetchAsset, fetchCollection, update } from '@metaplex-foundation/mpl-core'
+import { fetchJsonMetadata, JsonMetadata } from '@metaplex-foundation/mpl-token-metadata'
+import { createGenericFile, publicKey, Umi } from '@metaplex-foundation/umi'
+import { Args, Flags } from '@oclif/core'
 
 import mime from 'mime'
 import fs from 'node:fs'
-import {basename} from 'node:path'
+import { basename } from 'node:path'
 import ora from 'ora'
-import {BaseCommand} from '../../../BaseCommand.js'
-import {txSignatureToString} from '../../../lib/util.js'
+import { BaseCommand } from '../../../BaseCommand.js'
+import { txSignatureToString } from '../../../lib/util.js'
 
 /* 
   Update Possibilities:
@@ -37,34 +37,25 @@ export default class AssetUpdate extends BaseCommand<typeof AssetUpdate> {
     '<%= config.bin %> <%= command.id %> <assetId> --name "Updated Asset"',
     '<%= config.bin %> <%= command.id %> <assetId> --image ./asset/image.jpg',
     '<%= config.bin %> <%= command.id %> <assetId> --json ./asset/metadata.json',
-    '',
-    'Multiple Asset Update:',
-    '<%= config.bin %> <%= command.id %> <assetId> --files ./assets',
-    '<%= config.bin %> <%= command.id %> <assetId> --files ./assets --sync',
   ]
 
   static override flags = {
-    name: Flags.string({char: 'n', description: 'Asset name', exclusive: ['json']}),
-    uri: Flags.string({char: 'u', description: 'URI of the Asset metadata', exclusive: ['json']}),
-    image: Flags.string({char: 'i', description: 'Path to image file'}),
-    json: Flags.string({char: 'j', description: 'Path to JSON file', exclusive: ['name', 'uri']}),
-    sync: Flags.boolean({
-      char: 's',
-      description: 'Sync the name from the metadata json to the asset',
-      exclusive: ['name'],
-    }),
-    collectionId: Flags.string({description: 'Collection ID'}),
+    name: Flags.string({ name: "name", description: 'Asset name', exclusive: ['json'] }),
+    uri: Flags.string({ name: "uri", description: 'URI of the Asset metadata', exclusive: ['json'] }),
+    image: Flags.string({ name: "image", description: 'Path to image file' }),
+    json: Flags.string({ name: "json", description: 'Path to JSON file', exclusive: ['name', 'uri'] }),
+    collectionId: Flags.string({ description: 'Collection ID' }),
   }
 
   static override args = {
-    assetId: Args.string({name: 'Asset ID', description: 'Asset to update', required: true}),
+    assetId: Args.string({ name: 'Asset ID', description: 'Asset to update', required: true }),
   }
 
   public async run(): Promise<void> {
-    const {args, flags} = await this.parse(AssetUpdate)
+    const { args, flags } = await this.parse(AssetUpdate)
     const umi = this.context.umi
     const assetId = args.assetId
-    const {name, uri, image, json, sync} = flags
+    const { name, uri, image, json } = flags
 
     if (!name && !uri && !image && !json) {
       this.error('You must provide at least one update flag: --name, --uri, --image, or --json')
@@ -88,7 +79,7 @@ export default class AssetUpdate extends BaseCommand<typeof AssetUpdate> {
       // name, image, and json flags require modification of the original metadata and a new metadata upload.
 
       //validations
-      if (name && json && sync) {
+      if (name && json) {
         throw new Error('when syncing name from --json metadata file, do not provide a --name flag')
       }
 
@@ -99,7 +90,7 @@ export default class AssetUpdate extends BaseCommand<typeof AssetUpdate> {
         metadata = JSON.parse(fs.readFileSync(json, 'utf-8'))
       } else {
         // Fetch metadata from asset's current URI
-        metadata = await this.getMetadata({asset, uri, path: json})
+        metadata = await this.getMetadata({ asset, uri, path: json })
       }
 
       if (image) {
@@ -112,7 +103,7 @@ export default class AssetUpdate extends BaseCommand<typeof AssetUpdate> {
 
       if (name) {
         updatedName = name
-      } else if (json && sync) {
+      } else if (json) {
         updatedName = metadata.name || ''
       } else {
         updatedName = asset.name
@@ -124,7 +115,7 @@ export default class AssetUpdate extends BaseCommand<typeof AssetUpdate> {
     }
   }
 
-  private async getMetadata({asset, uri, path}: {asset?: AssetV1; uri?: string; path?: string}): Promise<JsonMetadata> {
+  private async getMetadata({ asset, uri, path }: { asset?: AssetV1; uri?: string; path?: string }): Promise<JsonMetadata> {
     if (uri) {
       // Fetch metadata from URI
       return await this.fetchUriMetadata(uri)
@@ -167,7 +158,7 @@ export default class AssetUpdate extends BaseCommand<typeof AssetUpdate> {
       const file = fs.readFileSync(filePath)
       const mimeType = mime.getType(filePath)
       const genericFile = createGenericFile(file, basename(filePath), {
-        tags: mimeType ? [{name: 'mimeType', value: mimeType}] : [],
+        tags: mimeType ? [{ name: 'mimeType', value: mimeType }] : [],
       })
       const [uri] = await umi.uploader.upload([genericFile])
       spinner.succeed(`File uploaded: ${uri}`)
@@ -197,7 +188,7 @@ export default class AssetUpdate extends BaseCommand<typeof AssetUpdate> {
       if (asset.updateAuthority.type === 'Collection' && asset.updateAuthority.address) {
         collection = await fetchCollection(umi, publicKey(asset.updateAuthority.address))
       }
-      const tx = await update(umi, {asset, collection, name, uri}).sendAndConfirm(umi)
+      const tx = await update(umi, { asset, collection, name, uri }).sendAndConfirm(umi)
       const txStr = txSignatureToString(tx.signature)
       spinner.succeed(`Asset updated: ${asset.publicKey} (Tx: ${txStr})`)
     } catch (error) {

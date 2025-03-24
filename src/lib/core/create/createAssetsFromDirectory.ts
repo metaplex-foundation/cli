@@ -1,25 +1,29 @@
-import {JsonMetadata} from '@metaplex-foundation/mpl-token-metadata'
+import { fetchCollection } from '@metaplex-foundation/mpl-core'
+import { JsonMetadata } from '@metaplex-foundation/mpl-token-metadata'
 import {
   createGenericFile,
   createGenericFileFromJson,
   generateSigner,
   GenericFile,
+  PublicKey,
   Signer,
   Umi,
 } from '@metaplex-foundation/umi'
-import fs from 'node:fs'
-import umiSendAllTransactionsAndConfirm from '../../umi/sendAllTransactionsAndConfirm.js'
-import {base58} from '@metaplex-foundation/umi/serializers'
-import createAssetTx from './createTx.js'
+import cliProgress from 'cli-progress'
 import mime from 'mime'
-import {fetchCollection} from '@metaplex-foundation/mpl-core'
+import fs from 'node:fs'
+import confirmAllTransactions, { UmiTransactionConfirmationResult } from '../../umi/confirmAllTransactions.js'
+import umiSendAllTransactions from '../../umi/sendAllTransactions.js'
+import { UmiTransactionResponce } from '../../umi/sendTransaction.js'
+import createAssetTx from './createTx.js'
+import { base58 } from '@metaplex-foundation/umi/serializers'
 
 interface CreateAssetsFromDirectoryOptions {
   collection?: string
 }
 
 interface AssetData {
-  assetSigner?: Signer
+  assetId?: PublicKey
   name?: string
   imagePath?: string
   metadataPath?: string
@@ -28,6 +32,16 @@ interface AssetData {
   pluginData?: any
   imageUri?: string
   metadataUri?: string
+  tx?: {
+    transaction?: UmiTransactionResponce
+    confirmation?: UmiTransactionConfirmationResult
+  }
+}
+
+interface CreateAssetsFromDirectoryCache {
+  name: 'createAssetsFromDirectory'
+  directoryPath: string
+  items: AssetData[]
 }
 
 const createAssetsFromDirectory = async (
@@ -35,7 +49,18 @@ const createAssetsFromDirectory = async (
   directoryPath: string,
   options?: CreateAssetsFromDirectoryOptions,
 ) => {
+  console.log(`
+----------------------------------------------------------------
+Creating Assets from Directory: ${directoryPath}
+----------------------------------------------------------------
+    `)
   // load file list from directory
+
+  let cache: CreateAssetsFromDirectoryCache = {
+    name: 'createAssetsFromDirectory',
+    directoryPath,
+    items: [],
+  }
 
   const fileList = fs.readdirSync(directoryPath)
 
@@ -44,7 +69,7 @@ const createAssetsFromDirectory = async (
   // ie. 0.png, 0.json, 0-plugins.json, 1.png, 1.json, 1-plugins.json
 
   // sort the files by name
-  const sortedFiles = fileList.sort((a, b) => a.localeCompare(b, undefined, {numeric: true}))
+  const sortedFiles = fileList.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
 
   const indices = sortedFiles.map((file) => parseInt(file.split('.')[0])).filter((index) => !isNaN(index))
 
@@ -61,7 +86,7 @@ const createAssetsFromDirectory = async (
   // get the highest index from the sorted files
   const highestIndex = Math.max(...uniqueIndices)
 
-  const assetDataArray: AssetData[] = []
+  // const assetDataArray: AssetData[] = []
 
   for (let index = 0; index <= highestIndex; index++) {
     // check if the current index has an image and metadata file
@@ -76,7 +101,7 @@ const createAssetsFromDirectory = async (
     const plugins = sortedFiles.filter((file) => file === `${index}-plugins.json`)
 
     if (image.length > 0 && metadata.length > 0) {
-      assetDataArray.push({
+      cache.items.push({
         imagePath: image[0],
         metadataPath: metadata[0],
         pluginsPath: plugins.length > 0 ? plugins[0] : undefined,
@@ -99,7 +124,7 @@ const createAssetsFromDirectory = async (
     globalPluginData = JSON.parse(fs.readFileSync(directoryPath + '/plugins.json', 'utf-8'))
   }
 
-  for (const assetData of assetDataArray) {
+  for (const assetData of cache.items) {
     // load individual plugin data if it exists
     if (assetData.pluginsPath) {
       console.log('Idividual PluginData found')
@@ -118,7 +143,7 @@ const createAssetsFromDirectory = async (
 
   console.log(`Creating ${highestIndex} Assets from directory: ${directoryPath}`)
 
-  const imagesFileNames = assetDataArray.map((file) => file.imagePath)
+  const imagesFileNames = cache.items.map((file) => file.imagePath)
 
   let imageGenericFiles: GenericFile[] = []
 
@@ -126,17 +151,26 @@ const createAssetsFromDirectory = async (
     const imageFile = fs.readFileSync(directoryPath + '/' + imageName)
     const mimeType = mime.getType(directoryPath)
     const genericFile = createGenericFile(imageFile, directoryPath, {
-      tags: mimeType ? [{name: 'mimeType', value: mimeType}] : [],
+      tags: mimeType ? [{ name: 'mimeType', value: mimeType }] : [],
     })
 
     imageGenericFiles.push(genericFile)
   }
 
   console.log('Uploading Images...')
-  const imageUris = await umi.uploader.upload(imageGenericFiles)
+  const imageProgress = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic)
+  imageProgress.start(imageGenericFiles.length, 0)
+  const imageUris = await umi.uploader.upload(imageGenericFiles, {
+    onProgress: () => {
+      imageProgress.increment()
+    }
+  }).catch((err) => {
+    throw err
+  })
+  imageProgress.stop()
 
   imageUris.forEach((uri, index) => {
-    assetDataArray[index].imageUri = uri
+    cache.items[index].imageUri = uri
   })
 
   // console.log({imageUris})
@@ -145,13 +179,12 @@ const createAssetsFromDirectory = async (
 
   let metadataJsonFiles: JsonMetadata[] = []
 
-  console.log('Adjusting Metadata...')
-  for (let i = 0; i < assetDataArray.length; i++) {
-    const {metadataPath} = assetDataArray[i]
+  for (let i = 0; i < cache.items.length; i++) {
+    const { metadataPath } = cache.items[i]
 
     const jsonFile: JsonMetadata = JSON.parse(fs.readFileSync(directoryPath + '/' + metadataPath, 'utf-8'))
-    assetDataArray[i].metadata = jsonFile
-    assetDataArray[i].name = jsonFile.name
+    cache.items[i].metadata = jsonFile
+    cache.items[i].name = jsonFile.name
     jsonFile.image = imageUris[i]
 
     metadataJsonFiles.push(jsonFile)
@@ -160,15 +193,25 @@ const createAssetsFromDirectory = async (
   // upload JSON
 
   const jsonGenericFiles = metadataJsonFiles.map((json, index) =>
-    createGenericFileFromJson(json, assetDataArray[index].metadataPath),
+    createGenericFileFromJson(json, cache.items[index].metadataPath),
   )
 
   console.log('Uploading Metadata...')
   // TODO: Add Umi uploader of array of generic files
-  const metadataUris = await umi.uploader.upload(jsonGenericFiles)
+  const jsonProgress = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic)
+  jsonProgress.start(imageGenericFiles.length, 0)
+  const metadataUris = await umi.uploader.upload(jsonGenericFiles, {
+    onProgress: () => {
+      jsonProgress.increment()
+    }
+  }).catch((err) => {
+    throw err
+  })
+
+  jsonProgress.stop()
 
   metadataUris.forEach((uri, index) => {
-    assetDataArray[index].metadataUri = uri
+    cache.items[index].metadataUri = uri
   })
 
   /* 
@@ -179,38 +222,62 @@ const createAssetsFromDirectory = async (
 
   // TODO Refactor multiple mappings less
   // Generate Asset Signers for each Asset
-  for (const assetData of assetDataArray) {
-    assetData.assetSigner = generateSigner(umi)
-  }
+  // for (const assetData of cache.items) {
+  //   assetData.assetSigner = generateSigner(umi)
+  // }
 
   const collection = options?.collection ? await fetchCollection(umi, options.collection) : undefined
 
   const transactions = await Promise.all(
-    assetDataArray.map((assetData) =>
-      createAssetTx(umi, {
-        assetSigner: assetData.assetSigner,
+    cache.items.map(async (assetData, index) => {
+
+      const assetSigner = generateSigner(umi)
+
+      cache.items[index].assetId = assetSigner.publicKey
+
+      return   await createAssetTx(umi, {
+        assetSigner: assetSigner,
         // TODO: Fix !s, and undefineds
         name: assetData.name!,
         uri: assetData.metadataUri!,
         owner: undefined,
         collection,
         plugins: assetData.pluginData,
-      }),
-    ),
+      })
+    }
+    
+    )
   )
 
-  let results: any = []
+  // write initial cache of assetDataArray
+  fs.writeFileSync(directoryPath + '/create-cache.json', JSON.stringify(cache))
 
-  const res = await umiSendAllTransactionsAndConfirm(umi, transactions)
+  // send transactions and log progress to cache
 
-  res.forEach((tx, index) => {
-    results.push({
-      asset: assetDataArray[index].assetSigner!.publicKey,
-      signature: tx.transaction.signature && base58.deserialize(tx.transaction.signature)[0],
-    })
+  const sendRes = await umiSendAllTransactions(umi, transactions.map((tx) => tx.tx), undefined, (index, response) => {
+    console.log(`Sent Transaction ${index} repsonses: ${JSON.stringify(response)}`)
+    // add transaction to assetDataArray
+    console.log(`Adding transaction to cache ${index}`)
+    console.log(cache.items[index])
+    cache.items[index].tx = {
+      ...cache.items[index].tx,
+      transaction: {
+        ...response,
+        signature: base58.deserialize(response.signature as Uint8Array)[0]
+      }
+    }
+
+    fs.writeFileSync(directoryPath + '/create-cache.json', JSON.stringify(cache))
   })
 
-  fs.writeFileSync(directoryPath + '/create-results.json', JSON.stringify(results))
+  const confirmRes = await confirmAllTransactions(umi, sendRes, undefined, (index, response) => {
+    // add confirmation to assetDataArray
+    cache.items[index].tx = {
+      ...cache.items[index].tx,
+      confirmation: response
+    }
+    fs.writeFileSync(directoryPath + '/create-cache.json', JSON.stringify(cache))
+  })
 }
 
 export default createAssetsFromDirectory

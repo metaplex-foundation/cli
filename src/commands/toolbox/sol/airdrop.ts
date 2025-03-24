@@ -54,7 +54,7 @@ export default class ToolboxSolAirdrop extends TransactionCommand<typeof Toolbox
 
         this.logSuccess(
             `--------------------------------
-    Airdropped ${args.amount} SOL to ${args.address}
+    Airdropped ${args.amount} SOL to ${args.address ?? umi.payer.publicKey}
 --------------------------------`
         )
     }

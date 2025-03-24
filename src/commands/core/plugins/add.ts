@@ -61,7 +61,7 @@ export default class CollectionCreate extends BaseCommand<typeof CollectionCreat
         await this.addPlugin(args.id, plugin, { isCollection })
     }
 
-    private async addPlugin(asset: string, pluginData: AddPluginArgsPlugin | AddCollectionPluginArgs, { isCollection, collectionId }: { isCollection: boolean, collectionId?: string }) {
+await this.addPlugin(args.id, plugin, { isCollection, collectionId: undefined })
         const { umi, explorer } = this.context
 
         if (!pluginData) {

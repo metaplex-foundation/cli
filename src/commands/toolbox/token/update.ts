@@ -50,7 +50,7 @@ export default class ToolboxTokenUpdate extends TransactionCommand<typeof Toolbo
 --------------------------------`
         )
 
-        if (!flags.name && !flags.description && !flags.image && !flags.description && !flags.symbol) {
+        if (!flags.name && !flags.description && !flags.image && !flags.symbol) {
             this.error("Nothing to update, no flags selected.")
         }
 

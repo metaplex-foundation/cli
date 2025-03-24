@@ -138,8 +138,14 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
             }))
 
         const createSpinner = ora('Creating token...').start()
-        const result = await umiSendAndConfirmTransaction(umi, createFunigbleIx)
-        createSpinner.succeed('Token created successfully')
+        try {
+            const result = await umiSendAndConfirmTransaction(umi, createFunigbleIx)
+            createSpinner.succeed('Token created successfully')
+            return result;
+        } catch (error) {
+            createSpinner.fail('Token creation failed')
+            throw error;
+        }
 
         this.logSuccess(
             `--------------------------------

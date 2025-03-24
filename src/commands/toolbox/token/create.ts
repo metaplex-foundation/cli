@@ -22,7 +22,7 @@ import createTokenPrompt from '../../../prompts/createTokenPrompt.js'
 */
 
 export default class ToolboxTokenCreate extends TransactionCommand<typeof ToolboxTokenCreate> {
-    static override description = 'Airdrop SOL to an address'
+    static override description = 'Create a fungible token'
 
     static override examples = [
         '<%= config.bin %> <%= command.id %>  toolbox token create --wizard',

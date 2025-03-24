@@ -21,7 +21,7 @@ const explorers = [
 ]
 
 export default class ConfigExplorerSetCommand extends Command {
-    static override description = 'Set a new active wallet from a list of wallets'
+    static override description = 'Set the preferred blockchain explorer'
 
     public async run(): Promise<void> {
         const { flags, args } = await this.parse(ConfigExplorerSetCommand)

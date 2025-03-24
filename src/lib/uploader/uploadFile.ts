@@ -27,10 +27,7 @@ const uploadFile = async (umi: Umi, filePath: string): Promise<UploadFileRessult
     }
 
   } catch (error) {
-    throw {
-      message: 'File upload failed 22222',
-      error: error,
-    }
+    throw new Error(`File upload failed: ${error instanceof Error ? error.message : String(error)}`)
   }
 }
 

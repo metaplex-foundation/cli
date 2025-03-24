@@ -18,7 +18,7 @@ import { TransactionCommand } from '../../../TransactionCommand.js'
 */
 
 export default class ToolboxTokenUpdate extends TransactionCommand<typeof ToolboxTokenUpdate> {
-    static override description = 'Airdrop SOL to an address'
+    static override description = 'Update token metadata'
 
     static override examples = [
         '<%= config.bin %> <%= command.id %> toolbox token update <mintAddress> <flags>',

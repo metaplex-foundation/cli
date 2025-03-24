@@ -2,16 +2,10 @@ import { Flags, Args } from '@oclif/core'
 
 import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
-import umiAirdrop from '../../../lib/toolbox/airdrop.js'
-import createTokenPrompt from '../../../prompts/createTokenPrompt.js'
-import { createFungible, createV1 } from '@metaplex-foundation/mpl-token-metadata'
-import { createGenericFile, generateSigner, percentAmount, publicKey, TransactionBuilder } from '@metaplex-foundation/umi'
+import { publicKey, TransactionBuilder } from '@metaplex-foundation/umi'
 import { createTokenIfMissing, findAssociatedTokenPda, mintTokensTo, transferTokens } from '@metaplex-foundation/mpl-toolbox'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { base58 } from '@metaplex-foundation/umi/serializers'
-import fs from 'node:fs'
-import { readFile } from '../../../lib/util.js'
-
 
 /* 
   Create Possibilities:

@@ -11,7 +11,7 @@ export default class ToolboxSolBalance extends TransactionCommand<typeof Toolbox
         '<%= config.bin %> <%= command.id %> <address>',
     ]
 
-    static override usage = 'toolbox sol airdrop [ARGS]'
+    static override usage = 'toolbox sol balance [ARGS]'
 
     static override args = {
         address: Args.string({ description: 'Address to airdrop SOL to', required: false }),

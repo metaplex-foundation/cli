@@ -87,8 +87,15 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
 
         } else {
 
-            if (!flags.name || !flags.symbol || !flags.description || !flags.image || !flags.mint) {
-                throw ("Missing required flags")
+            const missingFlags = [];
+            if (!flags.name) missingFlags.push('name');
+            if (!flags.symbol) missingFlags.push('symbol');
+            if (!flags.description) missingFlags.push('description');
+            if (!flags.image) missingFlags.push('image');
+            if (!flags.mint) missingFlags.push('mint-amount');
+            
+            if (missingFlags.length > 0) {
+                throw new Error(`Missing required flags: ${missingFlags.join(', ')}`);
             }
 
             const imageUri = await imageUploader(umi, flags.image)

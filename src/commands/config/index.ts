@@ -23,6 +23,8 @@ export default class Config extends Command {
       this.log(chalk.green(`Found config at: ${chalk.bold(path)}`))
       this.log('')
 
+      // prints the config and expands [object Object] while adding some defining colors
+
       CONFIG_KEYS.forEach((key) => {
         const value = config[key]
         if (typeof value === 'object' && value !== null) {

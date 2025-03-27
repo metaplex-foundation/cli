@@ -1,35 +1,28 @@
 # Toolbox Commands
 
-The `toolbox` commands provide utility functions for common Solana blockchain operations, including SOL management, token operations, file uploads, and rent calculations.
+The `toolbox` commands provide utility functions for common Solana blockchain operations, including SOL management and token operations.
 
 ## Command Structure
 
 ```bash
-mplx toolbox <command> <subcommand> [options]
+mplx toolbox <object> <command> [options]
 ```
 
 ## Available Commands
 
 ### SOL Commands
 
-Commands for managing SOL tokens:
-
 ```bash
-# Airdrop SOL (devnet/testnet only)
-mplx toolbox sol airdrop <amount> [options]
-  <amount>            # Amount of SOL to airdrop
-  --to <address>      # Recipient address (defaults to configured wallet)
+# Check SOL balance
+mplx toolbox sol balance [address]
+  # If no address provided, checks configured wallet's balance
 
 # Transfer SOL
-mplx toolbox sol transfer <amount> <recipient> [options]
-  <amount>           # Amount of SOL to transfer
-  <recipient>        # Recipient's address
-  --from <keypair>   # Source keypair (optional)
+mplx toolbox sol transfer <amount> <recipient>
+  Example: mplx toolbox sol transfer 1 AKQwGqAhAYHXpNELLVhkf8fNXxEGzWxAF2UGjHqXbspw
 ```
 
 ### Token Commands
-
-Commands for managing SPL tokens:
 
 ```bash
 # Create a new token
@@ -40,63 +33,41 @@ mplx toolbox token create [options]
   --decimals <num>   # Number of decimals
   --image <path>     # Token image file
   --mint <amount>    # Initial mint amount
-  --description <text> # Token description
+
+# Update token metadata
+mplx toolbox token update <mint> [options]
+  --name <name>      # New token name
+  --symbol <symbol>  # New token symbol
+  --image <path>     # New token image
+  --description <text> # New description
 
 # Transfer tokens
-mplx toolbox token transfer <amount> <recipient> [options]
-  <amount>          # Amount of tokens to transfer
-  <recipient>       # Recipient's address
-  --mint <address>  # Token mint address
+mplx toolbox token transfer <mint> <amount> <recipient>
+  Example: mplx toolbox token transfer TokenMint123... 100 Recipient456...
 ```
 
-### Upload Commands
+## Interactive Features
 
-Commands for uploading files to decentralized storage:
-
+### Token Creation Wizard
 ```bash
-# Upload a file
-mplx toolbox upload file <path> [options]
-  <path>            # Path to file
-  --storage <type>  # Storage type (arweave, irys, nft.storage)
+$ mplx toolbox token create --wizard
 
-# Upload JSON
-mplx toolbox upload json <path> [options]
-  <path>           # Path to JSON file
-  --storage <type> # Storage type (arweave, irys, nft.storage)
-```
+? Enter token name: My Token
+? Enter token symbol: MTK
+? Enter number of decimals: 9
+? Select image file: ./logo.png
+? Enter initial mint amount: 1000000000
 
-### Rent Commands
-
-Commands for calculating and managing rent:
-
-```bash
-# Calculate rent exemption
-mplx toolbox rent calculate [options]
-  --bytes <size>    # Account size in bytes
-  --years <num>     # Number of years (for rent calculation)
-```
-
-## Storage Options
-
-The toolbox supports multiple storage providers for file uploads:
-
-```bash
-# Available Storage Providers:
-- Arweave (default)
-- Irys (formerly Bundlr)
-- NFT.storage
+Creating token...
+✓ Token created successfully!
+Mint: 7KVswz8sCfXy2giGdnkqePccPJSDQZCnhHUrfKvGYt9L
 ```
 
 ## Examples
 
+### Token Operations
 ```bash
-# Airdrop 1 SOL on devnet
-mplx toolbox sol airdrop 1
-
-# Create a new token with wizard
-mplx toolbox token create --wizard
-
-# Create a token with specific parameters
+# Create token with specific parameters
 mplx toolbox token create \
   --name "My Token" \
   --symbol "MTK" \
@@ -104,60 +75,34 @@ mplx toolbox token create \
   --image ./token-logo.png \
   --mint 1000000000
 
-# Upload an image file
-mplx toolbox upload file ./image.png
+# Update token metadata
+mplx toolbox token update <mint> \
+  --name "Updated Token Name" \
+  --image ./new-logo.png
 
-# Calculate rent for 1KB account
-mplx toolbox rent calculate --bytes 1024
+# Check SOL balance
+mplx toolbox sol balance
 ```
-
-## File Upload Specifications
-
-### Supported File Types
-
-```
-Images: PNG, JPG, GIF, SVG
-Documents: PDF, TXT, JSON
-Media: MP3, MP4, WAV
-Maximum file size: 100MB
-```
-
-### Upload Response Format
-
-```json
-{
-  "uri": "https://arweave.net/...",
-  "signature": "...",
-  "mimeType": "image/png",
-  "size": 1234
-}
-```
-
-## Error Handling
-
-- Network errors will be retried automatically
-- Large file uploads will show progress bars
-- Failed uploads will provide detailed error messages
-- Token operations will validate addresses and amounts
 
 ## Best Practices
 
-1. Always verify recipient addresses before transfers
-2. Test token operations with small amounts first
-3. Keep track of uploaded file URIs
-4. Use appropriate storage providers based on needs
-5. Monitor SOL balance for upload costs
+1. Always verify addresses and amounts before transfers
+2. Test operations on devnet first
+3. Keep track of mint addresses
+4. Back up token metadata
+5. Double-check recipient addresses before transfers
 
-## Cost Considerations
+## Error Handling
 
-1. File upload costs vary by storage provider
-2. SOL is required for rent and transaction fees
-3. Token creation requires rent-exempt SOL
-4. Consider using devnet for testing
+The CLI provides clear error messages for common issues:
+- Insufficient balance for transfers
+- Invalid mint addresses
+- Invalid wallet addresses
+- Network connectivity issues
+- Transaction failures
 
 ## Additional Resources
 
-- [Solana Token Program](https://spl.solana.com/token)
-- [Arweave Documentation](https://docs.arweave.org)
-- [Irys Documentation](https://docs.irys.xyz)
-- [NFT.storage Documentation](https://nft.storage/docs/)
+- [Metaplex Documentation](https://docs.metaplex.com)
+- [Solana Documentation](https://docs.solana.com)
+- [Discord Support](https://discord.gg/metaplex)

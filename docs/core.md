@@ -84,7 +84,7 @@ mplx core plugins remove <assetId/collectionId> [options]
 
 ## Working with Files
 
-### Directory Structure for Batch Operations
+### Directory Structure for Batch Operations (Coming Soon!)
 
 When using the `--directory` flag for creating multiple assets, the directory should be structured as follows:
 
@@ -146,9 +146,3 @@ assets/
 3. Back up metadata and plugin configurations before making changes
 4. Test operations on devnet before mainnet deployment
 5. Monitor transaction status and explorer links provided in command output
-
-## Additional Resources
-
-- [Metaplex Core Documentation](https://docs.metaplex.com)
-- [Plugin System Documentation](https://docs.metaplex.com/programs/core/plugins)
-- [Asset Standard](https://docs.metaplex.com/programs/core/asset)

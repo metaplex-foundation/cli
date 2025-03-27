@@ -1,4 +1,4 @@
-import { Flags } from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 import fs from 'node:fs'
 
 import { BaseCommand } from '../../../BaseCommand.js'
@@ -24,13 +24,14 @@ export default class AssetTemplate extends BaseCommand<typeof AssetTemplate> {
     '<%= config.bin %> <%= command.id %> -o /path/to/directory',
   ]
 
-  static override flags = {
-    output: Flags.string({ char: 'o', description: 'Destination for the template files' }),
+
+  static override args = {
+    output: Args.string({ name: 'output', description: 'Output directory, if not provided, the current working directory will be used' }),
   }
 
   public async run(): Promise<unknown> {
-    const { flags } = await this.parse(AssetTemplate)
-    const { output } = flags
+    const { flags, args } = await this.parse(AssetTemplate)
+    const { output } = args
 
     // eslint-disable-next-line no-warning-comments
     // TODO create different assets types

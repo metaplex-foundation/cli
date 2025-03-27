@@ -1,19 +1,18 @@
 import { Args, Flags } from '@oclif/core'
 
-import { BaseCommand } from '../../../BaseCommand.js'
-import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
-import { PluginFilterType, pluginSelector } from '../../../prompts/pluginSelector.js'
-import pluginConfigurator from '../../../prompts/pluginInquirer.js'
-import fs from 'fs'
-import { addCollectionPlugin, AddCollectionPluginArgs, AddCollectionPluginArgsPlugin, addPlugin, AddPluginArgs, AddPluginArgsPlugin } from '@metaplex-foundation/mpl-core'
+import { addCollectionPlugin, AddCollectionPluginArgsPlugin, addPlugin, AddPluginArgsPlugin } from '@metaplex-foundation/mpl-core'
 import { publicKey } from '@metaplex-foundation/umi'
-import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
+import fs from 'fs'
 import ora from 'ora'
-import { base58 } from '@metaplex-foundation/umi/serializers'
+import { BaseCommand } from '../../../BaseCommand.js'
 import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
+import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
+import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
+import pluginConfigurator from '../../../prompts/pluginInquirer.js'
+import { PluginFilterType, pluginSelector } from '../../../prompts/pluginSelector.js'
 
-export default class CollectionCreate extends BaseCommand<typeof CollectionCreate> {
+export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
     static override description = 'Add a plugin to an asset or collection'
 
     static override examples = [
@@ -23,23 +22,24 @@ export default class CollectionCreate extends BaseCommand<typeof CollectionCreat
 
     static override flags = {
         wizard: Flags.boolean({ description: 'Wizard mode', default: false }),
+        collection: Flags.boolean({ description: 'Is this a collection plugin', default: false }),
     }
 
     static override args = {
         id: Args.string({ description: 'asset or collection public key', required: true }),
-        json: Args.file({ description: 'path to a plugin data JSON file' }),
+        json: Args.file({ description: 'path to a plugin data JSON file', required: false }),
     }
 
+
+
     public async run() {
-        const { args, flags } = await this.parse(CollectionCreate)
-        const { umi, explorer } = this.context
-        const isCollection = false
+        const { args, flags } = await this.parse(CorePluginsAdd)
         let pluginData: PluginData | undefined
         let selectedPlugin: Plugin | undefined
 
         if (flags.wizard) {
             selectedPlugin = await pluginSelector({
-                filter: isCollection ? PluginFilterType.Collection : PluginFilterType.Asset,
+                filter: flags.collection ? PluginFilterType.Collection : PluginFilterType.Asset,
                 type: 'list',
                 managedBy: PluginFilterType.Authority
             }) as Plugin
@@ -58,18 +58,16 @@ export default class CollectionCreate extends BaseCommand<typeof CollectionCreat
         }
 
         const plugin = Object.values(pluginData)[0] as AddPluginArgsPlugin | AddCollectionPluginArgsPlugin
-        await this.addPlugin(args.id, plugin, { isCollection })
+        await this.addPlugin(args.id, plugin, { isCollection: flags.collection })
     }
 
-await this.addPlugin(args.id, plugin, { isCollection, collectionId: undefined })
+    private async addPlugin(asset: string, pluginData: AddPluginArgsPlugin | AddCollectionPluginArgsPlugin, options: { isCollection: boolean, collectionId?: string }) {
         const { umi, explorer } = this.context
-
-        if (!pluginData) {
-            throw new Error('Plugin data is required')
-        }
+        const { isCollection, collectionId } = options
 
         console.log("generating transaction")
-        console.log({pluginData})
+        console.log({ pluginData })
+
         let addPluginIx = isCollection
             ? addCollectionPlugin(umi, {
                 collection: publicKey(asset),
@@ -81,24 +79,24 @@ await this.addPlugin(args.id, plugin, { isCollection, collectionId: undefined })
                 plugin: pluginData as AddPluginArgsPlugin
             })
 
-            const transactionSpinner = ora('Adding plugin...').start()
-            try {
-                const res = await umiSendAndConfirmTransaction(umi, addPluginIx)
-                transactionSpinner.succeed("Plugin added successfully")
-                // rest of success handling
-            } catch (error) {
-                transactionSpinner.fail(`Failed to add plugin: ${error.message}`)
-                throw error
-            }
-        console.log(
-            `--------------------------------\n
-      Asset: ${asset}\n
-      Signature: ${txSignatureToString(res.transaction.signature as Uint8Array)}\n
-      Explorer: ${generateExplorerUrl(explorer as ExplorerType, txSignatureToString(res.transaction.signature as Uint8Array), 'transaction')}\n
-      Core Explorer: https://core.metaplex.com/explorer/${asset}\n
-    --------------------------------`
-        )
+        const transactionSpinner = ora('Adding plugin...').start()
+        try {
+            const res = await umiSendAndConfirmTransaction(umi, addPluginIx)
+            transactionSpinner.succeed("Plugin added successfully")
 
-    
+            console.log(
+                `--------------------------------\n
+                Asset: ${asset}\n
+                Signature: ${txSignatureToString(res.transaction.signature as Uint8Array)}\n
+                Explorer: ${generateExplorerUrl(explorer as ExplorerType, txSignatureToString(res.transaction.signature as Uint8Array), 'transaction')}\n
+                Core Explorer: https://core.metaplex.com/explorer/${asset}\n
+                --------------------------------`
+            )
+
+            return res
+        } catch (error: unknown) {
+            transactionSpinner.fail(`Failed to add plugin: ${error instanceof Error ? error.message : 'Unknown error'}`)
+            throw error
+        }
     }
 }

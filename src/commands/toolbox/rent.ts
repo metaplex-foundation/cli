@@ -4,8 +4,8 @@ import { amountToNumber } from '@metaplex-foundation/umi'
 import { TransactionCommand } from '../../TransactionCommand.js'
 
 
-export default class ToolboxSolBalance extends TransactionCommand<typeof ToolboxSolBalance> {
-    static override description = 'Airdrop SOL to an address'
+export default class ToolboxRent extends TransactionCommand<typeof ToolboxRent> {
+    static override description = 'Get rent cost for a given number of bytes'
 
     static override examples = [
         '<%= config.bin %> <%= command.id %> <bytes>',
@@ -17,7 +17,7 @@ export default class ToolboxSolBalance extends TransactionCommand<typeof Toolbox
 
 
     public async run() {
-        const { args } = await this.parse(ToolboxSolBalance)
+        const { args } = await this.parse(ToolboxRent)
 
         const { umi } = this.context
 

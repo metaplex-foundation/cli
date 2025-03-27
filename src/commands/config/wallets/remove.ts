@@ -4,7 +4,7 @@ import { getDefaultConfigPath, readConfig } from '../../../lib/Context.js'
 import { ensureDirectoryExists, writeJsonSync } from '../../../lib/file.js'
 
 export default class ConfigWalletRemoveCommand extends Command {
-  static override description = 'Set a config value from a key'
+  static override description = 'Remove a wallet from the config'
 
   static override args = {
     name: Args.string({

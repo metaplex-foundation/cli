@@ -68,6 +68,9 @@ dependencies:
   ansis:
     specifier: ^3.4.0
     version: 3.16.0
+  chalk:
+    specifier: ^5.4.1
+    version: 5.4.1
   cli-progress:
     specifier: ^3.12.0
     version: 3.12.0
@@ -115,6 +118,9 @@ devDependencies:
   '@types/chai':
     specifier: ^4.3.20
     version: 4.3.20
+  '@types/chalk':
+    specifier: ^2.2.4
+    version: 2.2.4
   '@types/cli-progress':
     specifier: ^3.11.6
     version: 3.11.6
@@ -3399,6 +3405,13 @@ packages:
     resolution: {integrity: sha512-/pC9HAB5I/xMlc5FP77qjCnI16ChlJfW0tGa0IUcFn38VJrTV6DeZ60NU5KZBtaOZqjdpwTWohz5HU1RrhiYxQ==}
     dev: true
 
+  /@types/chalk@2.2.4:
+    resolution: {integrity: sha512-pb/QoGqtCpH2famSp72qEsXkNzcErlVmiXlQ/ww+5AddD8TmmYS7EWg5T20YiNCAiTgs8pMf2G8SJG5h/ER1ZQ==}
+    deprecated: This is a stub types definition. chalk provides its own type definitions, so you do not need this installed.
+    dependencies:
+      chalk: 5.4.1
+    dev: true
+
   /@types/cli-progress@3.11.6:
     resolution: {integrity: sha512-cE3+jb9WRlu+uOSAugewNpITJDt1VF8dHOopPO4IABFc3SXYL5WE/+PTz/FCdZRRfIujiWW3n3aMbv1eIGVRWA==}
     dependencies:
@@ -4372,7 +4385,6 @@ packages:
   /chalk@5.4.1:
     resolution: {integrity: sha512-zgVZuo2WcZgfUEmsn6eO3kINexW8RAE4maiQ8QNs8CtpPCSyMiYsULR3HQYkm3w8FIA3SberyMJMSldGsW+U3w==}
     engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
-    dev: false
 
   /change-case@4.1.2:
     resolution: {integrity: sha512-bSxY2ws9OtviILG1EiY5K7NNxkqg/JnRnFxLtKQ96JaviiIxi7djMrSd0ECT9AC+lttClmYwKw53BWpOMblo7A==}

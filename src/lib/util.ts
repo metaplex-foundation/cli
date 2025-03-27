@@ -37,7 +37,7 @@ export const DUMMY_UMI = createUmi('https://api.devnet.solana.com')
 // open directory in file explorer
 
 export const openDirectory = (folderPath: string): void => {
-  const platform = os.platform() // Determine the platform
+  const platform = os.platform()
   console.log('platform:', platform)
 
   // Normalize the folder path
@@ -50,7 +50,22 @@ export const openDirectory = (folderPath: string): void => {
   } else if (platform === 'darwin') {
     command = `open "${normalizedPath}"` // macOS
   } else if (platform === 'linux') {
-    command = `xdg-open "${normalizedPath}"` // Linux
+    // Try different Linux file managers
+    const fileManagers = ['xdg-open', 'nautilus', 'dolphin', 'nemo', 'thunar']
+    for (const fm of fileManagers) {
+      try {
+        ChildProcess.execSync(`which ${fm}`, { stdio: 'ignore' })
+        command = `${fm} "${normalizedPath}"`
+        break
+      } catch {
+        continue
+      }
+    }
+    if (!command) {
+      console.log(`Could not open directory: ${normalizedPath}`)
+      console.log('No supported file manager found. Please install xdg-open or another file manager.')
+      return
+    }
   } else {
     console.error('Unsupported platform:', platform)
     return
@@ -59,7 +74,10 @@ export const openDirectory = (folderPath: string): void => {
   // Execute the command
   ChildProcess.exec(command, (error) => {
     if (error) {
-      console.error('Failed to open directory:', error)
+      console.log(`Could not open directory: ${normalizedPath}`)
+      if (platform === 'linux') {
+        console.log('Please install xdg-open or another file manager.')
+      }
     }
   })
 }

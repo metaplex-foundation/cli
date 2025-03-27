@@ -11,7 +11,7 @@ import pluginConfigurator, { mapPluginDataToArray } from '../../../prompts/plugi
 import { PluginFilterType, pluginSelector } from '../../../prompts/pluginSelector.js'
 import { Plugin } from '../../../lib/types/pluginData.js'
 
-export default class CollectionCreate extends BaseCommand<typeof CollectionCreate> {
+export default class CoreCollectionCreate extends BaseCommand<typeof CoreCollectionCreate> {
   static override description = 'Create an MPL Core Collection'
 
   static override examples = [
@@ -56,7 +56,7 @@ export default class CollectionCreate extends BaseCommand<typeof CollectionCreat
   // }
 
   public async run(): Promise<unknown> {
-    const { args, flags } = await this.parse(CollectionCreate)
+    const { args, flags } = await this.parse(CoreCollectionCreate)
     const { image, json, name, uri, files } = flags
 
     const { umi } = this.context
@@ -84,7 +84,7 @@ export default class CollectionCreate extends BaseCommand<typeof CollectionCreat
     // Plugin Selection
     //
 
-    const selectedPlugins = await pluginSelector({filter: PluginFilterType.Collection})
+    const selectedPlugins = await pluginSelector({ filter: PluginFilterType.Collection })
 
     let pluginConfigurationData
 

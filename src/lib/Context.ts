@@ -141,8 +141,6 @@ export const createContext = async (configPath: string, overrides: ConfigJson): 
     storageProvider && umi.use(storageProvider)
   }
 
-  console.log({config})
-
   return {
     commitment: config.commitment!,
     payer,

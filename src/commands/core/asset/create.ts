@@ -92,6 +92,14 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     const { umi, explorer } = this.context
 
     if (flags.directory) {
+
+      const disabled = true
+
+      if (disabled) {
+        this.log('Creating assets from directory coming soon')
+        return
+      }
+      
       const res = await createAssetsFromDirectory(umi, flags.directory)
       return {
         assets: res,

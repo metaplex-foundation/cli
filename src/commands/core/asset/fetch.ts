@@ -18,7 +18,7 @@ import { TransactionCommand } from '../../../TransactionCommand.js'
 */
 
 export default class AssetFetch extends TransactionCommand<typeof AssetFetch> {
-  static description = 'Fetch an asset by mint'
+  static description = 'Fetch an asset by mint address'
 
   static examples = [
     '<%= config.bin %> <%= command.id %> <assetId>',
@@ -59,6 +59,13 @@ export default class AssetFetch extends TransactionCommand<typeof AssetFetch> {
 
       if (!flags.output) {
         this.error('Output directory --output is required')
+      }
+
+      const disabled = true
+
+      if (disabled) {
+        this.log('Fetching assets from list coming soon')
+        return
       }
       // fetch multiple assets
       const assets = fs.readFileSync(flags.assetList, 'utf-8').split('\n')

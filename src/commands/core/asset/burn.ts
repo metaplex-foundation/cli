@@ -68,12 +68,10 @@ export default class AssetBurn extends BaseCommand<typeof AssetBurn> {
   static flags = {
     list: Flags.string({
       name: 'list',
-      char: 'l',
       description: 'File path to a .json list of Assets to burn in JSON array format (e.g. [asset1, asset2])',
     }),
     collection: Flags.string({
       name: 'collection',
-      char: 'c',
       description: 'Collection ID to burn Asset from',
     }),
   }
@@ -85,7 +83,17 @@ export default class AssetBurn extends BaseCommand<typeof AssetBurn> {
 
     if (flags.list) {
       // Burn all assets in list
+
+      const disabled = true
+
+      if (disabled) {
+        this.log('Burning Assets from list coming soon')
+        return
+      }
+
       this.log('Burning assets from list')
+
+
 
       const assetsList: string[] = JSON.parse(readFileSync(flags.list, 'utf-8'))
 
@@ -162,6 +170,7 @@ export default class AssetBurn extends BaseCommand<typeof AssetBurn> {
           Failed transactions: ${failedTransactions.map((item) => item.asset).join(', ')}\n
           Cache file: ${currentDirectory}/burn-cache.json
           `)
+
       } else {
         this.logSuccess(`All transactions confirmed successfully\n
 Transactions confirmed: ${cache.items.length} of ${assetsList.length}\n
@@ -170,7 +179,8 @@ Cache file: ${currentDirectory}/burn-cache.json
       }
 
 
-    } else {
+    }
+    else {
       // Burn single asset
       if (!args.asset) {
         this.error('No asset provided')

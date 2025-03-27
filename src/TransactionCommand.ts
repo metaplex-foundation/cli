@@ -95,8 +95,6 @@ export abstract class TransactionCommand<T extends typeof Command> extends Comma
     this.flags = flags as Flags<T>
     this.args = args as Args<T>
 
-    console.log('flags', this.flags)
-
     const configPath = this.flags.config ?? getDefaultConfigPath(this.config.configDir)
     this.context = await createContext(configPath, {
       commitment: this.flags.commitment as Commitment | undefined,

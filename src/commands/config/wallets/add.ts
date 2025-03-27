@@ -13,7 +13,7 @@ export default class ConfigWalletAddsCommand extends Command {
       description: 'Name of wallet (max 6 characters and no spaces)',
       required: true,
     }),
-    path: Args.string({description: 'Path to keypair json file', required: true}),
+    path: Args.string({ description: 'Path to keypair json file', required: true }),
   }
 
   static override examples = [
@@ -23,7 +23,7 @@ export default class ConfigWalletAddsCommand extends Command {
   ]
 
   public async run(): Promise<void> {
-    const {flags, args} = await this.parse(ConfigWalletAddsCommand)
+    const { flags, args } = await this.parse(ConfigWalletAddsCommand)
 
     // Validate name
 

@@ -17,7 +17,7 @@ import { Plugin } from '../../../lib/types/pluginData.js'
 
 */
 
-export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
+export default class CorePluginsGenerate extends BaseCommand<typeof CorePluginsGenerate> {
   static description = 'Generate a plugin.json file with usable plugin data'
 
   static examples = ['<%= config.bin %> <%= command.id %>']
@@ -37,7 +37,7 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
   }
 
   public async run(): Promise<unknown> {
-    const {flags} = await this.parse(AssetFetch)
+    const {flags} = await this.parse(CorePluginsGenerate)
 
     if (!flags.asset && !flags.collection) {
       this.error('Please provide a --asset or --collection flag to generate plugin data')

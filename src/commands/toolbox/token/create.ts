@@ -86,15 +86,15 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
 
 
         } else {
-
-            const missingFlags = [];
-            if (!flags.name) missingFlags.push('name');
-            if (!flags.symbol) missingFlags.push('symbol');
-            if (!flags.description) missingFlags.push('description');
-            if (!flags.image) missingFlags.push('image');
-            if (!flags.mint) missingFlags.push('mint-amount');
-            
-            if (missingFlags.length > 0) {
+            // Type assertion after validation
+            if (!flags.name || !flags.symbol || !flags.description || !flags.image || !flags.mint) {
+                const missingFlags = [];
+                if (!flags.name) missingFlags.push('name');
+                if (!flags.symbol) missingFlags.push('symbol');
+                if (!flags.description) missingFlags.push('description');
+                if (!flags.image) missingFlags.push('image');
+                if (!flags.mint) missingFlags.push('mint-amount');
+                
                 throw new Error(`Missing required flags: ${missingFlags.join(', ')}`);
             }
 
@@ -111,19 +111,17 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                 this.error('Missing required json')
             }
 
-            try {
-                this.createToken(umi, { name: flags.name, symbol: flags.symbol, description: flags.description, image: jsonUri, mintAmount: flags.mint })
-            } catch (error) {
-                this.error(error as string)
-            }
-
-
+            await this.createToken(umi, { 
+                name: flags.name, 
+                symbol: flags.symbol, 
+                description: flags.description, 
+                image: jsonUri, 
+                mintAmount: flags.mint 
+            })
         }
-
     }
 
     private async createToken(umi: Umi, input: { name: string, symbol: string, description: string, image: string, decimals?: number, mintAmount: number }) {
-
         const mint = generateSigner(umi)
 
         const createFunigbleIx = createFungible(umi, {
@@ -148,18 +146,19 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
         try {
             const result = await umiSendAndConfirmTransaction(umi, createFunigbleIx)
             createSpinner.succeed('Token created successfully')
-            return result;
-        } catch (error) {
-            createSpinner.fail('Token creation failed')
-            throw error;
-        }
-
-        this.logSuccess(
-            `--------------------------------
+            
+            this.logSuccess(
+                `--------------------------------
     Token created successfully
     Mint: ${mint.publicKey}
     Signature: ${base58.deserialize(result.transaction.signature as Uint8Array)[0]}
 --------------------------------`
-        )
+            )
+            
+            return result
+        } catch (error: unknown) {
+            createSpinner.fail('Token creation failed')
+            throw error instanceof Error ? error : new Error('Unknown error occurred')
+        }
     }
 }

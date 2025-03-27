@@ -12,7 +12,7 @@ import { BaseCommand } from '../../../BaseCommand.js'
 //TODO: Refactor both fetch Asset and Collection to one fetch function with
 // Asset/Collection type as optional argument.
 
-export default class CollectionFetch extends BaseCommand<typeof CollectionFetch> {
+export default class CoreCollectionFetch extends BaseCommand<typeof CoreCollectionFetch> {
   static args = {
     collection: Args.string({ description: 'Collection pubkey (mint) to fetch', required: true }),
   }
@@ -33,7 +33,7 @@ export default class CollectionFetch extends BaseCommand<typeof CollectionFetch>
   }
 
   public async run(): Promise<unknown> {
-    const { args, flags } = await this.parse(CollectionFetch)
+    const { args, flags } = await this.parse(CoreCollectionFetch)
 
     const { umi } = this.context
     const asset = await fetchAsset(umi, args.collection)

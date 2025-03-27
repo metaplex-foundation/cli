@@ -2,7 +2,7 @@ import {Command} from '@oclif/core'
 import {getDefaultConfigPath, readConfig} from '../../../lib/Context.js'
 
 export default class ConfigWalletListCommand extends Command {
-  static override description = 'Set a config value from a key'
+  static override description = 'List all wallets'
 
   static override examples = ['<%= config.bin %> <%= command.id %> list']
 

@@ -6,6 +6,9 @@
 
 A powerful command-line interface for interacting with the Metaplex ecosystem on Solana. This CLI provides tools for managing digital assets, collections, tokens, and more.
 
+## Beta Notes
+This CLI and software is in beta and public testing. There may be bugs and functionality/commands may change on a daily basis as updates are implemented and pushed. Documentation might also be incomplete at times.
+
 ## Table of Contents
 
 - [Installation](#installation)

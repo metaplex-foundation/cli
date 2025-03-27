@@ -5,7 +5,7 @@ The `config` commands allow you to manage your CLI configuration settings, inclu
 ## Command Structure
 
 ```bash
-mplx config <command> [options]
+mplx config <object> <command> [options]
 ```
 
 ## Available Commands
@@ -13,140 +13,114 @@ mplx config <command> [options]
 ### General Configuration
 
 ```bash
-# Get current configuration
-mplx config get [options]
-  --key <key>           # Get specific configuration value
+# View current configuration
+mplx config
+```
 
-# Set configuration values
-mplx config set [options]
-  --key <key>          # Configuration key to set
-  --value <value>      # Value to set for the key
+### RPC Management
+
+```bash
+# Add a new RPC endpoint
+mplx config rpcs add <name> <url>
+  Example: mplx config rpcs add helius https://devnet.helius-rpc.com/?api-key=<key>
+
+# List all configured RPCs
+mplx config rpcs list
+
+# Set active RPC (interactive)
+mplx config rpcs set
+  # Opens interactive prompt to select from available RPCs
+
+# Set RPC directly
+mplx config rpcs set --url <url>
+```
+
+### Wallet Management
+
+```bash
+# Add/Set a new wallet
+mplx config wallets set <name> <path>
+  Example: mplx config wallets set dev1 ~/.config/solana/dev1.json
+
+# List all configured wallets
+mplx config wallets list
+
+# Set active wallet (interactive)
+mplx config wallets set
+  # Opens interactive prompt to select from available wallets
+
+# Set wallet directly
+mplx config wallets set --path <path>
 ```
 
 ### Explorer Configuration
 
-Commands for managing blockchain explorer settings:
-
 ```bash
 # Set preferred explorer
-mplx config explorer set [options]
-  --explorer <name>     # Explorer name (solanaExplorer, solscan, solanaFm)
+mplx config explorer set <explorer>
+  Supported: solscan, solanaFm, solanaExplorer
 
-# Get current explorer settings
+# View current explorer setting
 mplx config explorer get
-
-# Available Explorers:
-- solanaExplorer (explorer.solana.com)
-- solscan (solscan.io)
-- solanaFm (solana.fm)
-```
-
-### RPC Configuration
-
-Commands for managing RPC endpoint settings:
-
-```bash
-# Set RPC endpoint
-mplx config rpcs set [options]
-  --url <url>          # RPC endpoint URL
-  --cluster <cluster>  # Cluster name (mainnet, devnet, testnet)
-
-# Get current RPC settings
-mplx config rpcs get
-
-# List available RPC endpoints
-mplx config rpcs list
-```
-
-### Wallet Configuration
-
-Commands for managing wallet settings:
-
-```bash
-# Set wallet configuration
-mplx config wallets set [options]
-  --path <path>        # Path to wallet keypair
-  --type <type>       # Wallet type (keypair, ledger)
-
-# Get current wallet settings
-mplx config wallets get
 ```
 
 ## Configuration File
 
-The CLI configuration is stored in a JSON file at `~/.config/mplx/config.json` with the following structure:
+The CLI configuration is stored in `~/.config/mplx/config.json` with the following structure:
 
 ```json
 {
-  "explorer": {
-    "name": "solanaExplorer",
-    "cluster": "mainnet"
+  "keypair": "/home/user/.config/solana/dev1.json",
+  "rpcUrl": "https://api.devnet.solana.com",
+  "explorer": "solscan",
+  "wallets": {
+    "default": "dev1",
+    "dev1": "/home/user/.config/solana/dev1.json",
+    "dev2": "/home/user/.config/solana/dev2.json"
   },
-  "rpc": {
-    "url": "https://api.mainnet-beta.solana.com",
-    "cluster": "mainnet"
-  },
-  "wallet": {
-    "path": "~/.config/solana/id.json",
-    "type": "keypair"
+  "rpcs": {
+    "helius": "https://devnet.helius-rpc.com/?api-key=<key>",
+    "quicknode": "https://api.devnet.solana.com"
   }
 }
 ```
 
-## Environment Variables
+## Interactive Features
 
-Configuration can also be set using environment variables:
+The CLI provides wizard-based configuration for easier setup:
 
+### RPC Selection
 ```bash
-MPLX_RPC_URL           # Override RPC endpoint URL
-MPLX_WALLET_PATH       # Override wallet path
-MPLX_EXPLORER          # Override explorer preference
+$ mplx config rpcs set
+
+? Select an RPC (Use arrow keys)
+❯ helius     https://devnet.helius-rpc.com/?api-key=<key>
+  quicknode  https://api.devnet.solana.com
 ```
 
-## Examples
-
+### Wallet Selection
 ```bash
-# Set RPC endpoint to devnet
-mplx config rpcs set --url https://api.devnet.solana.com --cluster devnet
+$ mplx config wallets set
 
-# Set wallet to use Ledger
-mplx config wallets set --type ledger
-
-# Set explorer to Solscan
-mplx config explorer set --explorer solscan
-
-# Get current RPC configuration
-mplx config rpcs get
-
-# Get entire configuration
-mplx config get
+? Select a wallet (Use arrow keys)
+❯ dev1    FZp4xyJxaJT3EtMHLxLF1QEKVqrqT5okPwt1F9ZK6TGf
+  dev2    BKWPSxcQZ1RxQZdEpVfycwsQQpdGwZdx5SJYZHGqE7s5
 ```
-
-## Error Handling
-
-- Invalid configuration values will be rejected with clear error messages
-- Missing required values will prompt for input
-- Configuration file permissions will be validated
-- Network connectivity will be tested for RPC endpoints
 
 ## Best Practices
 
-1. Always verify RPC endpoint reliability before setting
-2. Keep wallet keypair files in secure locations
-3. Use environment variables for temporary overrides
-4. Regularly backup configuration files
-5. Use appropriate explorers for different clusters
+1. Use descriptive names for RPCs and wallets
+2. Keep sensitive information (API keys, keypairs) secure
+3. Regularly verify RPC endpoint connectivity
+4. Use different wallets for development and production
+5. Back up your configuration file
 
-## Security Considerations
+## Error Handling
 
-1. Never share your wallet keypair file
-2. Verify RPC endpoints are from trusted sources
-3. Use HTTPS endpoints when possible
-4. Consider using hardware wallets for additional security
-5. Regularly audit configuration settings
+The CLI provides clear error messages for common issues:
+- Invalid file paths
+- Unreachable RPC endpoints
+- Missing configuration files
+- Invalid wallet formats
+- Permission issues
 
-## Additional Resources
-
-- [Solana CLI Configuration](https://docs.solana.com/cli/choose-a-cluster)
-- [RPC API Documentation](https://docs.solana.com/developing/clients/jsonrpc-api)
-- [Wallet Guide](https://docs.solana.com/wallet-guide)

@@ -1,8 +1,8 @@
 {
   "name": "@metaplex-foundation/cli",
-  "description": "Metaplex universal CLI",
-  "version": "0.0.0",
-  "author": "Metaplex Maintainers <contact@metaplex.com>",
+  "description": "Metaplex CLI",
+  "version": "0.0.1",
+  "author": "Metaplex <contact@metaplex.com>",
   "bin": {
     "mplx": "./bin/run.js"
   },

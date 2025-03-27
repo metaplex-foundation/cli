@@ -6,6 +6,9 @@
 
 A powerful command-line interface for interacting with the Metaplex ecosystem on Solana. This CLI provides tools for managing digital assets, collections, tokens, and more.
 
+## Beta Notes
+This CLI and software is in beta and public testing. There may be bugs and functionality/commands may change on a daily basis as updates are implemented and pushed. Documentation might also be incomplete at times.
+
 ## Table of Contents
 
 - [Installation](#installation)
@@ -17,7 +20,7 @@ A powerful command-line interface for interacting with the Metaplex ecosystem on
 
 ## Installation
 
-### NPM Installation (Coming Soon)
+### NPM Installation
 ```sh
 npm install -g @metaplex-foundation/cli
 ```
@@ -35,9 +38,11 @@ When running the development installation, you can use the `npm run mplx <comman
 
 ## Quick Start
 
-This CLI is designed to be used with multiple RPCs and wallets. You can add and manage multiple RPCs and wallets.
+This CLI is designed to be used with multiple RPCs and wallets. Here's how to get started:
 
-1. RPC Configuration:
+### 1. Configure Your Environment
+
+#### RPC Configuration
 ```sh
 # Add a new RPC
 mplx config rpcs add rpc1 https://my-custom-rpc.com/rpc
@@ -53,7 +58,7 @@ mplx config rpcs set
   rpc2                 https://my-custom-rpc.com/rpc987654321
 ```
 
-2. Manage Multiple Wallets:
+#### Wallet Configuration
 ```sh
 # Add a new wallet
 mplx config wallets set wallet1 ./path/to/keypair.json
@@ -69,7 +74,33 @@ mplx config wallets set
   wallet2    address...
 ```
 
-3. Create your first token:
+### 2. Create Your First Assets
+
+#### Create a Collection
+```sh
+# Create with metadata URI
+mplx core collection create --name "My Collection" --uri "https://example.com/collection-metadata.json"
+
+# Or create with local files
+mplx core collection create --files --image ./image.png --json ./collection-metadata.json
+
+# Generate template files
+mplx core collection template
+```
+
+#### Create an Asset
+```sh
+# Create with metadata URI
+mplx core asset create --name "My Asset" --uri "https://example.com/metadata.json"
+
+# Or create with local files
+mplx core asset create --files --image ./image.png --json ./metadata.json
+
+# Generate template files
+mplx core asset template
+```
+
+#### Create a Token
 ```sh
 # Interactive token creation
 mplx toolbox token create --wizard
@@ -83,20 +114,6 @@ mplx toolbox token create \
   --mint 1000000000
 ```
 
-4. Create your first Core asset:
-```sh
-# Create an asset
-mplx core asset create --name "My Asset" --uri "https://example.com/metadata.json"
-
-# Or create with files
-mplx core asset create --files --image ./image.png --json ./metadata.json
-```
-
-5. View help for any command:
-```sh
-mplx help [COMMAND]
-```
-
 ## Command Structure
 
 Commands follow the format: `mplx <program> <object> <command> [flags]`
@@ -106,17 +123,22 @@ Example:
 mplx core asset create --name "Asset Name" --uri "metadata.json"
 ```
 
+Get help for any command:
+```sh
+mplx [COMMAND] --help
+```
+
 ## Documentation
 
-The CLI is organized into several main command groups:
+The CLI is organized into three main command groups:
 
 - [Core Commands](docs/core.md)
-  - Asset management
+  - Asset management (create, update, burn)
   - Collection management
   - Plugin system
 
 - [Configuration Commands](docs/config.md)
-  - RPC settings
+  - RPC management
   - Wallet management
   - Explorer preferences
 
@@ -128,126 +150,12 @@ The CLI is organized into several main command groups:
 
 Each command group has detailed documentation with examples and best practices.
 
-## Common Commands
-
-### Asset Management
-```sh
-# Create an asset
-mplx core asset create --name "Asset" --uri "metadata.json"
-
-# Burn an asset
-mplx core asset burn <assetId>
-```
-
-### Token Operations
-```sh
-# Create a token
-mplx toolbox token create --wizard
-
-# Upload files
-mplx toolbox upload file ./image.png
-```
-
-### Configuration
-```sh
-# View config
-mplx config get
-
-# Interactive RPC Configuration
-mplx config rpcs set --wizard
-# This will guide you through:
-# 1. Selecting a cluster (mainnet, devnet, testnet)
-# 2. Choosing from preset RPCs or entering a custom URL
-# 3. Testing the connection
-# 4. Saving the configuration
-
-# Manual RPC Configuration
-mplx config rpcs set --url https://api.devnet.solana.com
-
-# Interactive Wallet Configuration
-mplx config wallets set --wizard
-# This will guide you through:
-# 1. Selecting wallet type (keypair file, ledger)
-# 2. Setting up wallet path or ledger options
-# 3. Verifying wallet access
-# 4. Setting as default wallet
-
-# Manual Wallet Configuration
-mplx config wallets set --path /path/to/keypair.json
-
-# Interactive Explorer Configuration
-mplx config explorer set --wizard
-# This will guide you through:
-# 1. Selecting preferred explorer
-# 2. Setting default view options
-```
-
-### Interactive Configuration Tips
-
-The CLI provides wizard-based configuration for easier setup:
-
-#### Add and Manage Multiple RPCs
-```sh
-$ mplx config rpcs add rpc1 https://my-custom-rpc.com/rpc
-```
-
-Set the active RPC
-```sh
-$ mplx config rpcs set
-
-? Select an RPC (Use arrow keys)
-❯ rpc1                 https://my-custom-rpc.com/rpc123456789
-  rpc2                 https://my-custom-rpc.com/rpc987654321
-```
-
-List all RPCs
-```sh
-$ mplx config rpcs list
-
-Installed RPCs:
-rpc1: https://my-custom-rpc.com/rpc123456789
-rpc2: https://my-custom-rpc.com/rpc987654321
-```
-
-#### Add and Manage Mutiple Wallets
-Add a new wallet
-```sh
-$ mplx config wallets set wallet1 ./path/to/keypair.json
-```
-
-List all wallets
-```sh
-$ mplx config wallets list
-
-Installed Wallets:
-wallet1: /path/to/keypair.json
-wallet2: /path/to/keypair2.json
-```
-
-Set the active wallet
-```sh
-$ mplx config wallets set
-
-? Select a wallet: (Use arrow keys)
-❯ wallet1    address...
-  wallet2    address...
-```
-
-
-
-The wizards provide:
-- Step-by-step guidance
-- Validation of inputs
-- Connection testing
-- Default value suggestions
-- Automatic configuration saving
-
-## License
-
-Metaplex License
-
 ## Additional Resources
 
 - [Metaplex Documentation](https://docs.metaplex.com)
 - [Solana Documentation](https://docs.solana.com)
 - [Discord Community](https://discord.gg/metaplex)
+
+## License
+
+Metaplex License

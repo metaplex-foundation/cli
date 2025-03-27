@@ -15,8 +15,6 @@ This CLI and software is in beta and public testing. There may be bugs and funct
 - [Quick Start](#quick-start)
 - [Command Structure](#command-structure)
 - [Documentation](#documentation)
-- [Development](#development)
-- [Contributing](#contributing)
 
 ## Installation
 
@@ -145,17 +143,7 @@ The CLI is organized into three main command groups:
 - [Toolbox Commands](docs/toolbox.md)
   - SOL operations
   - Token management
-  - File uploads
   - Rent calculations
 
 Each command group has detailed documentation with examples and best practices.
 
-## Additional Resources
-
-- [Metaplex Documentation](https://docs.metaplex.com)
-- [Solana Documentation](https://docs.solana.com)
-- [Discord Community](https://discord.gg/metaplex)
-
-## License
-
-Metaplex License

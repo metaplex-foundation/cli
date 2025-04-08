@@ -1,0 +1,41 @@
+{
+    "default": {
+        "solPayment": {
+            "lamports": "1000000000",
+            "destination": "your-wallet-address"
+        },
+        "startDate": {
+            "date": "1700000000"
+        },
+        "mintLimit": {
+            "id": "1",
+            "limit": "1"
+        }
+    },
+    "presets": {
+        "basic": {
+            "solPayment": {
+                "lamports": "1000000000",
+                "destination": "your-wallet-address"
+            }
+        },
+        "whitelist": {
+            "solPayment": {
+                "lamports": "1000000000",
+                "destination": "your-wallet-address"
+            },
+            "allowList": {
+                "merkleRoot": "your-merkle-root"
+            }
+        },
+        "nftHolder": {
+            "solPayment": {
+                "lamports": "1000000000",
+                "destination": "your-wallet-address"
+            },
+            "nftGate": {
+                "requiredCollection": "your-collection-address"
+            }
+        }
+    }
+} 

@@ -1,5 +1,4 @@
 import { Args } from '@oclif/core'
-
 import { transferSol } from '@metaplex-foundation/mpl-toolbox'
 import { publicKey, sol } from '@metaplex-foundation/umi'
 import { base58 } from '@metaplex-foundation/umi/serializers'
@@ -7,66 +6,73 @@ import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 
-
-
-/* 
-  Create Possibilities:
-
-  1. Create a single Asset by providing the name and URI of the metadata.
-
-  2. Create a single Asset by providing an image file to upload and a JSON file to upload and assign to the Asset.
-
-  3. Create multiple Assets by providing a folder path with JSON files named sequentially ie (1.json, 2.json, 3.json) containing the offchain metadata.
-
-  4. Create multiple Assets by providing a folder path both JSON files and image files named sequentially ie (1.json, 1.png, 2.json, 2.png, 3.json, 3.png) to upload and assign to the Assets.
-
-  TODO - For single Asset creation, allow for the user to mint multiple copies of the same Asset via a flag(s).
-
-*/
+const SUCCESS_MESSAGE = (amount: number, address: string, signature: string) => `--------------------------------
+Transferred ${amount} SOL to ${address}
+Signature: ${signature}
+--------------------------------`;
 
 export default class ToolboxSolTransfer extends TransactionCommand<typeof ToolboxSolTransfer> {
-    static override description = 'Transfer SOL to an address'
+    static override description = 'Transfer SOL to a Solana address'
 
     static override examples = [
-        '<%= config.bin %> <%= command.id %> toolbox sol transfer 1 11111111111111111111111111111111',
+        '<%= config.bin %> <%= command.id %> 1 11111111111111111111111111111111'
     ]
 
-    static override usage = 'toolbox sol transfer [FLAGS]'
+    static override usage = 'toolbox sol transfer [AMOUNT] [ADDRESS]'
 
     static override args = {
-        amount: Args.integer({ description: 'Amount of SOL to transfer', required: true }),
-        address: Args.string({ description: 'Address to transfer SOL to', required: true }),
+        amount: Args.integer({ 
+            description: 'Amount of SOL to transfer', 
+            required: true 
+        }),
+        address: Args.string({ 
+            description: 'Solana address to transfer SOL to', 
+            required: true 
+        }),
     }
 
+    private validateInput(amount: number, address: string) {
+        if (amount <= 0) {
+            throw new Error('Amount must be greater than 0');
+        }
+
+        try {
+            publicKey(address);
+        } catch (error) {
+            throw new Error('Invalid Solana address');
+        }
+    }
 
     public async run(): Promise<string> {
-        const { args, flags } = await this.parse(ToolboxSolTransfer)
-
+        const { args } = await this.parse(ToolboxSolTransfer)
         const { umi } = this.context
 
-        const spinner = ora('Transfering SOL...').start()
+        this.validateInput(args.amount, args.address);
 
-        const tx = transferSol(umi, {
-            destination: publicKey(args.address),
-            amount: sol(args.amount)
-        })
+        const spinner = ora('Transferring SOL...').start();
 
-        const result = await umiSendAndConfirmTransaction(umi, tx).catch((err) => {
-            spinner.fail('Failed to transfer SOL')
-            console.error(err)
-            throw err
-        })
+        try {
+            const tx = transferSol(umi, {
+                destination: publicKey(args.address),
+                amount: sol(args.amount)
+            });
 
-        spinner.succeed('SOL transferred successfully')
+            const result = await umiSendAndConfirmTransaction(umi, tx);
+            spinner.succeed('SOL transferred successfully');
 
-        this.logSuccess(
-            `--------------------------------
-    Transferred ${args.amount} SOL to ${args.address}
-    Signature: ${base58.deserialize(result.transaction.signature as Uint8Array)}
---------------------------------`
-        )
+            this.logSuccess(SUCCESS_MESSAGE(
+                args.amount,
+                args.address,
+                base58.deserialize(result.transaction.signature as Uint8Array)[0]
+            ));
 
-        return 'success'
-
+            return 'success';
+        } catch (error) {
+            spinner.fail('Failed to transfer SOL');
+            if (error instanceof Error) {
+                throw new Error(`Transfer failed: ${error.message}`);
+            }
+            throw new Error('An unknown error occurred during transfer');
+        }
     }
 }

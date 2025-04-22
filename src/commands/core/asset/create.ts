@@ -35,6 +35,11 @@ interface WizardResponse {
   image?: string;
   collection?: string;
   usePlugins?: boolean;
+  addAttributes?: boolean;
+  attributes?: Array<{ trait_type: string; value: string }>;
+  category?: 'image' | 'audio' | 'video' | 'html' | 'vr';
+  animationFile?: string;
+  externalUrl?: string;
 }
 
 interface AssetCreationResult {
@@ -44,14 +49,8 @@ interface AssetCreationResult {
   coreExplorerUrl: string;
 }
 
-const WELCOME_MESSAGE = `--------------------------------
-Welcome to the Asset Creator!
-
-This command allows you to create Metaplex Core assets in three ways:
-1. Using name and URI directly
-2. Uploading image and JSON files
-3. Creating multiple assets from a directory
---------------------------------`;
+// Move to types for reuse in other commands
+type FileType = 'image' | 'json' | 'audio' | 'video' | 'html' | 'vr';
 
 const SUCCESS_MESSAGE = (result: AssetCreationResult) => `--------------------------------
 Asset created successfully!
@@ -231,13 +230,14 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     return this.formatResult(result, umi);
   }
 
-  private async uploadAsset(umi: Umi, type: 'image' | 'json', path: string) {
+  private async uploadAsset(umi: Umi, type: FileType, path: string): Promise<UploadFileRessult> {
     try {
-      if (type === 'image') {
+      if (type === 'image' || type === 'audio' || type === 'video' || type === 'html' || type === 'vr') {
         return await uploadFile(umi, path);
       } else {
         const jsonContent = JSON.parse(fs.readFileSync(path, 'utf-8'));
-        return await uploadJson(umi, jsonContent);
+        const uri = await uploadJson(umi, jsonContent);
+        return { uri, mimeType: 'application/json' };
       }
     } catch (error) {
       throw new Error(`Failed to upload ${type}: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -262,7 +262,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
   }
 
   private async runWizard(umi: Umi): Promise<AssetCreationResult> {
-    const answers = await inquirer.prompt<WizardResponse>([
+    const questions = [
       {
         type: 'input',
         name: 'name',
@@ -278,14 +278,71 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
         message: 'Enter a description for your asset:',
       },
       {
+        type: 'list',
+        name: 'category',
+        message: 'Select the NFT category:',
+        choices: [
+          { name: 'Image (.jpg, .jpeg, .png, .gif)', value: 'image' },
+          { name: 'Audio (.mp3, .wav)', value: 'audio' },
+          { name: 'Video (.mp4, .m4v)', value: 'video' },
+          { name: 'HTML (.html)', value: 'html' },
+          { name: 'VR (.glb)', value: 'vr' },
+        ],
+      },
+      {
         type: 'input',
         name: 'image',
-        message: 'Enter the path to your asset image:',
+        message: 'Enter the path to your NFT image file (required for all categories):',
         validate: (input: string) => {
           if (!input.trim()) return 'Image path is required';
           if (!fs.existsSync(input)) return 'Image file not found';
+          const ext = input.split('.').pop()?.toLowerCase();
+          if (!['jpg', 'jpeg', 'png', 'gif'].includes(ext || '')) {
+            return 'Image must be .jpg, .jpeg, .png, or .gif';
+          }
           return true;
         },
+      },
+      {
+        type: 'input',
+        name: 'animationFile',
+        message: (answers: WizardResponse) => {
+          const category = answers.category || 'audio';
+          const extensions = {
+            audio: '.mp3, .wav',
+            video: '.mp4, .m4v',
+            html: '.html',
+            vr: '.glb'
+          };
+          return `Enter the path to your ${category} file (${extensions[category as keyof typeof extensions]}):`;
+        },
+        when: (answers: WizardResponse) => answers.category !== 'image',
+        validate: (input: string, answers: WizardResponse) => {
+          if (!input.trim()) return 'File path is required';
+          if (!fs.existsSync(input)) return 'File not found';
+          
+          const ext = input.split('.').pop()?.toLowerCase();
+          const validExtensions = {
+            audio: ['mp3', 'wav'],
+            video: ['mp4', 'm4v'],
+            html: ['html'],
+            vr: ['glb']
+          };
+          
+          // Get the category from the current question's message function
+          const category = answers?.category || 'audio';
+          const validExts = validExtensions[category as keyof typeof validExtensions];
+          
+          if (!validExts.includes(ext || '')) {
+            return `File must be ${validExts.join(' or ')}`;
+          }
+          return true;
+        },
+      },
+      {
+        type: 'input',
+        name: 'externalUrl',
+        message: 'Enter external URL (optional):',
       },
       {
         type: 'input',
@@ -294,20 +351,103 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       },
       {
         type: 'confirm',
+        name: 'addAttributes',
+        message: 'Would you like to add attributes to your asset?',
+        default: false,
+      },
+      {
+        type: 'confirm',
         name: 'usePlugins',
         message: 'Would you like to configure plugins for this asset?',
         default: false,
       },
-    ]);
+    ] as any; // Using 'as any' here because of type definition mismatches between inquirer v12.4.2 and @types/inquirer v9.0.7.
+    // The questions array is correctly structured and works as expected, but TypeScript's type system
+    // can't properly infer the types due to the version mismatch. This is a pragmatic solution that
+    // maintains functionality while acknowledging the type system limitation.
+
+    const answers = await inquirer.prompt<WizardResponse>(questions);
+
+    // Handle attributes if requested
+    let attributes: Array<{ trait_type: string; value: string }> = [];
+    if (answers.addAttributes) {
+      let addMore = true;
+      while (addMore) {
+        const attributeAnswers = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'trait_type',
+            message: 'Enter trait type (e.g., "Background", "Eyes"):',
+            validate: (input: string) => {
+              if (!input.trim()) return 'Trait type is required';
+              return true;
+            },
+          },
+          {
+            type: 'input',
+            name: 'value',
+            message: 'Enter trait value:',
+            validate: (input: string) => {
+              if (!input.trim()) return 'Trait value is required';
+              return true;
+            },
+          },
+          {
+            type: 'confirm',
+            name: 'addMore',
+            message: 'Would you like to add another attribute?',
+            default: false,
+          },
+        ]);
+        
+        attributes.push({
+          trait_type: attributeAnswers.trait_type,
+          value: attributeAnswers.value,
+        });
+        
+        addMore = attributeAnswers.addMore;
+      }
+    }
+
+    // Upload files
+    const imageSpinner = ora('Uploading NFT image...').start();
+    const imageUri = await this.uploadAsset(umi, 'image', answers.image!);
+    imageSpinner.succeed(`NFT image uploaded to ${imageUri.uri}`);
+
+    let animationUri: UploadFileRessult | undefined;
+    if (answers.animationFile) {
+      const animationSpinner = ora(`Uploading animation file...`).start();
+      animationUri = await this.uploadAsset(umi, answers.category!, answers.animationFile);
+      animationSpinner.succeed(`Animation file uploaded to ${animationUri.uri}`);
+    }
 
     // Create metadata
     const metadata = {
       name: answers.name,
       description: answers.description,
+      image: imageUri.uri,
+      animation_url: animationUri?.uri,
+      external_url: answers.externalUrl,
+      attributes: attributes.length > 0 ? attributes : undefined,
+      properties: {
+        files: [
+          {
+            uri: imageUri.uri,
+            type: imageUri.mimeType,
+          },
+          ...(animationUri ? [{
+            uri: animationUri.uri,
+            type: animationUri.mimeType,
+          }] : []),
+        ],
+        category: answers.category,
+      },
     };
 
-    // Upload files
-    const { jsonUri } = await this.uploadFiles(umi, answers.image!, metadata);
+    // Upload metadata
+    const jsonSpinner = ora('Uploading metadata...').start();
+    const jsonUri = await uploadJson(umi, metadata);
+    jsonSpinner.succeed(`Metadata uploaded to ${jsonUri}`);
 
     // Handle plugins if requested
     let pluginData: PluginData | undefined;
@@ -327,7 +467,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       plugins: pluginData,
     });
 
-    assetSpinner.succeed('Asset created successfully');
+    assetSpinner.succeed();
     return this.formatResult(result, umi);
   }
 

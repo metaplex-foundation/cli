@@ -24,7 +24,7 @@ const explorer = {
         transaction: 'https://solscan.io/tx/',
         account: 'https://solscan.io/address/',
     },
-    solanafm: {
+    solanaFm: {
         transaction: 'https://solanafm.com/tx/',
         account: 'https://solanafm.com/address/',
     },

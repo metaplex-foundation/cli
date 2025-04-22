@@ -146,4 +146,3 @@ The CLI is organized into three main command groups:
   - Rent calculations
 
 Each command group has detailed documentation with examples and best practices.
-

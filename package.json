@@ -1,14 +1,26 @@
 {
   "name": "@metaplex-foundation/cli",
   "description": "Metaplex CLI",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Metaplex <contact@metaplex.com>",
   "bin": {
     "mplx": "./bin/run.js"
   },
   "bugs": "https://github.com/metaplex-foundation/cli/issues",
+  "oclif": {
+    "bin": "mplx",
+    "dirname": "mplx",
+    "commands": "./dist/commands",
+    "plugins": [
+      "@oclif/plugin-help",
+      "@oclif/plugin-autocomplete",
+      "@oclif/plugin-commands",
+      "@oclif/plugin-not-found",
+      "@oclif/plugin-version"
+    ],
+    "topicSeparator": " "
+  },
   "dependencies": {
-    "@ardrive/turbo-sdk": "^1.21.0",
     "@inquirer/testing": "^2.1.44",
     "@ledgerhq/hw-app-solana": "^7.2.4",
     "@ledgerhq/hw-transport": "^6.31.4",

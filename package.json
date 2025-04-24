@@ -1,10 +1,23 @@
 {
   "name": "@metaplex-foundation/cli",
   "description": "Metaplex CLI",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "author": "Metaplex <contact@metaplex.com>",
   "bin": {
     "mplx": "./bin/run.js"
+  },
+  "oclif": {
+    "commands": "./dist/commands",
+    "bin": "mplx",
+    "plugins": [
+      "@oclif/plugin-help",
+      "@oclif/plugin-version",
+      "@oclif/plugin-not-found",
+      "@oclif/plugin-autocomplete",
+      "@oclif/plugin-commands",
+      "@oclif/plugin-plugins"
+    ],
+    "topicSeparator": " "
   },
   "bugs": "https://github.com/metaplex-foundation/cli/issues",
   "dependencies": {
@@ -71,9 +84,11 @@
     "node": ">=20.0.0"
   },
   "files": [
-    "/bin",
-    "/dist",
-    "/oclif.manifest.json"
+    "bin",
+    "dist",
+    "oclif.manifest.json",
+    "oclif.json",
+    "oclif.manifest.json.js"
   ],
   "homepage": "https://github.com/metaplex-foundation/cli",
   "keywords": [

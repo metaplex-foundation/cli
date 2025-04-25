@@ -32,7 +32,7 @@ export default class CorePluginsGenerate extends BaseCommand<typeof CorePluginsG
     output: Flags.string({
       name: 'output',
       char: 'o',
-      description: 'Output directory for the plugins.json file. If not present current folder will be used.',
+      description: 'Output directory for the plugins.json file. If not present, the current folder will be used.',
     }),
   }
 

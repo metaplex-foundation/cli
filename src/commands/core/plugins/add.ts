@@ -22,7 +22,7 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
 
     static override flags = {
         wizard: Flags.boolean({ description: 'Wizard mode', default: false }),
-        collection: Flags.boolean({ description: 'Is this a collection plugin', default: false }),
+        collection: Flags.boolean({ description: 'Is this a collection\'s plugin', default: false }),
     }
 
     static override args = {

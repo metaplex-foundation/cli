@@ -8,17 +8,17 @@ import imageUploader from '../../../lib/uploader/imageUploader.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 
-
 /* 
-  Update Token Possibilities:
-
-  1. Update a token via flags.
-
-
+  Update Token Options:
+  1. Update token name
+  2. Update token description
+  3. Update token symbol
+  4. Update token image
+  Any combination of these updates can be performed in a single transaction.
 */
 
 export default class ToolboxTokenUpdate extends TransactionCommand<typeof ToolboxTokenUpdate> {
-    static override description = 'Update token metadata'
+    static override description = 'Update token metadata including name, description, symbol, and image'
 
     static override examples = [
         '<%= config.bin %> <%= command.id %> toolbox token update <mintAddress> <flags>',

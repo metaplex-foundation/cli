@@ -44,7 +44,7 @@ export default class ToolboxSolTransfer extends TransactionCommand<typeof Toolbo
 
         const { umi } = this.context
 
-        const spinner = ora('Transfering SOL...').start()
+        const spinner = ora('Transferring SOL...').start()
 
         const tx = transferSol(umi, {
             destination: publicKey(args.address),

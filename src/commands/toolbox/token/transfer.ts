@@ -7,19 +7,9 @@ import { createTokenIfMissing, findAssociatedTokenPda, mintTokensTo, transferTok
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { base58 } from '@metaplex-foundation/umi/serializers'
 
-/* 
-  Create Possibilities:
-
-  1. Create a single Asset by providing the name and URI of the metadata.
-
-  2. Create a single Asset by providing an image file to upload and a JSON file to upload and assign to the Asset.
-
-  3. Create multiple Assets by providing a folder path with JSON files named sequentially ie (1.json, 2.json, 3.json) containing the offchain metadata.
-
-  4. Create multiple Assets by providing a folder path both JSON files and image files named sequentially ie (1.json, 1.png, 2.json, 2.png, 3.json, 3.png) to upload and assign to the Assets.
-
-  TODO - For single Asset creation, allow for the user to mint multiple copies of the same Asset via a flag(s).
-
+/*
+  Transfer tokens from the payer's wallet to a destination address.
+  If the destination wallet doesn't have a token account, it will be created automatically.
 */
 
 export default class ToolboxTokenTransfer extends TransactionCommand<typeof ToolboxTokenTransfer> {

@@ -10,6 +10,7 @@ import {
 } from '@metaplex-foundation/umi'
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
 import { existsSync, lstatSync } from 'node:fs'
+import { join } from 'node:path'
 
 import { IrysUploaderOptions } from '@metaplex-foundation/umi-uploader-irys'
 import { createSignerFromFile } from './FileSigner.js'
@@ -72,7 +73,13 @@ export const CONFIG_KEYS: Array<keyof ConfigJson> = [
   'explorer',
 ]
 
-export const getDefaultConfigPath = (prefix: string): string => `${prefix}/config.json`
+export const getDefaultConfigPath = (prefix: string): string => {
+  const homeDir = process.env.HOME || process.env.USERPROFILE
+  if (!homeDir) {
+    throw new Error('Could not determine home directory')
+  }
+  return join(homeDir, '.config', 'mplx', 'config.json')
+}
 
 export const readConfig = (path: string): ConfigJson => {
   if (!existsSync(path)) {
@@ -102,8 +109,13 @@ export const createSignerFromPath = async (path: string): Promise<Signer> => {
     return createSignerFromFile(path)
   }
 
-  // TODO move this warning to a better place
-  console.log('[warning]: No keypair specified, using temporary noop-signer')
+  // Provide a more descriptive error message
+  console.log(`[warning]: Keypair file not found at: ${path}`)
+  console.log('[info]: Using temporary noop-signer. To use your keypair:')
+  console.log('  1. Ensure your config file is in the correct location: ~/.config/mplx/config.json')
+  console.log('  2. Or specify the config file location with --config flag')
+  console.log('  3. Or set the keypair path with --keypair flag')
+  
   // create no-op signer if no key is specified
   const kp = generateSigner(DUMMY_UMI)
   return createNoopSigner(kp.publicKey)

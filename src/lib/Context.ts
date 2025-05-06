@@ -54,6 +54,11 @@ export const DEFAULT_CONFIG = {
   commitment: 'confirmed' as Commitment,
   keypair: '~/.config/solana/id.json',
   rpcUrl: 'https://api.devnet.solana.com',
+  storage: {
+    name: 'irys' as const,
+    options: {},
+  },
+  explorer: 'solanaExplorer',
 }
 
 export const CONFIG_KEYS: Array<keyof ConfigJson> = [
@@ -136,10 +141,9 @@ export const createContext = async (configPath: string, overrides: ConfigJson): 
   .use(mplTokenMetadata())
   .use(mplToolbox())
 
-  if (config.storage) {
     const storageProvider = await initStorageProvider(umi, config)
     storageProvider && umi.use(storageProvider)
-  }
+
 
   return {
     commitment: config.commitment!,

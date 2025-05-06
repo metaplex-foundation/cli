@@ -1,4 +1,4 @@
-// src/baseCommand.ts
+// src/BaseCommand.ts
 import { Commitment } from '@metaplex-foundation/umi'
 import { Command, Flags, Interfaces } from '@oclif/core'
 
@@ -10,7 +10,7 @@ export type Args<T extends typeof Command> = Interfaces.InferredArgs<T['args']>
 
 /* 
 
-  TODO - Cleanout base command of helper flags that are not needed for non transactional commands.
+  TODO - Clean out base command of helper flags that are not needed for non transactional commands.
 
 */
 

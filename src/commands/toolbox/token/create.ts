@@ -22,7 +22,7 @@ import createTokenPrompt from '../../../prompts/createTokenPrompt.js'
 */
 
 export default class ToolboxTokenCreate extends TransactionCommand<typeof ToolboxTokenCreate> {
-    static override description = 'Create a fungible token'
+    static override description = 'Create a fungible token either through an interactive wizard or by providing specific parameters'
 
     static override examples = [
         '<%= config.bin %> <%= command.id %>  toolbox token create --wizard',
@@ -94,7 +94,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                 if (!flags.description) missingFlags.push('description');
                 if (!flags.image) missingFlags.push('image');
                 if (!flags.mint) missingFlags.push('mint-amount');
-                
+
                 throw new Error(`Missing required flags: ${missingFlags.join(', ')}`);
             }
 
@@ -111,12 +111,12 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                 this.error('Missing required json')
             }
 
-            await this.createToken(umi, { 
-                name: flags.name, 
-                symbol: flags.symbol, 
-                description: flags.description, 
-                image: jsonUri, 
-                mintAmount: flags.mint 
+            await this.createToken(umi, {
+                name: flags.name,
+                symbol: flags.symbol,
+                description: flags.description,
+                image: jsonUri,
+                mintAmount: flags.mint
             })
         }
     }
@@ -146,7 +146,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
         try {
             const result = await umiSendAndConfirmTransaction(umi, createFunigbleIx)
             createSpinner.succeed('Token created successfully')
-            
+
             this.logSuccess(
                 `--------------------------------
     Token created successfully
@@ -154,7 +154,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
     Signature: ${base58.deserialize(result.transaction.signature as Uint8Array)[0]}
 --------------------------------`
             )
-            
+
             return result
         } catch (error: unknown) {
             createSpinner.fail('Token creation failed')

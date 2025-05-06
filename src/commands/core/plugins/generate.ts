@@ -1,9 +1,9 @@
-import {Args, Flags} from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 
 import fs from 'node:fs'
-import {BaseCommand} from '../../../BaseCommand.js'
-import {PluginFilterType, pluginSelector} from '../../../prompts/pluginSelector.js'
-import pluginConfigurator, {mapPluginDataToArray} from '../../../prompts/pluginInquirer.js'
+import { BaseCommand } from '../../../BaseCommand.js'
+import { PluginFilterType, pluginSelector } from '../../../prompts/pluginSelector.js'
+import pluginConfigurator, { mapPluginDataToArray } from '../../../prompts/pluginInquirer.js'
 import { Plugin } from '../../../lib/types/pluginData.js'
 
 /* 
@@ -27,23 +27,23 @@ export default class CorePluginsGenerate extends BaseCommand<typeof CorePluginsG
   // }
 
   static flags = {
-    asset: Flags.boolean({description: 'Generate Asset Plugin data', exclusive: ['collection']}),
-    collection: Flags.boolean({description: 'Generate Collection Plugin data', exclusive: ['asset']}),
+    asset: Flags.boolean({ description: 'Generate Asset Plugin data', exclusive: ['collection'] }),
+    collection: Flags.boolean({ description: 'Generate Collection Plugin data', exclusive: ['asset'] }),
     output: Flags.string({
       name: 'output',
       char: 'o',
-      description: 'Output directory of the plugins.json file. If not present current folder will be used.',
+      description: 'Output directory for the plugins.json file. If not present, the current folder will be used.',
     }),
   }
 
   public async run(): Promise<unknown> {
-    const {flags} = await this.parse(CorePluginsGenerate)
+    const { flags } = await this.parse(CorePluginsGenerate)
 
     if (!flags.asset && !flags.collection) {
       this.error('Please provide a --asset or --collection flag to generate plugin data')
     }
 
-    const selectedPlugins = await pluginSelector({filter: flags.asset ? PluginFilterType.Asset : PluginFilterType.Collection})
+    const selectedPlugins = await pluginSelector({ filter: flags.asset ? PluginFilterType.Asset : PluginFilterType.Collection })
 
     const pluginData = await pluginConfigurator(selectedPlugins as Plugin[])
 

@@ -20,7 +20,6 @@ import { createSignerFromLedgerPath } from './LedgerSigner.js'
 import { readJsonSync } from './file.js'
 import initStorageProvider from './uploader/initStorageProvider.js'
 import { DUMMY_UMI } from './util.js'
-import { abort } from 'node:process'
 
 export type ConfigJson = {
   commitment?: Commitment
@@ -73,7 +72,7 @@ export const CONFIG_KEYS: Array<keyof ConfigJson> = [
   'explorer',
 ]
 
-export const getDefaultConfigPath = (prefix: string): string => {
+export const getDefaultConfigPath = (): string => {
   const homeDir = process.env.HOME || process.env.USERPROFILE
   if (!homeDir) {
     throw new Error('Could not determine home directory')
@@ -102,7 +101,7 @@ export const readConfig = (path: string): ConfigJson => {
 
 export const createSignerFromPath = async (path: string | undefined): Promise<Signer> => {
   if (!path) {
-    throw new Error('No keypair path provided')
+    throw new Error('No keypair specified in config or args. Please set a keypair path in your config file or use --keypair flag.')
   }
 
   if (path.startsWith('usb://ledger')) {
@@ -114,17 +113,6 @@ export const createSignerFromPath = async (path: string | undefined): Promise<Si
   }
 
   throw new Error('Keypair file not found at: ' + path + ' please check your config file or use the --keypair flag')
-
-  // // Provide a more descriptive error message
-  // console.log(`[warning]: Keypair file not found at: ${path}`)
-  // console.log('[info]: Using temporary noop-signer. To use your keypair:')
-  // console.log('  1. Create a keypair file at the specified path')
-  // console.log('  2. Or update the keypair path in your config file')
-  // console.log('  3. Or specify a different keypair path with --keypair flag')
-  
-  // // create no-op signer if no key is specified
-  // const kp = generateSigner(DUMMY_UMI)
-  // return createNoopSigner(kp.publicKey)
 }
 
 export const createNoopSigner = (): Signer => {
@@ -147,15 +135,15 @@ export function consolidateConfigs<T>(...configs: Partial<ConfigJson>[]): Config
   }, {} as ConfigJson)
 }
 
-export const createContext = async (configPath: string, overrides: ConfigJson, transactionContext: boolean = false): Promise<Context> => {
+export const createContext = async (configPath: string, overrides: ConfigJson, isTransactionContext: boolean = false): Promise<Context> => {
   const config: ConfigJson = consolidateConfigs(DEFAULT_CONFIG, readConfig(configPath), overrides)
 
-  // if transactionContext is true, we need to make sure we have a valid keypair either in the config or overrides
-  if (transactionContext === true && !config.keypair && !overrides.keypair) {
-    throw new Error('No keypair specified in config or args. Please set a keypair path in your config file or use --keypair flag.')
+  let signer: Signer
+  if (isTransactionContext) {
+    signer = await createSignerFromPath(config.keypair)
+  } else {
+    signer = config.keypair ? await createSignerFromPath(config.keypair) : createNoopSigner()
   }
-
-  const signer = config.keypair ? await createSignerFromPath(config.keypair) : createNoopSigner()
 
   const payer = config.payer ? await createSignerFromPath(config.payer) : signer
 
@@ -169,7 +157,7 @@ export const createContext = async (configPath: string, overrides: ConfigJson, t
   .use(mplTokenMetadata())
   .use(mplToolbox())
 
-  const storageProvider = await initStorageProvider(umi, config)
+  const storageProvider = await initStorageProvider(config)
   storageProvider && umi.use(storageProvider)
 
 

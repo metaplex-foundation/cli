@@ -2,9 +2,9 @@
 import { Commitment } from '@metaplex-foundation/umi'
 import { Command, Flags, Interfaces } from '@oclif/core'
 
+import { BaseCommand } from './BaseCommand.js'
 import { Context, createContext, getDefaultConfigPath } from './lib/Context.js'
 import { StandardColors } from './lib/StandardColors.js'
-import { BaseCommand } from './BaseCommand.js'
 
 export type Flags<T extends typeof Command> = Interfaces.InferredFlags<
   T['flags'] & (typeof TransactionCommand)['baseFlags']
@@ -95,9 +95,7 @@ export abstract class TransactionCommand<T extends typeof Command> extends Comma
     this.flags = flags as Flags<T>
     this.args = args as Args<T>
 
-    const configPath = this.flags.config ?? getDefaultConfigPath(this.config.configDir)
-
-    const transactionContext = true
+    const configPath = this.flags.config ?? getDefaultConfigPath()
 
     this.context = await createContext(configPath, {
       commitment: this.flags.commitment as Commitment | undefined,
@@ -105,7 +103,7 @@ export abstract class TransactionCommand<T extends typeof Command> extends Comma
       payer: this.flags.payer,
       rpcUrl: this.flags.rpc,
       explorer: this.flags.explorer,
-    }, transactionContext)
+    }, true)
   }
 
   public logSuccess(message: string): void {

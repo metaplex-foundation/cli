@@ -1,10 +1,10 @@
-// src/baseCommand.ts
-import {Commitment} from '@metaplex-foundation/umi'
-import {Command, Flags, Interfaces} from '@oclif/core'
+// src/TransactionCommand.ts
+import { Commitment } from '@metaplex-foundation/umi'
+import { Command, Flags, Interfaces } from '@oclif/core'
 
-import {Context, createContext, getDefaultConfigPath} from './lib/Context.js'
-import {StandardColors} from './lib/StandardColors.js'
-import {BaseCommand} from './BaseCommand.js'
+import { Context, createContext, getDefaultConfigPath } from './lib/Context.js'
+import { StandardColors } from './lib/StandardColors.js'
+import { BaseCommand } from './BaseCommand.js'
 
 export type Flags<T extends typeof Command> = Interfaces.InferredFlags<
   T['flags'] & (typeof TransactionCommand)['baseFlags']
@@ -72,7 +72,7 @@ export abstract class TransactionCommand<T extends typeof Command> extends Comma
   public context!: Context
   protected flags!: Flags<T>
 
-  protected async catch(err: {exitCode?: number} & Error): Promise<unknown> {
+  protected async catch(err: { exitCode?: number } & Error): Promise<unknown> {
     // add any custom logic to handle errors from the command
     // or simply return the parent class error handling
     return super.catch(err)
@@ -85,7 +85,7 @@ export abstract class TransactionCommand<T extends typeof Command> extends Comma
 
   public async init(): Promise<void> {
     await super.init()
-    const {args, flags} = await this.parse({
+    const { args, flags } = await this.parse({
       args: this.ctor.args,
       baseFlags: (super.ctor as typeof BaseCommand).baseFlags,
       enableJsonFlag: this.ctor.enableJsonFlag,

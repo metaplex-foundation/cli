@@ -17,7 +17,7 @@ import { TransactionCommand } from '../../../TransactionCommand.js'
 */
 
 export default class ToolboxTokenUpdate extends TransactionCommand<typeof ToolboxTokenUpdate> {
-    static override description = 'Update token metadata'
+    static override description = 'Update token metadata including name, description, symbol, and image'
 
     static override examples = [
         '<%= config.bin %> <%= command.id %> toolbox token update <mintAddress> <flags>',

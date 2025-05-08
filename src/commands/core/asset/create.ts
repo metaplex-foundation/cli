@@ -99,7 +99,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
         this.log('Creating assets from directory coming soon')
         return
       }
-      
+
       const res = await createAssetsFromDirectory(umi, flags.directory)
       return {
         assets: res,
@@ -159,7 +159,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
       assetSpinner.succeed(`Asset created successfully`)
 
-      console.log({result})
+      console.log({ result })
 
       this.logSuccess(`--------------------------------
   Asset: ${result.asset}
@@ -184,7 +184,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       if (flags.plugins) {
         pluginData = JSON.parse(fs.readFileSync(flags.plugins, 'utf-8')) as PluginData
       } else {
-        const selectedPlugins = await pluginSelector({filter: PluginFilterType.Asset})
+        const selectedPlugins = await pluginSelector({ filter: PluginFilterType.Asset })
 
         if (selectedPlugins) {
           pluginData = await pluginConfigurator(selectedPlugins as Plugin[])

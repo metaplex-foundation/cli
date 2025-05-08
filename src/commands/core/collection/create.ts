@@ -31,7 +31,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       char: 'f',
       summary: 'Signify that the files are being uploaded -i/--image and -j/--json are required',
       description:
-        'The --files -f flag allows the user to create a Core Digital Collection buy providing both an image and metadata file.',
+        'The --files -f flag allows the user to create a Core Digital Collection by providing both an image and metadata file.',
     }),
     image: Flags.string({
       name: 'image',

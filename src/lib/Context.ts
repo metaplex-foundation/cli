@@ -3,7 +3,7 @@ import {
   Commitment,
   Signer,
   Umi,
-  createNoopSigner,
+  createNoopSigner as createUmiNoopSigner,
   generateSigner,
   signerIdentity,
   signerPayer,
@@ -20,6 +20,7 @@ import { createSignerFromLedgerPath } from './LedgerSigner.js'
 import { readJsonSync } from './file.js'
 import initStorageProvider from './uploader/initStorageProvider.js'
 import { DUMMY_UMI } from './util.js'
+import { abort } from 'node:process'
 
 export type ConfigJson = {
   commitment?: Commitment
@@ -112,16 +113,23 @@ export const createSignerFromPath = async (path: string | undefined): Promise<Si
     return createSignerFromFile(path)
   }
 
-  // Provide a more descriptive error message
-  console.log(`[warning]: Keypair file not found at: ${path}`)
-  console.log('[info]: Using temporary noop-signer. To use your keypair:')
-  console.log('  1. Create a keypair file at the specified path')
-  console.log('  2. Or update the keypair path in your config file')
-  console.log('  3. Or specify a different keypair path with --keypair flag')
+  throw new Error('Keypair file not found at: ' + path + ' please check your config file or use the --keypair flag')
+
+  // // Provide a more descriptive error message
+  // console.log(`[warning]: Keypair file not found at: ${path}`)
+  // console.log('[info]: Using temporary noop-signer. To use your keypair:')
+  // console.log('  1. Create a keypair file at the specified path')
+  // console.log('  2. Or update the keypair path in your config file')
+  // console.log('  3. Or specify a different keypair path with --keypair flag')
   
-  // create no-op signer if no key is specified
+  // // create no-op signer if no key is specified
+  // const kp = generateSigner(DUMMY_UMI)
+  // return createNoopSigner(kp.publicKey)
+}
+
+export const createNoopSigner = (): Signer => {
   const kp = generateSigner(DUMMY_UMI)
-  return createNoopSigner(kp.publicKey)
+  return createUmiNoopSigner(kp.publicKey)
 }
 
 export function consolidateConfigs<T>(...configs: Partial<ConfigJson>[]): ConfigJson {
@@ -142,12 +150,18 @@ export function consolidateConfigs<T>(...configs: Partial<ConfigJson>[]): Config
 export const createContext = async (configPath: string, overrides: ConfigJson, transactionContext: boolean = false): Promise<Context> => {
   const config: ConfigJson = consolidateConfigs(DEFAULT_CONFIG, readConfig(configPath), overrides)
 
+  console.log({data: {
+    transactionContext,
+    config: config.keypair,
+    overrides: overrides.keypair,
+  }})
+
   // if transactionContext is true, we need to make sure we have a valid keypair either in the config or overrides
-  if (transactionContext && !config.keypair && !overrides.keypair) {
+  if (transactionContext === true && !config.keypair && !overrides.keypair) {
     throw new Error('No keypair specified in config or args. Please set a keypair path in your config file or use --keypair flag.')
   }
 
-  const signer = await createSignerFromPath(config.keypair)
+  const signer = config.keypair ? await createSignerFromPath(config.keypair) : createNoopSigner()
 
   const payer = config.payer ? await createSignerFromPath(config.payer) : signer
 

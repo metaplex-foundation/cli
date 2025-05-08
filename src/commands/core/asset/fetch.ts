@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import batchFetchCoreAssets from '../../../lib/core/fetch/batchFetch.js'
 import fetchCoreAsset from '../../../lib/core/fetch/fetch.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
+import { BaseCommand } from '../../../BaseCommand.js'
 
 /* 
   Fetch Possibilities:
@@ -17,7 +18,7 @@ import { TransactionCommand } from '../../../TransactionCommand.js'
   3. Fetch multiple Assets by providing multiple Asset IDs from a .txt/.csv/json file and save metadata and image to disk (original or DAS format).
 */
 
-export default class AssetFetch extends TransactionCommand<typeof AssetFetch> {
+export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
   static description = 'Fetch an asset by mint address'
 
   static examples = [

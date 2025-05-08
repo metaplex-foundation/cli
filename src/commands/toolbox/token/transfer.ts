@@ -1,11 +1,11 @@
-import { Flags, Args } from '@oclif/core'
+import { Args } from '@oclif/core'
 
-import ora from 'ora'
-import { TransactionCommand } from '../../../TransactionCommand.js'
+import { createTokenIfMissing, findAssociatedTokenPda, transferTokens } from '@metaplex-foundation/mpl-toolbox'
 import { publicKey, TransactionBuilder } from '@metaplex-foundation/umi'
-import { createTokenIfMissing, findAssociatedTokenPda, mintTokensTo, transferTokens } from '@metaplex-foundation/mpl-toolbox'
-import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { base58 } from '@metaplex-foundation/umi/serializers'
+import ora from 'ora'
+import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
+import { TransactionCommand } from '../../../TransactionCommand.js'
 
 /* 
   Create Possibilities:

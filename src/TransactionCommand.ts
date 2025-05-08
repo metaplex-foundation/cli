@@ -96,13 +96,16 @@ export abstract class TransactionCommand<T extends typeof Command> extends Comma
     this.args = args as Args<T>
 
     const configPath = this.flags.config ?? getDefaultConfigPath(this.config.configDir)
+
+    const transactionContext = true
+
     this.context = await createContext(configPath, {
       commitment: this.flags.commitment as Commitment | undefined,
       keypair: this.flags.keypair,
       payer: this.flags.payer,
       rpcUrl: this.flags.rpc,
       explorer: this.flags.explorer,
-    })
+    }, transactionContext)
   }
 
   public logSuccess(message: string): void {

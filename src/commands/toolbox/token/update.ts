@@ -14,7 +14,6 @@ import { TransactionCommand } from '../../../TransactionCommand.js'
 
   1. Update a token via flags.
 
-
 */
 
 export default class ToolboxTokenUpdate extends TransactionCommand<typeof ToolboxTokenUpdate> {

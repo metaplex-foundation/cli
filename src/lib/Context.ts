@@ -12,14 +12,14 @@ import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
 import { existsSync, lstatSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
+import { mplToolbox } from '@metaplex-foundation/mpl-toolbox'
 import { IrysUploaderOptions } from '@metaplex-foundation/umi-uploader-irys'
 import { createSignerFromFile } from './FileSigner.js'
 import { createSignerFromLedgerPath } from './LedgerSigner.js'
 import { readJsonSync } from './file.js'
 import initStorageProvider from './uploader/initStorageProvider.js'
 import { DUMMY_UMI } from './util.js'
-import { mplToolbox } from '@metaplex-foundation/mpl-toolbox'
-import { mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
 
 export type ConfigJson = {
   commitment?: Commitment
@@ -53,7 +53,6 @@ export type Context = {
 
 export const DEFAULT_CONFIG = {
   commitment: 'confirmed' as Commitment,
-  keypair: '~/.config/solana/id.json',
   rpcUrl: 'https://api.devnet.solana.com',
   storage: {
     name: 'irys' as const,
@@ -100,7 +99,11 @@ export const readConfig = (path: string): ConfigJson => {
   return filteredConfig
 }
 
-export const createSignerFromPath = async (path: string): Promise<Signer> => {
+export const createSignerFromPath = async (path: string | undefined): Promise<Signer> => {
+  if (!path) {
+    throw new Error('No keypair path provided')
+  }
+
   if (path.startsWith('usb://ledger')) {
     return createSignerFromLedgerPath(path)
   }
@@ -112,9 +115,9 @@ export const createSignerFromPath = async (path: string): Promise<Signer> => {
   // Provide a more descriptive error message
   console.log(`[warning]: Keypair file not found at: ${path}`)
   console.log('[info]: Using temporary noop-signer. To use your keypair:')
-  console.log('  1. Ensure your config file is in the correct location: ~/.config/mplx/config.json')
-  console.log('  2. Or specify the config file location with --config flag')
-  console.log('  3. Or set the keypair path with --keypair flag')
+  console.log('  1. Create a keypair file at the specified path')
+  console.log('  2. Or update the keypair path in your config file')
+  console.log('  3. Or specify a different keypair path with --keypair flag')
   
   // create no-op signer if no key is specified
   const kp = generateSigner(DUMMY_UMI)
@@ -136,14 +139,19 @@ export function consolidateConfigs<T>(...configs: Partial<ConfigJson>[]): Config
   }, {} as ConfigJson)
 }
 
-export const createContext = async (configPath: string, overrides: ConfigJson): Promise<Context> => {
+export const createContext = async (configPath: string, overrides: ConfigJson, transactionContext: boolean = false): Promise<Context> => {
   const config: ConfigJson = consolidateConfigs(DEFAULT_CONFIG, readConfig(configPath), overrides)
 
-  const signer = await createSignerFromPath(config.keypair!)
+  // if transactionContext is true, we need to make sure we have a valid keypair either in the config or overrides
+  if (transactionContext && !config.keypair && !overrides.keypair) {
+    throw new Error('No keypair specified in config or args. Please set a keypair path in your config file or use --keypair flag.')
+  }
+
+  const signer = await createSignerFromPath(config.keypair)
 
   const payer = config.payer ? await createSignerFromPath(config.payer) : signer
 
-  const umi = createUmi(config.rpcUrl!, {
+  const umi = createUmi(config.rpcUrl! , {
     commitment: config.commitment!,
   })
 
@@ -153,8 +161,8 @@ export const createContext = async (configPath: string, overrides: ConfigJson): 
   .use(mplTokenMetadata())
   .use(mplToolbox())
 
-    const storageProvider = await initStorageProvider(umi, config)
-    storageProvider && umi.use(storageProvider)
+  const storageProvider = await initStorageProvider(umi, config)
+  storageProvider && umi.use(storageProvider)
 
 
   return {
@@ -163,6 +171,6 @@ export const createContext = async (configPath: string, overrides: ConfigJson): 
     rpcUrl: config.rpcUrl!,
     signer,
     umi,
-    explorer: config.explorer || 'solanaExplorer',
+    explorer: config.explorer || DEFAULT_CONFIG.explorer,
   }
 }

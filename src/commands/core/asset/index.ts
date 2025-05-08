@@ -1,4 +1,4 @@
-import {Args, Command, Flags} from '@oclif/core'
+import { Command } from '@oclif/core'
 
 export default class CoreAsset extends Command {
   static override description = 'MPL Core Asset Module'

@@ -150,12 +150,6 @@ export function consolidateConfigs<T>(...configs: Partial<ConfigJson>[]): Config
 export const createContext = async (configPath: string, overrides: ConfigJson, transactionContext: boolean = false): Promise<Context> => {
   const config: ConfigJson = consolidateConfigs(DEFAULT_CONFIG, readConfig(configPath), overrides)
 
-  console.log({data: {
-    transactionContext,
-    config: config.keypair,
-    overrides: overrides.keypair,
-  }})
-
   // if transactionContext is true, we need to make sure we have a valid keypair either in the config or overrides
   if (transactionContext === true && !config.keypair && !overrides.keypair) {
     throw new Error('No keypair specified in config or args. Please set a keypair path in your config file or use --keypair flag.')

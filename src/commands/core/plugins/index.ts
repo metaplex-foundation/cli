@@ -1,6 +1,7 @@
-import {Args, Command, Flags} from '@oclif/core'
+import { Command } from '@oclif/core'
+import { BaseCommand } from '../../../BaseCommand.js'
 
-export default class CorePlugins extends Command {
+export default class CorePlugins extends BaseCommand<typeof CorePlugins> {
   static override description = 'MPL Core Plugins Module'
 
   static override examples = [

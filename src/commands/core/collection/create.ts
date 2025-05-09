@@ -5,13 +5,13 @@ import { Flags } from '@oclif/core'
 import mime from 'mime'
 import fs from 'node:fs'
 import ora from 'ora'
-import { BaseCommand } from '../../../BaseCommand.js'
+import { Plugin } from '../../../lib/types/pluginData.js'
 import { txSignatureToString } from '../../../lib/util.js'
 import pluginConfigurator, { mapPluginDataToArray } from '../../../prompts/pluginInquirer.js'
 import { PluginFilterType, pluginSelector } from '../../../prompts/pluginSelector.js'
-import { Plugin } from '../../../lib/types/pluginData.js'
+import { TransactionCommand } from '../../../TransactionCommand.js'
 
-export default class CoreCollectionCreate extends BaseCommand<typeof CoreCollectionCreate> {
+export default class CoreCollectionCreate extends TransactionCommand<typeof CoreCollectionCreate> {
   static override description = 'Create an MPL Core Collection'
 
   static override examples = [

@@ -7,8 +7,8 @@ import mime from 'mime'
 import fs from 'node:fs'
 import { basename } from 'node:path'
 import ora from 'ora'
-import { BaseCommand } from '../../../BaseCommand.js'
 import { txSignatureToString } from '../../../lib/util.js'
+import { TransactionCommand } from '../../../TransactionCommand.js'
 
 /* 
   Update Possibilities:
@@ -27,7 +27,7 @@ import { txSignatureToString } from '../../../lib/util.js'
 
 */
 
-export default class AssetUpdate extends BaseCommand<typeof AssetUpdate> {
+export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> {
   static override description = 'Update an MPL Core Asset'
 
   static examples = [

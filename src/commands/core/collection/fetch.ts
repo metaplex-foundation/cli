@@ -5,7 +5,6 @@ import mime from 'mime-types'
 import fetch from 'node-fetch'
 import fs from 'node:fs'
 import { basename } from 'node:path'
-import { abort } from 'node:process'
 import ora from 'ora'
 import { BaseCommand } from '../../../BaseCommand.js'
 

@@ -1,9 +1,9 @@
-import { Args, Flags } from '@oclif/core'
+import { Args } from '@oclif/core'
 import fs from 'node:fs'
 import path from 'node:path'
+import ora from 'ora'
 import { BaseCommand } from '../../../BaseCommand.js'
 import { openDirectory } from '../../../lib/util.js'
-import ora from 'ora'
 
 export default class CoreCollectionTemplate extends BaseCommand<typeof CoreCollectionTemplate> {
   static override description = 'Generate a template folder for Collection metadata and image, and plugins'

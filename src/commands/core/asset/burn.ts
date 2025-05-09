@@ -4,7 +4,6 @@ import { TransactionBuilder } from '@metaplex-foundation/umi'
 import { base58 } from '@metaplex-foundation/umi/serializers'
 import { readFileSync } from 'node:fs'
 import ora from 'ora'
-import { BaseCommand } from '../../../BaseCommand.js'
 import burnAssetTx from '../../../lib/core/burn/burnAssetTx.js'
 import confirmAllTransactions, { UmiTransactionConfirmationResult } from '../../../lib/umi/confirmAllTransactions.js'
 import umiSendAllTransactions from '../../../lib/umi/sendAllTransactions.js'
@@ -13,6 +12,7 @@ import { UmiTransactionResponce } from '../../../lib/umi/sendTransaction.js'
 
 import fs from 'node:fs'
 import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
+import { TransactionCommand } from '../../../TransactionCommand.js'
 
 interface BurnAssetData {
   asset: string
@@ -53,7 +53,7 @@ interface BurnListCache {
         [asset1, asset2, asset3]
 */
 
-export default class AssetBurn extends BaseCommand<typeof AssetBurn> {
+export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
   static args = {
     asset: Args.string({ description: 'Burn at single asset by mint' }),
   }

@@ -17,7 +17,8 @@
       "@oclif/plugin-commands",
       "@oclif/plugin-plugins"
     ],
-    "topicSeparator": " "
+    "topicSeparator": " ",
+    "dirname": "mplx"
   },
   "bugs": "https://github.com/metaplex-foundation/cli/issues",
   "dependencies": {
@@ -104,7 +105,6 @@
     "build": "tsc -b tsconfig.build.json --verbose",
     "build:clean": "pnpm run clean && pnpm run build",
     "dev": "./bin/dev.js",
-    "cli": "./bin/run.js",
     "mplx": "./bin/run.js",
     "lint": "eslint . --ext .ts",
     "postpack": "shx rm -f oclif.manifest.json",

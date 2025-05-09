@@ -1,15 +1,12 @@
 import { Args, Flags } from '@oclif/core'
 
 import { amountToNumber, subtractAmounts } from '@metaplex-foundation/umi'
-import { TransactionCommand } from '../../TransactionCommand.js'
+import { BaseCommand } from '../../BaseCommand.js'
 
+export default class ToolboxRent extends BaseCommand<typeof ToolboxRent> {
+  static override description = 'Get rent cost for a given number of bytes'
 
-export default class ToolboxRent extends TransactionCommand<typeof ToolboxRent> {
-    static override description = 'Get rent cost for a given number of bytes'
-
-    static override examples = [
-        '<%= config.bin %> <%= command.id %> <bytes>',
-    ]
+  static override examples = ['<%= config.bin %> <%= command.id %> <bytes>']
 
     static override flags = {
         // Ignore the 128 byte header for the rent cost
@@ -21,7 +18,6 @@ export default class ToolboxRent extends TransactionCommand<typeof ToolboxRent> 
     static override args = {
         bytes: Args.integer({ description: 'Number of bytes', required: true }),
     }
-
 
     public async run() {
         const { args, flags } = await this.parse(ToolboxRent)

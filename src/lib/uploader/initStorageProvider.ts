@@ -1,4 +1,3 @@
-import {Umi} from '@metaplex-foundation/umi'
 import {ConfigJson} from '../Context.js'
 import initIrysUploader from './uploadProviders/irys.js'
 

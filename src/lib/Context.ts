@@ -3,22 +3,23 @@ import {
   Commitment,
   Signer,
   Umi,
-  createNoopSigner,
+  createNoopSigner as createUmiNoopSigner,
   generateSigner,
   signerIdentity,
   signerPayer,
 } from '@metaplex-foundation/umi'
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
 import { existsSync, lstatSync } from 'node:fs'
+import { join } from 'node:path'
 
+import { mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
+import { mplToolbox } from '@metaplex-foundation/mpl-toolbox'
 import { IrysUploaderOptions } from '@metaplex-foundation/umi-uploader-irys'
 import { createSignerFromFile } from './FileSigner.js'
 import { createSignerFromLedgerPath } from './LedgerSigner.js'
 import { readJsonSync } from './file.js'
 import initStorageProvider from './uploader/initStorageProvider.js'
 import { DUMMY_UMI } from './util.js'
-import { mplToolbox } from '@metaplex-foundation/mpl-toolbox'
-import { mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
 
 export type ConfigJson = {
   commitment?: Commitment
@@ -52,8 +53,12 @@ export type Context = {
 
 export const DEFAULT_CONFIG = {
   commitment: 'confirmed' as Commitment,
-  keypair: '~/.config/solana/id.json',
   rpcUrl: 'https://api.devnet.solana.com',
+  storage: {
+    name: 'irys' as const,
+    options: {},
+  },
+  explorer: 'solanaExplorer',
 }
 
 export const CONFIG_KEYS: Array<keyof ConfigJson> = [
@@ -67,7 +72,13 @@ export const CONFIG_KEYS: Array<keyof ConfigJson> = [
   'explorer',
 ]
 
-export const getDefaultConfigPath = (prefix: string): string => `${prefix}/config.json`
+export const getDefaultConfigPath = (): string => {
+  const homeDir = process.env.HOME || process.env.USERPROFILE
+  if (!homeDir) {
+    throw new Error('Could not determine home directory')
+  }
+  return join(homeDir, '.config', 'mplx', 'config.json')
+}
 
 export const readConfig = (path: string): ConfigJson => {
   if (!existsSync(path)) {
@@ -88,7 +99,11 @@ export const readConfig = (path: string): ConfigJson => {
   return filteredConfig
 }
 
-export const createSignerFromPath = async (path: string): Promise<Signer> => {
+export const createSignerFromPath = async (path: string | undefined): Promise<Signer> => {
+  if (!path) {
+    throw new Error('No keypair specified in config or args. Please set a keypair path in your config file or use --keypair flag.')
+  }
+
   if (path.startsWith('usb://ledger')) {
     return createSignerFromLedgerPath(path)
   }
@@ -97,11 +112,12 @@ export const createSignerFromPath = async (path: string): Promise<Signer> => {
     return createSignerFromFile(path)
   }
 
-  // TODO move this warning to a better place
-  console.log('[warning]: No keypair specified, using temporary noop-signer')
-  // create no-op signer if no key is specified
+  throw new Error('Keypair file not found at: ' + path + ' please check your config file or use the --keypair flag')
+}
+
+export const createNoopSigner = (): Signer => {
   const kp = generateSigner(DUMMY_UMI)
-  return createNoopSigner(kp.publicKey)
+  return createUmiNoopSigner(kp.publicKey)
 }
 
 export function consolidateConfigs<T>(...configs: Partial<ConfigJson>[]): ConfigJson {
@@ -119,14 +135,19 @@ export function consolidateConfigs<T>(...configs: Partial<ConfigJson>[]): Config
   }, {} as ConfigJson)
 }
 
-export const createContext = async (configPath: string, overrides: ConfigJson): Promise<Context> => {
+export const createContext = async (configPath: string, overrides: ConfigJson, isTransactionContext: boolean = false): Promise<Context> => {
   const config: ConfigJson = consolidateConfigs(DEFAULT_CONFIG, readConfig(configPath), overrides)
 
-  const signer = await createSignerFromPath(config.keypair!)
+  let signer: Signer
+  if (isTransactionContext) {
+    signer = await createSignerFromPath(config.keypair)
+  } else {
+    signer = config.keypair ? await createSignerFromPath(config.keypair) : createNoopSigner()
+  }
 
   const payer = config.payer ? await createSignerFromPath(config.payer) : signer
 
-  const umi = createUmi(config.rpcUrl!, {
+  const umi = createUmi(config.rpcUrl! , {
     commitment: config.commitment!,
   })
 
@@ -136,10 +157,9 @@ export const createContext = async (configPath: string, overrides: ConfigJson): 
   .use(mplTokenMetadata())
   .use(mplToolbox())
 
-  if (config.storage) {
-    const storageProvider = await initStorageProvider(umi, config)
-    storageProvider && umi.use(storageProvider)
-  }
+  const storageProvider = await initStorageProvider(config)
+  storageProvider && umi.use(storageProvider)
+
 
   return {
     commitment: config.commitment!,
@@ -147,6 +167,6 @@ export const createContext = async (configPath: string, overrides: ConfigJson): 
     rpcUrl: config.rpcUrl!,
     signer,
     umi,
-    explorer: config.explorer || 'solanaExplorer',
+    explorer: config.explorer || DEFAULT_CONFIG.explorer,
   }
 }

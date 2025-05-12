@@ -1,12 +1,10 @@
-import { Args, Flags } from '@oclif/core'
+import { Args } from '@oclif/core'
 import fs from 'node:fs'
 
-import { BaseCommand } from '../../../BaseCommand.js'
-import { openDirectory } from '../../../lib/util.js'
 import ora from 'ora'
+import { BaseCommand } from '../../../BaseCommand.js'
 import assetTemplate from '../../../lib/core/templates/offchainAssetTemplate.js'
-import path, { dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { openDirectory } from '../../../lib/util.js'
 
 /* 
   Tempalte Possibilities:

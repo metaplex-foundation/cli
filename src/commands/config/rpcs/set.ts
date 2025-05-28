@@ -11,7 +11,7 @@ export default class ConfigRpcSetCommand extends Command {
   public async run(): Promise<void> {
     const {flags, args} = await this.parse(ConfigRpcSetCommand)
 
-    const path = flags.config ?? getDefaultConfigPath(this.config.configDir)
+    const path = flags.config ?? getDefaultConfigPath()
 
     const config = readConfig(path)
 

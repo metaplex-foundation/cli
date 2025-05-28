@@ -9,7 +9,7 @@ export default class ConfigRpcsListCommand extends Command {
   public async run(): Promise<void> {
     const {flags, args} = await this.parse(ConfigRpcsListCommand)
 
-    const path = flags.config ?? getDefaultConfigPath(this.config.configDir)
+    const path = flags.config ?? getDefaultConfigPath()
 
     const config = readConfig(path)
 

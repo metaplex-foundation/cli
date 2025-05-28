@@ -78,7 +78,7 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
     this.flags = flags as Flags<T>
     this.args = args as Args<T>
 
-    const configPath = this.flags.config ?? getDefaultConfigPath(this.config.configDir)
+    const configPath = this.flags.config ?? getDefaultConfigPath()
     this.context = await createContext(configPath, {
       commitment: this.flags.commitment as Commitment | undefined,
       keypair: this.flags.keypair,

@@ -24,7 +24,7 @@ const explorer = {
         transaction: 'https://solscan.io/tx/',
         account: 'https://solscan.io/address/',
     },
-    solanafm: {
+    solanaFm: {
         transaction: 'https://solanafm.com/tx/',
         account: 'https://solanafm.com/address/',
     },
@@ -40,6 +40,6 @@ export const explorerLink = (explorerPlatform: Explorer, type: LinkType, id: str
 
 
 export const extractAssetId = (str: string) => {
-    const match = str.match(/Asset created with ID: ([a-zA-Z0-9]+)/)
+    const match = str.match(/Asset: ([a-zA-Z0-9]+)/)
     return match ? match[1] : null
 }

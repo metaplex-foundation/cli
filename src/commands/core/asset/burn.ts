@@ -93,19 +93,13 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
 
       this.log('Burning assets from list')
 
-
-
       const assetsList: string[] = JSON.parse(readFileSync(flags.list, 'utf-8'))
-
-      // await burnBatch(umi, assetsList, flags.collection)
 
       let cache: BurnListCache = {
         name: 'burnAssetsListCache',
         file: flags.list,
         items: assetsList.map((asset: string) => ({ asset: asset, tx: {} })),
       }
-
-      // generate transactions for each asset
 
       const transactions: (TransactionBuilder | null)[] = await Promise.all(
         assetsList.map(async (asset: string, index: number) => {
@@ -119,23 +113,15 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
 
       const currentDirectory = process.cwd()
 
-      // send transactions
-
       const startTime = Date.now()
 
       const sendRes = await umiSendAllTransactions(umi, transactions, undefined, (index, response) => {
-        // console.log(`Sent Transaction ${index} repsonses: ${JSON.stringify(response)}`)
-        // // add transaction to assetDataArray
-        // console.log(`Adding transaction to cache ${index}`)
-        // console.log(cache.items[index])
-        // console.log(response)
         cache.items[index].tx = {
           ...cache.items[index].tx,
           transaction: {
             ...response,
             signature: response.signature ? base58.deserialize(response.signature as Uint8Array)[0] : null
           }
-
         }
 
         console.log({ cacheItem: cache.items[index].tx })
@@ -143,14 +129,7 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
         return response
       })
 
-
-      console.log({ sendRes })
-
       await confirmAllTransactions(umi, cache.items.map((item) => item.tx?.transaction), undefined, (index, response) => {
-        // add confirmation to assetDataArray
-
-        console.log({ response })
-
         cache.items[index].tx = {
           ...cache.items[index].tx,
           confirmation: response
@@ -160,8 +139,6 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
         fs.writeFileSync(currentDirectory + '/burn-cache.json', JSON.stringify(cache, null, 2))
       })
 
-      // Validate all transactions were successful and log results
-
       const failedTransactions = cache.items.filter((item) => item.tx?.transaction?.err || !item.tx?.confirmation?.confirmed)
 
       if (failedTransactions.length > 0) {
@@ -170,30 +147,17 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
           Failed transactions: ${failedTransactions.map((item) => item.asset).join(', ')}\n
           Cache file: ${currentDirectory}/burn-cache.json
           `)
-
       } else {
-        this.logSuccess(`All transactions confirmed successfully\n
-Transactions confirmed: ${cache.items.length} of ${assetsList.length}\n
-Cache file: ${currentDirectory}/burn-cache.json
-          `)
+        this.logSuccess(`--------------------------------
+  Assets burned: ${cache.items.length} of ${assetsList.length}
+  Cache file: ${currentDirectory}/burn-cache.json
+--------------------------------`)
       }
-
-
-    }
-    else {
+    } else {
       // Burn single asset
       if (!args.asset) {
         this.error('No asset provided')
       }
-
-      // const canBurn = await validateBurn(umi, {
-      //   asset,
-      //   authority: umi.identity.publicKey
-      // })
-
-      // console.log({ canBurn })
-
-      // if (!canBurn) {
 
       const transactionSpinner = ora('Burning asset...').start()
       const burnTx = await burnAssetTx(umi, args.asset, flags.collection)
@@ -213,8 +177,8 @@ Cache file: ${currentDirectory}/burn-cache.json
         const signature = base58.deserialize(result.transaction.signature! as Uint8Array)[0]
         transactionSpinner.succeed(`Asset burned: ${args.asset}`)
         this.logSuccess(`--------------------------------
+  Asset burned: ${args.asset}
   Signature: ${signature}
-  Explorer: ${generateExplorerUrl(explorer as ExplorerType, signature, 'transaction')}
 --------------------------------`)
       }
     }

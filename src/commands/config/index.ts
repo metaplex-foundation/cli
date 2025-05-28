@@ -14,7 +14,7 @@ export default class Config extends Command {
 
   public async run(): Promise<void> {
     const { flags } = await this.parse(Config)
-    const path = flags.config ?? getDefaultConfigPath(this.config.configDir)
+    const path = flags.config ?? getDefaultConfigPath()
 
     const config = readConfig(path)
     if (!existsSync(path)) {

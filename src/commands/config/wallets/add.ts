@@ -46,7 +46,7 @@ export default class ConfigWalletAddsCommand extends Command {
       this.error('File does not exist')
     }
 
-    const path = flags.config ?? getDefaultConfigPath(this.config.configDir)
+    const path = flags.config ?? getDefaultConfigPath()
 
     const config = readConfig(path)
 

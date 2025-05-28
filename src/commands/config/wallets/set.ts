@@ -13,7 +13,7 @@ export default class ConfigWalletSetCommand extends Command {
 
     const {flags, args} = await this.parse(ConfigWalletSetCommand)
 
-    const path = flags.config ?? getDefaultConfigPath(this.config.configDir)
+    const path = flags.config ?? getDefaultConfigPath()
 
     const config = readConfig(path)
 

@@ -35,7 +35,7 @@ export default class ConfigRPCAddCommand extends Command {
       this.error('Name must not contain spaces')
     }
 
-    const path = flags.config ?? getDefaultConfigPath(this.config.configDir)
+    const path = flags.config ?? getDefaultConfigPath()
 
     const config = readConfig(path)
 

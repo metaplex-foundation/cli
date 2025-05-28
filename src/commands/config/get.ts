@@ -22,7 +22,7 @@ export default class ConfigGetCommand extends Command {
     const { flags, args } = await this.parse(ConfigGetCommand);
     const { key } = args;
 
-    const path = flags.config ?? getDefaultConfigPath(this.config.configDir)
+    const path = flags.config ?? getDefaultConfigPath()
 
     const config = readConfig(path);
 

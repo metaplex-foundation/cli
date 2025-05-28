@@ -10,6 +10,7 @@ import { txSignatureToString } from '../../../lib/util.js'
 import pluginConfigurator, { mapPluginDataToArray } from '../../../prompts/pluginInquirer.js'
 import { PluginFilterType, pluginSelector } from '../../../prompts/pluginSelector.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
+import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
 
 export default class CoreCollectionCreate extends TransactionCommand<typeof CoreCollectionCreate> {
   static override description = 'Create an MPL Core Collection'
@@ -59,7 +60,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
     const { args, flags } = await this.parse(CoreCollectionCreate)
     const { image, json, name, uri, files } = flags
 
-    const { umi } = this.context
+    const { umi, explorer } = this.context
 
     let collectionName = name || undefined
     let metadataUri = uri || undefined
@@ -189,7 +190,13 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       .sendAndConfirm(umi)
       .then((tx) => {
         const txStr = txSignatureToString(tx.signature)
-        spinner.succeed(`Collection: ${collection.publicKey} signature: ${txStr}`)
+        spinner.succeed('Collection created successfully')
+        this.logSuccess(`--------------------------------
+  Collection: ${collection.publicKey}
+  Signature: ${txStr}
+  Explorer: ${generateExplorerUrl(explorer as ExplorerType, txStr, 'transaction')}
+  Core Explorer: https://core.metaplex.com/explorer/${collection.publicKey}
+--------------------------------`)
       })
       .catch((error) => {
         spinner.fail(`Error creating Collection: ${error}`)

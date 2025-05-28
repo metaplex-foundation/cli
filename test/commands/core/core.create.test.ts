@@ -1,5 +1,6 @@
 import { expect } from 'chai'
 import { runCli } from '../../runCli'
+import { createCoreAsset, createCoreCollection } from './corehelpers'
 
 
 // Helper to strip ANSI color codes
@@ -15,7 +16,7 @@ describe('core asset commands', () => {
 
     before(async () => {
         const { stdout, stderr, code } = await runCli(
-            ["toolbox", "airdrop", "100"]
+            ["toolbox", "sol", "airdrop", "100"]
         )
         // console.log('Airdrop stdout:', stdout)
         // console.log('Airdrop stderr:', stderr)
@@ -50,11 +51,13 @@ describe('core asset commands', () => {
         const assetId = extractAssetId(cleanStderr)
 
         expect(code).to.equal(0)
-        expect(cleanStderr).to.contain('Asset created with ID:')
+        expect(cleanStderr).to.contain('Asset created successfully')
         expect(assetId).to.match(/^[a-zA-Z0-9]+$/)
     })
 
     it('creates a new asset with --files flag while uploading --image and --json files', async () => {
+
+        //make sure to upload files under 100b to get free uploads for testing.
 
         const cliInput = [
             'core',
@@ -73,48 +76,24 @@ describe('core asset commands', () => {
             cliStdin
         )
 
-        console.log('Test completed')
-        console.log('Final stdout:', stdout)
-        console.log('Final stderr:', stderr)
-        console.log('Exit code:', code)
+        // console.log('Test completed')
+        // console.log('Final stdout:', stdout)
+        // console.log('Final stderr:', stderr)
+        // console.log('Exit code:', code)
 
         const cleanStderr = stripAnsi(stderr)
         const assetId = extractAssetId(cleanStderr)
 
         expect(code).to.equal(0)
-        expect(cleanStderr).to.contain('Asset created with ID:')
+        expect(cleanStderr).to.contain('Asset created successfully')
         expect(assetId).to.match(/^[a-zA-Z0-9]+$/)
     })
 
-    // // Test interactive command with prompts
-    // it('creates a new asset interactively', async () => {
-    //   const { stdout, stderr, code } = await runCli(['core', 'asset', 'create'])
-    //   // TODO: Implement interactive test with child process stdin
-    //   expect(code).to.equal(0)
-    //   expect(stdout).to.contain('Asset created with ID:')
-    // })
+    it('creates an asset into a collection', async () => {
+        const { collectionId } = await createCoreCollection()
+        const { assetId } = await createCoreAsset(collectionId)
 
-    // // Test file-based asset creation
-    // it('creates a new asset with files', async () => {
-    //   const { stdout, stderr, code } = await runCli([
-    //     'core',
-    //     'asset',
-    //     'create',
-    //     '--files',
-    //     '--image',
-    //     'test/assets/0.png',
-    //     '--json',
-    //     'test/assets/0.json'
-    //   ])
-    //   expect(code).to.equal(0)
-    //   expect(stdout).to.contain('Asset created with ID:')
-    // })
-
-    // // Test error cases
-    // it('shows error when required parameters are missing', async () => {
-    //   const { stderr, code } = await runCli(['core', 'asset', 'create'])
-    //   expect(code).to.not.equal(0)
-    //   expect(stderr).to.contain('Missing required parameters')
-    // })
+        expect(assetId).to.match(/^[a-zA-Z0-9]+$/)
+    })
 })
 

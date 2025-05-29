@@ -29,6 +29,8 @@ jobs:
         with:
           node: ${{ matrix.node_version }}
           solana: ${{ env.SOLANA_VERSION }}
+          cache: true
+          artifacts: false
       - run: pnpm install
       - run: pnpm run build
       - run: pnpm run test

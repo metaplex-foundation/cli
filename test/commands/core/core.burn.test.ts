@@ -6,7 +6,7 @@ import { createCoreAsset, createCoreCollection, stripAnsi } from './corehelpers'
 describe('core asset burn commands', () => {
     before(async () => {
         const { stdout, stderr, code } = await runCli(
-            ["toolbox", 'sol', "airdrop", "100"]
+            ["toolbox", 'sol', "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"]
         )
         // console.log('Airdrop stdout:', stdout)
         // console.log('Airdrop stderr:', stderr)

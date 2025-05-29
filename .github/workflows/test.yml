@@ -8,16 +8,29 @@ jobs:
   unit-tests:
     strategy:
       matrix:
-        os: ['ubuntu-latest', 'windows-latest']
+        os: ['ubuntu-latest']
         node_version: [lts/-1, lts/*, latest]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Load environment variables
+        run: cat .github/.env >> $GITHUB_ENV
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node_version }}
           cache: pnpm
+      - name: Start validator
+        uses: metaplex-foundation/actions/start-validator@v1
+        with:
+          node: ${{ matrix.node_version }}
+          solana: ${{ env.SOLANA_VERSION }}
+          cache: true
+          artifacts: false
       - run: pnpm install
       - run: pnpm run build
       - run: pnpm run test

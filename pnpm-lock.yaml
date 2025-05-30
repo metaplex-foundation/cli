@@ -15,13 +15,13 @@ dependencies:
     specifier: ^2.1.47
     version: 2.1.47(@types/node@18.19.108)
   '@ledgerhq/hw-app-solana':
-    specifier: ^7.4.1
+    specifier: ^7.2.4
     version: 7.4.1
   '@ledgerhq/hw-transport':
-    specifier: ^6.31.5
+    specifier: ^6.31.4
     version: 6.31.5
   '@ledgerhq/hw-transport-node-hid-singleton':
-    specifier: ^6.31.6
+    specifier: ^6.31.5
     version: 6.31.6
   '@metaplex-foundation/mpl-core':
     specifier: ^1.4.0

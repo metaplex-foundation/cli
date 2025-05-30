@@ -1,10 +1,10 @@
-import { isPublicKey, publicKey } from '@metaplex-foundation/umi'
-import { select, input, confirm } from '@inquirer/prompts'
+import { confirm, input, select } from '@inquirer/prompts'
+import { isPublicKey } from '@metaplex-foundation/umi'
 import fs from 'node:fs'
 import path from 'node:path'
 import { Plugin, PluginData } from '../lib/types/pluginData.js'
-import { PluginFilterType, pluginSelector } from './pluginSelector.js'
 import pluginConfigurator from './pluginInquirer.js'
+import { PluginFilterType, pluginSelector } from './pluginSelector.js'
 
 export type NftType = 'image' | 'video' | 'audio' | 'model'
 
@@ -26,7 +26,7 @@ const VALID_EXTENSIONS: Record<Exclude<NftType, 'image'>, string[]> = {
   model: ['.glb', '.gltf'],
 }
 
-const createAssetPrompt = async (isCollection: boolean = false): Promise<CreateAssetPromptResult> => {
+const createAssetPrompt = async (isCollection = false): Promise<CreateAssetPromptResult> => {
   const result: CreateAssetPromptResult = {
     name: '',
     description: '',
@@ -119,10 +119,18 @@ const createAssetPrompt = async (isCollection: boolean = false): Promise<CreateA
       while (continueAdding) {
         const trait_type = await input({
           message: 'Attribute Trait Type?',
+          validate: (value) => {
+            if (!value.trim()) return 'Trait type cannot be empty'
+            return true
+          }
         })
 
         const value = await input({
           message: 'Attribute Value?',
+          validate: (value) => {
+            if (!value.trim()) return 'Value cannot be empty'
+            return true
+          }
         })
 
         result.attributes.push({ trait_type, value })

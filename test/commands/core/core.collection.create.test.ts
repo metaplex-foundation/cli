@@ -28,7 +28,7 @@ describe('core collection commands', () => {
 
     it('creates a new collection with `name` and `uri` flags and skips plugin selection', async () => {
 
-        const { collectionId } = await createCoreCollection()
+        const { collectionId } = await createCoreCollection({})
 
         expect(collectionId).to.match(/^[a-zA-Z0-9]+$/)
     })

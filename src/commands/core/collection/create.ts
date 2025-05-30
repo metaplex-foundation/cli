@@ -9,7 +9,7 @@ import pluginConfigurator, { mapPluginDataToArray } from '../../../prompts/plugi
 import { PluginFilterType, pluginSelector } from '../../../prompts/pluginSelector.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
-import createAssetPrompt from '../../../prompts/createAssetPrompt.js'
+import createAssetPrompt, { CreateAssetPromptResult } from '../../../prompts/createAssetPrompt.js'
 import uploadFile from '../../../lib/uploader/uploadFile.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
 
@@ -74,7 +74,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       required: false,
       summary: 'Use interactive plugin selection',
     }),
-    pluginsFile: Flags.directory({
+    pluginsFile: Flags.file({
       name: 'pluginsFile',
       required: false,
       exclusive: ['plugins'],
@@ -92,6 +92,9 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       }
     } else if (flags.pluginsFile) {
       try {
+        if (!fs.existsSync(flags.pluginsFile)) {
+          throw new Error(`Plugin file not found: ${flags.pluginsFile}`)
+        }
         return JSON.parse(fs.readFileSync(flags.pluginsFile, 'utf-8')) as PluginData
       } catch (err) {
         this.error(`Failed to read plugin data from file: ${err}`)
@@ -116,6 +119,15 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
     }
 
     jsonFile.image = imageResult.uri
+    
+    // Initialize properties and files if they don't exist
+    if (!jsonFile.properties || typeof jsonFile.properties !== 'object') {
+      jsonFile.properties = {}
+    }
+    if (!Array.isArray(jsonFile.properties.files)) {
+      jsonFile.properties.files = []
+    }
+    
     jsonFile.properties.files[0] = {
       uri: imageResult.uri,
       type: imageResult.mimeType,
@@ -150,7 +162,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       })
   }
 
-  private async createAndUploadMetadata(umi: Umi, wizard: any) {
+  private async createAndUploadMetadata(umi: Umi, wizard: CreateAssetPromptResult) {
     // Upload image file (required)
     const imageSpinner = ora('Uploading image...').start()
     const imageResult = await uploadFile(umi, wizard.image).catch((err) => {
@@ -213,8 +225,6 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       )
 
       const wizardData = await createAssetPrompt(true)
-      const pluginData = await this.getPluginData()
-
       const { collectionName, metadataUri } = await this.createAndUploadMetadata(umi, wizardData)
 
       const spinner = ora('Creating Collection...').start()
@@ -224,7 +234,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
         collection,
         name: collectionName,
         uri: metadataUri,
-        plugins: pluginData ? mapPluginDataToArray(pluginData) : undefined,
+        plugins: wizardData.plugins ? mapPluginDataToArray(wizardData.plugins) : undefined,
       })
         .sendAndConfirm(umi)
         .then((tx) => {
@@ -245,10 +255,10 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
     } else {
       // Create collection from name and uri flags
       if (!flags.name) {
-        throw new Error('Collection name not found')
+        throw new Error('Collection name is required. Use --name flag')
       }
       if (!flags.uri) {
-        throw new Error('Collection metadata URI not found')
+        throw new Error('Collection metadata URI is required. Use --uri flag')
       }
 
       const pluginData = await this.getPluginData()

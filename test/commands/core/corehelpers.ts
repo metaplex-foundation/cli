@@ -76,7 +76,7 @@ const createCoreAsset = async (collectionId?: string): Promise<{ assetId: string
     return { assetId }
 }
 
-const createCoreCollection = async (): Promise<{ collectionId: string }> => {
+const createCoreCollection = async (options: {plugins?: any[], pluginsFile?: string} | null = null): Promise<{ collectionId: string }> => {
     const cliInput = [
         'core',
         'collection',

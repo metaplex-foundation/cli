@@ -3,7 +3,7 @@ import { Flags } from '@oclif/core'
 import fs from 'node:fs'
 import ora from 'ora'
 
-import { generateSigner } from '@metaplex-foundation/umi'
+import { generateSigner, Umi } from '@metaplex-foundation/umi'
 import { base58 } from '@metaplex-foundation/umi/serializers'
 import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
 import createAssetFromArgs from '../../../lib/core/create/createAssetFromArgs.js'
@@ -157,10 +157,8 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     return result
   }
 
-  private async handleWizardMetadata(umi: any, wizard: any, imageUri?: string) {
-    // Create new metadata from wizard answers
-    let animationUri: string | undefined
-
+  // TODO: Fix any typings
+  private async createAndUploadMetadata(umi: Umi, wizard: any) {
     // Upload image file (required)
     const imageSpinner = ora('Uploading image...').start()
     const imageResult = await uploadFile(umi, wizard.image).catch((err) => {
@@ -168,9 +166,10 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       throw err
     })
     imageSpinner.succeed(`Image uploaded to ${imageResult.uri}`)
-    imageUri = imageResult.uri
+    const imageUri = imageResult.uri
 
     // Upload animation file if provided
+    let animationUri: string | undefined
     if (wizard.animation) {
       const animationSpinner = ora('Uploading animation...').start()
       const animationResult = await uploadFile(umi, wizard.animation).catch((err) => {
@@ -243,77 +242,20 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 --------------------------------`
       )
 
-      const wizard = await createAssetPrompt()
-      const pluginData = wizard.plugins
+      const wizardData = await createAssetPrompt()
+      const pluginData = wizardData.plugins
 
-      // Create new metadata from wizard answers
-      let imageUri: string | undefined
-      let animationUri: string | undefined
-
-      // Upload image file (required)
-      const imageSpinner = ora('Uploading image...').start()
-      const imageResult = await uploadFile(umi, wizard.image).catch((err) => {
-        imageSpinner.fail(`Failed to upload image. ${err}`)
-        throw err
-      })
-      imageSpinner.succeed(`Image uploaded to ${imageResult.uri}`)
-      imageUri = imageResult.uri
-
-      // Upload animation file if provided
-      if (wizard.animation) {
-        const animationSpinner = ora('Uploading animation...').start()
-        const animationResult = await uploadFile(umi, wizard.animation).catch((err) => {
-          animationSpinner.fail(`Failed to upload animation. ${err}`)
-          throw err
-        })
-        animationSpinner.succeed(`Animation uploaded to ${animationResult.uri}`)
-        animationUri = animationResult.uri
-      }
-
-      // Create and upload metadata JSON
-      const metadata = {
-        name: wizard.name,
-        description: wizard.description,
-        external_url: wizard.external_url,
-        attributes: wizard.attributes || [],
-        image: imageUri,
-        animation_url: animationUri,
-        properties: {
-          files: [
-            {
-              uri: imageUri,
-              type: 'image/png' // TODO: Get actual mime type
-            },
-            ...(animationUri ? [{
-              uri: animationUri,
-              type: {
-                image: 'image/png',
-                video: 'video/mp4',
-                audio: 'audio/mpeg',
-                model: 'model/gltf-binary'
-              }[wizard.nftType as NftType]
-            }] : [])
-          ],
-          category: wizard.nftType
-        }
-      }
-
-      const jsonSpinner = ora('Uploading metadata...').start()
-      const jsonUri = await uploadJson(umi, metadata).catch((err) => {
-        jsonSpinner.fail(`Failed to upload metadata. ${err}`)
-        throw err
-      })
-      jsonSpinner.succeed(`Metadata uploaded to ${jsonUri}`)
+      const jsonUri = await this.createAndUploadMetadata(umi, wizardData)
 
       const spinner = ora('Creating Asset...').start()
       const assetSigner = generateSigner(umi)
 
       const result = await createAssetFromArgs(umi, {
         assetSigner,
-        name: wizard.name,
+        name: wizardData.name,
         uri: jsonUri,
         plugins: pluginData,
-        collection: wizard.collection,
+        collection: wizardData.collection,
       }).catch((err) => {
         spinner.fail(`Failed to create Asset. ${err}`)
         throw err

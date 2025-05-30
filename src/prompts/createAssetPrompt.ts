@@ -1,3 +1,4 @@
+import { isPublicKey, publicKey } from '@metaplex-foundation/umi'
 import { select, input, confirm } from '@inquirer/prompts'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -7,15 +8,14 @@ import pluginConfigurator from './pluginInquirer.js'
 
 export type NftType = 'image' | 'video' | 'audio' | 'model'
 
-interface AssetWizardInput {
+export interface CreateAssetPromptResult {
   name: string
-  description?: string
+  description: string
   external_url?: string
-  attributes?: Array<{ trait_type: string; value: string }>
   image: string
   animation?: string
   nftType: NftType
-  addAttributes?: boolean
+  attributes?: Array<{ trait_type: string; value: string }>
   collection?: string
   plugins?: PluginData
 }
@@ -26,76 +26,53 @@ const VALID_EXTENSIONS: Record<Exclude<NftType, 'image'>, string[]> = {
   model: ['.glb', '.gltf'],
 }
 
-export default async function createAssetPrompt(): Promise<AssetWizardInput> {
-  const nftType = await select<NftType>({
-    message: 'What type of NFT are you creating?',
-    choices: [
-      { name: 'Image (PNG, JPG, GIF)', value: 'image' },
-      { name: 'Video (MP4, WebM)', value: 'video' },
-      { name: 'Audio (MP3, WAV)', value: 'audio' },
-      { name: '3D Model (GLB, GLTF)', value: 'model' },
-    ],
+const createAssetPrompt = async (isCollection: boolean = false): Promise<CreateAssetPromptResult> => {
+  const result: CreateAssetPromptResult = {
+    name: '',
+    description: '',
+    image: '',
+    nftType: 'image',
+  }
+
+  // Get the name
+  result.name = await input({
+    message: isCollection ? 'Collection Name?' : 'Asset Name?',
+    validate: (value) => {
+      if (!value) return 'Name is required'
+      return true
+    },
   })
 
-  const name = await input({
-    message: 'What is the name of your asset?',
-    validate: (input) => input.length > 0 || 'Name is required',
+  // Get the description
+  result.description = await input({
+    message: isCollection ? 'Collection Description?' : 'Asset Description?',
   })
 
-  const description = await input({
-    message: 'What is the description of your asset? (optional)',
+  // Get the external URL
+  result.external_url = await input({
+    message: isCollection ? 'Collection External URL?' : 'Asset External URL?',
   })
 
-  const external_url = await input({
-    message: 'What is the external URL for your asset? (optional)',
-  })
-
-  const addToCollection = await confirm({
-    message: 'Do you want to add this asset to a collection?',
-    default: false,
-  })
-
-  let collection: string | undefined
-  if (addToCollection) {
-    collection = await input({
-      message: 'Enter the collection ID:',
-      validate: (input) => input.length > 0 || 'Collection ID is required',
+  // Get the NFT type (only for assets, collections are always image type)
+  if (!isCollection) {
+    result.nftType = await select({
+      message: 'Asset Type?',
+      choices: [
+        { name: 'Image (PNG, JPG, GIF)', value: 'image' },
+        { name: 'Video (MP4, WebM)', value: 'video' },
+        { name: 'Audio (MP3, WAV)', value: 'audio' },
+        { name: '3D Model (GLB, GLTF)', value: 'model' },
+      ],
     })
   }
 
-  const addAttributes = await confirm({
-    message: 'Do you want to add attributes to your asset?',
-    default: false,
-  })
-
-  let attributes: Array<{ trait_type: string; value: string }> | undefined
-  if (addAttributes) {
-    const attributesInput = await input({
-      message: 'Enter attributes in format "trait_type:value" (comma-separated for multiple)',
-      validate: (input) => {
-        if (!input) return 'At least one attribute is required when adding attributes'
-        const attrs = input.split(',').map(attr => attr.trim())
-        for (const attr of attrs) {
-          if (!attr.includes(':')) return 'Each attribute must be in format "trait_type:value"'
-        }
-        return true
-      },
-    })
-
-    attributes = attributesInput.split(',').map(attr => {
-      const [trait_type, value] = attr.trim().split(':')
-      return { trait_type, value }
-    })
-  }
-
-  const image = await input({
-    message: nftType === 'image' 
-      ? 'What is the path to your image file?'
-      : 'What is the path to your placeholder image? (This will be used as the preview/thumbnail)',
-    validate: (input) => {
-      if (!input) return 'Image path is required'
-      if (!fs.existsSync(input)) return 'Image file does not exist'
-      const ext = path.extname(input).toLowerCase()
+  // Get the image path
+  result.image = await input({
+    message: isCollection ? 'Collection Image Path?' : (result.nftType === 'image' ? 'Asset Image Path?' : 'Asset Preview Image Path? (This will be used as the preview/thumbnail)'),
+    validate: (value) => {
+      if (!value) return 'Image path is required'
+      if (!fs.existsSync(value)) return 'Image file does not exist'
+      const ext = path.extname(value).toLowerCase()
       if (!['.png', '.jpg', '.jpeg', '.gif'].includes(ext)) {
         return 'Image must be a PNG, JPG, or GIF file'
       }
@@ -103,55 +80,91 @@ export default async function createAssetPrompt(): Promise<AssetWizardInput> {
     },
   })
 
-  let animation: string | undefined
-  if (nftType !== 'image') {
+  // Get the animation path if applicable (only for non-image assets)
+  if (!isCollection && result.nftType !== 'image') {
     const message = (() => {
-      switch (nftType) {
-        case 'video': return 'What is the path to your video file?'
-        case 'audio': return 'What is the path to your audio file?'
-        case 'model': return 'What is the path to your 3D Model file?'
-        default: return 'What is the path to your animation file?'
+      switch (result.nftType) {
+        case 'video': return 'Asset Video Path?'
+        case 'audio': return 'Asset Audio Path?'
+        case 'model': return 'Asset 3D Model Path?'
+        default: return 'Asset Animation Path?'
       }
     })()
 
-    animation = await input({
+    result.animation = await input({
       message,
-      validate: (input) => {
-        if (!input) return true // Optional
-        if (!fs.existsSync(input)) return 'Animation file does not exist'
-        const ext = path.extname(input).toLowerCase()
-        const validExts = VALID_EXTENSIONS[nftType]
+      validate: (value) => {
+        if (!value) return 'Animation path is required for non-image types'
+        if (!fs.existsSync(value)) return 'Animation file does not exist'
+        const ext = path.extname(value).toLowerCase()
+        const validExts = VALID_EXTENSIONS[result.nftType as Exclude<NftType, 'image'>]
         if (!validExts.includes(ext)) {
-          return `Animation must be a ${validExts.join(', ')} file for the selected NFT type.`
+          return `Animation must be a ${validExts.join(', ')} file for the selected type`
         }
         return true
       },
     })
   }
 
-  const addPlugins = await confirm({
-    message: 'Do you want to add plugins to your asset?',
-    default: false,
-  })
+  // Get attributes
+  if (!isCollection) {
+    const hasAttributes = await confirm({
+      message: 'Does this asset have attributes?',
+    })
 
-  let plugins: PluginData | undefined
-  if (addPlugins) {
-    const selectedPlugins = await pluginSelector({ filter: PluginFilterType.Asset })
-    if (selectedPlugins) {
-      plugins = await pluginConfigurator(selectedPlugins as Plugin[])
+    if (hasAttributes) {
+      result.attributes = []
+      let continueAdding = true
+
+      while (continueAdding) {
+        const trait_type = await input({
+          message: 'Attribute Trait Type?',
+        })
+
+        const value = await input({
+          message: 'Attribute Value?',
+        })
+
+        result.attributes.push({ trait_type, value })
+
+        continueAdding = await confirm({
+          message: 'Add another attribute?',
+        })
+      }
     }
   }
 
-  return {
-    nftType,
-    name,
-    description: description || undefined,
-    external_url: external_url || undefined,
-    attributes,
-    image,
-    animation,
-    addAttributes,
-    collection,
-    plugins,
+  // Get collection ID if not creating a collection
+  if (!isCollection) {
+    const hasCollection = await confirm({
+      message: 'Does this asset belong to a collection?',
+    })
+
+    if (hasCollection) {
+      result.collection = await input({
+        message: 'Collection ID?',
+        validate: (value) => {
+          if (!value) return 'Collection ID is required'
+          if (!isPublicKey(value)) return 'Invalid collection ID'
+          return true
+        },
+      })
+    }
   }
-} 
+
+  // Get plugins
+  const wantsPlugins = await confirm({
+    message: isCollection ? 'Do you want to add plugins to this collection?' : 'Do you want to add plugins to this asset?',
+  })
+
+  if (wantsPlugins) {
+    const selectedPlugins = await pluginSelector({ filter: isCollection ? PluginFilterType.Collection : PluginFilterType.Asset })
+    if (selectedPlugins) {
+      result.plugins = await pluginConfigurator(selectedPlugins as Plugin[])
+    }
+  }
+
+  return result
+}
+
+export default createAssetPrompt 

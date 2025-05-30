@@ -15,22 +15,6 @@ import { PluginFilterType, pluginSelector } from '../../../prompts/pluginSelecto
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import createAssetPrompt, { NftType } from '../../../prompts/createAssetPrompt.js'
 
-/* 
-  Create Possibilities:
-
-  1. Create a single Asset by providing the name and URI of the metadata.
-
-  2. Create a single Asset by providing an image file to upload and a JSON file to upload and assign to the Asset.
-
-  TODO - For single Asset creation, allow for the user to mint multiple copies of the same Asset via a flag(s).
-*/
-
-/* 
-  Fixes:
-
-  TODO - For some reason when including --image and --json flags without --files flag, I get a huge json message rather than a pretty error message.
-*/
-
 export default class AssetCreate extends TransactionCommand<typeof AssetCreate> {
   static override description = `Create an MPL Core Asset using 3 different methods:
 

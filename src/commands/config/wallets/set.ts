@@ -22,7 +22,11 @@ export default class ConfigWalletSetCommand extends Command {
       return
     }
 
-    const selectedWallet = await walletSelectorPrompt(config.wallets)
+    const selectedWallet = await walletSelectorPrompt(config.wallets.map(wallet => ({
+      name: wallet.name,
+      path: wallet.path,
+      publicKey: wallet.address
+    })))
 
     config.keypair = selectedWallet.path
 
@@ -30,6 +34,6 @@ export default class ConfigWalletSetCommand extends Command {
     ensureDirectoryExists(dir)
     writeJsonSync(path, config)
 
-    this.log(`Active wallet set to  ${selectedWallet.name + ' ' + shortenAddress(selectedWallet.address)}`)
+    this.log(`Active wallet set to  ${selectedWallet.name + ' ' + shortenAddress(selectedWallet.publicKey)}`)
   }
 }

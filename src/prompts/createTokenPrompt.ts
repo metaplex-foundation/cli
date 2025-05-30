@@ -1,74 +1,90 @@
-import inquirer from 'inquirer'
-import path from 'node:path';
-import fs from 'node:fs';
+import { input, confirm } from '@inquirer/prompts'
+import fs from 'node:fs'
+import path from 'node:path'
 
-const createTokenPrompt = async () => {
-    const createTokenAnswers = await inquirer
-        .prompt([
-            /* Pass your questions in here */
-            {
-                name: 'name',
-                type: 'input',
-                message: 'What is the name of the token?',
-                required: true,
-            },
-            {
-                name: 'description',
-                type: 'input',
-                message: 'What is the description of the token?',
-                required: true,
-            },
-            {
-                name: 'symbol',
-                type: 'input',
-                message: 'Symbol of the token?',
-                required: true,
-            },
-            {
-                name: 'decimals',
-                type: 'number',
-                message: 'How many decimals does the token have?',
-                required: true,
-            },
-            {
-                name: 'image',
-                type: 'input',
-                message: 'Path to the image of the token?',
-                required: true,
-                validate: (value) => {
-
-                    const currentDir = process.cwd()
-
-                    const imagePath = path.resolve(currentDir, value)
-
-                    if (fs.existsSync(imagePath)) {
-                        return true
-                    }
-
-                    return 'File does not exist'
-                },
-            },
-            {
-                name: 'mint',
-                type: 'number',
-                message: 'How many tokens to mint in basis points?',
-                required: true,
-            }
-        ])
-        .then((answers) => {
-            return answers
-        })
-        .catch((error) => {
-            if (error.isTtyError) {
-                // Prompt couldn't be rendered in the current environment
-                console.log("Prompt couldn't be rendered in the current environment")
-            } else {
-                // Something else went wrong
-                console.log(error)
-            }
-        })
-
-    return createTokenAnswers
+interface TokenWizardInput {
+  name: string
+  symbol: string
+  decimals: number
+  image?: string
+  description: string
+  external_url?: string
+  mintAmount: number
 }
 
-export default createTokenPrompt
+export default async function createTokenPrompt(): Promise<TokenWizardInput> {
+  const name = await input({
+    message: 'What is the name of your token?',
+    validate: (input) => input.length > 0 || 'Name is required',
+  })
+
+  const symbol = await input({
+    message: 'What is the symbol of your token?',
+    validate: (input) => {
+      if (!input) return 'Symbol is required'
+      if (input.length > 10) return 'Symbol must be 10 characters or less'
+      return true
+    },
+  })
+
+  const decimalsStr = await input({
+    message: 'How many decimals should your token have?',
+    validate: (input) => {
+      const num = parseInt(input)
+      if (isNaN(num)) return 'Please enter a valid number'
+      if (num < 0 || num > 9) return 'Decimals must be between 0 and 9'
+      return true
+    },
+  })
+  const decimals = parseInt(decimalsStr)
+
+  const hasImage = await confirm({
+    message: 'Do you want to add an image to your token?',
+    default: false,
+  })
+
+  let image: string | undefined
+  if (hasImage) {
+    image = await input({
+      message: 'What is the path to your image file?',
+      validate: (input) => {
+        if (!input) return 'Image path is required'
+        if (!fs.existsSync(input)) return 'Image file does not exist'
+        const ext = path.extname(input).toLowerCase()
+        if (!['.png', '.jpg', '.jpeg', '.gif'].includes(ext)) {
+          return 'Image must be a PNG, JPG, or GIF file'
+        }
+        return true
+      },
+    })
+  }
+
+  const description = await input({
+    message: 'What is the description of your token?',
+    validate: (input) => input.length > 0 || 'Description is required',
+  })
+
+  const external_url = await input({
+    message: 'What is the external URL for your token? (optional)',
+  })
+
+  const mintAmountStr = await input({
+    message: 'How many tokens do you want to mint?',
+    validate: (input) => {
+      const num = parseInt(input)
+      if (isNaN(num) || num <= 0) return 'Please enter a valid number greater than 0'
+      return true
+    },
+  })
+  const mintAmount = parseInt(mintAmountStr)
+
+  return {
+    name,
+    symbol,
+    decimals,
+    image,
+    description,
+    external_url: external_url || undefined,
+    mintAmount,
+  }
+}

@@ -81,7 +81,13 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                 this.error('Missing required json')
             }
 
-            this.createToken(umi, { name: wizard?.name, symbol: wizard?.symbol, description: wizard?.description, image: jsonUri, mintAmount: wizard?.mint })
+            this.createToken(umi, { 
+              name: wizard?.name, 
+              symbol: wizard?.symbol, 
+              description: wizard?.description, 
+              image: jsonUri, 
+              mintAmount: wizard?.mintAmount 
+            })
 
 
 

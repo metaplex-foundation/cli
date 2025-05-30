@@ -20,14 +20,17 @@ export default class ConfigRpcSetCommand extends Command {
       return
     }
 
-    const selectedRpc = await rpcSelector(config.rpcs)
+    const selectedRpc = await rpcSelector(config.rpcs.map(rpc => ({
+      name: rpc.name,
+      url: rpc.endpoint
+    })))
 
-    config.rpcUrl = selectedRpc.endpoint
+    config.rpcUrl = selectedRpc.url
 
     const dir = dirname(path)
     ensureDirectoryExists(dir)
     writeJsonSync(path, config)
 
-    this.log(`Active RPC set to  ${selectedRpc.name + ' ' + selectedRpc.endpoint}`)
+    this.log(`Active RPC set to  ${selectedRpc.name + ' ' + selectedRpc.url}`)
   }
 }

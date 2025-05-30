@@ -1,35 +1,19 @@
-import inquirer from 'inquirer'
+import { select } from '@inquirer/prompts'
 
-const explorerSelectorPrompt = async (explorers: {displayName: string, name: string}[]): Promise<string> => {
-  const selectedRpc = await inquirer
-    .prompt([
-      /* Pass your questions in here */
-      {
-        type: 'select',
-        name: 'explorerSelect',
-        choices: explorers.map((explorer) => {
-          return {
-            name: explorer.displayName,
-            value: explorer.name,
-          }
-        }),
-        message: `Select an Explorer`,
-      },
-    ])
-    .then((answers) => {
-      return answers.explorerSelect
-    })
-    .catch((error) => {
-      if (error.isTtyError) {
-        // Prompt couldn't be rendered in the current environment
-        console.log("Prompt couldn't be rendered in the current environment")
-      } else {
-        // Something else went wrong
-        console.log(error)
-      }
-    })
-
-  return selectedRpc
+export interface ExplorerEndpoint {
+  displayName: string
+  name: string
+  url: string
 }
 
-export default explorerSelectorPrompt
+export default async function explorerSelectorPrompt(explorers: ExplorerEndpoint[]): Promise<ExplorerEndpoint> {
+  const selectedExplorer = await select<ExplorerEndpoint>({
+    message: 'Select an explorer',
+    choices: explorers.map(explorer => ({
+      name: explorer.displayName,
+      value: explorer
+    }))
+  })
+
+  return selectedExplorer
+}

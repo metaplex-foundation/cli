@@ -244,7 +244,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       )
 
       const wizard = await createAssetPrompt()
-      const pluginData = await this.getPluginData()
+      const pluginData = wizard.plugins
 
       // Create new metadata from wizard answers
       let imageUri: string | undefined

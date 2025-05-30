@@ -1,6 +1,9 @@
 import { select, input, confirm } from '@inquirer/prompts'
 import fs from 'node:fs'
 import path from 'node:path'
+import { Plugin, PluginData } from '../lib/types/pluginData.js'
+import { PluginFilterType, pluginSelector } from './pluginSelector.js'
+import pluginConfigurator from './pluginInquirer.js'
 
 export type NftType = 'image' | 'video' | 'audio' | 'model'
 
@@ -14,6 +17,7 @@ interface AssetWizardInput {
   nftType: NftType
   addAttributes?: boolean
   collection?: string
+  plugins?: PluginData
 }
 
 const VALID_EXTENSIONS: Record<Exclude<NftType, 'image'>, string[]> = {
@@ -125,6 +129,19 @@ export default async function createAssetPrompt(): Promise<AssetWizardInput> {
     })
   }
 
+  const addPlugins = await confirm({
+    message: 'Do you want to add plugins to your asset?',
+    default: false,
+  })
+
+  let plugins: PluginData | undefined
+  if (addPlugins) {
+    const selectedPlugins = await pluginSelector({ filter: PluginFilterType.Asset })
+    if (selectedPlugins) {
+      plugins = await pluginConfigurator(selectedPlugins as Plugin[])
+    }
+  }
+
   return {
     nftType,
     name,
@@ -135,5 +152,6 @@ export default async function createAssetPrompt(): Promise<AssetWizardInput> {
     animation,
     addAttributes,
     collection,
+    plugins,
   }
 } 

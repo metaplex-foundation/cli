@@ -131,7 +131,9 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       uri: imageUri.uri,
       type: imageUri.mimeType,
     }
-    fs.writeFileSync(jsonPath, JSON.stringify(jsonFile, null, 2))
+
+    // TODO: Removing till further conversation on if this is correct behavior
+    // fs.writeFileSync(jsonPath, JSON.stringify(jsonFile, null, 2))
 
     const jsonSpinner = ora('Uploading JSON...').start()
     const jsonUri = await uploadJson(umi, jsonFile).catch((err) => {

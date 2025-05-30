@@ -31,6 +31,6 @@ export default class ConfigRpcSetCommand extends Command {
     ensureDirectoryExists(dir)
     writeJsonSync(path, config)
 
-    this.log(`Active RPC set to  ${selectedRpc.name + ' ' + selectedRpc.url}`)
+    this.log(`Selected RPC: ${selectedRpc.name} (${selectedRpc.url})`)
   }
 }

@@ -34,6 +34,6 @@ export default class ConfigWalletSetCommand extends Command {
     ensureDirectoryExists(dir)
     writeJsonSync(path, config)
 
-    this.log(`Active wallet set to  ${selectedWallet.name + ' ' + shortenAddress(selectedWallet.publicKey)}`)
+    this.log(`Selected wallet: ${selectedWallet.name} (${shortenAddress(selectedWallet.publicKey)})`)
   }
 }

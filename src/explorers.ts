@@ -30,8 +30,6 @@ export type ExplorerType = keyof typeof explorers
 export type ExplorerLinkType = 'account' | 'transaction'
 
 export const generateExplorerUrl = (explorer: "solanaExplorer" | "solscan" | "solanaFm", signatureOrAccount: string, type: ExplorerLinkType): string => {
-    console.log(explorer)
     const explorerObj = explorers[explorer]
-    console.log(explorerObj)
     return explorerObj.baseUrl + explorerObj[type] + signatureOrAccount
 }

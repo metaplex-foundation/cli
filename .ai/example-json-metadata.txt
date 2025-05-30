@@ -1,0 +1,65 @@
+There are 5 types of NFT category
+- image
+- audio
+- video
+- html
+- vr
+
+Image
+When an image NFT is created only the `image` field needs to populated with the image uri.
+The image uri is also placed in the `properties:files` array at index 0. 
+
+Audio, Video, HTML, VR
+When another `category` type is selected then an image uri is still required in the `image` field. This is used as a placeholder for the NFT.
+The selected category type is then uploaded and placed in the `animation_url` field.
+The animation_uri is also placed in the `properties:files` array at index 1.
+
+The `category` should then be set to the selected lower case value.
+
+The supported file types should be
+
+image - .jpg, .jpeg, .png, .gif
+audio - .mp3, .wav
+video - .mp4, .m4v
+html - .html
+vr - .glb
+
+
+
+Example JSON metadata layout.
+
+{
+  "name": "SolanaArtProject #1",
+  "description": "Generative art on Solana.",
+  "image": "https://arweave.net/26YdhY_eAzv26YdhY1uu9uiA3nmDZYwP8MwZAultcE?ext=jpeg",
+  "animation_url": "https://arweave.net/ZAultcE_eAzv26YdhY1uu9uiA3nmDZYwP8MwuiA3nm?ext=glb",
+  "external_url": "https://example.com",
+  "attributes": [
+    {
+      "trait_type": "trait1",
+      "value": "value1"
+    },
+    {
+      "trait_type": "trait2",
+      "value": "value2"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://www.arweave.net/abcd5678?ext=png",
+        "type": "image/png"
+      },
+      {
+        "uri": "https://watch.videodelivery.net/9876jkl",
+        "type": "unknown",
+        "cdn": true
+      },
+      {
+        "uri": "https://www.arweave.net/efgh1234?ext=mp4",
+        "type": "video/mp4"
+      }
+    ],
+    "category": "video"
+  }
+}

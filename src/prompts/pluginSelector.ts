@@ -1,4 +1,4 @@
-import inquirer from 'inquirer'
+import { checkbox } from '@inquirer/prompts'
 import { Plugin } from '../lib/types/pluginData.js'
 
 export enum PluginFilterType {
@@ -9,7 +9,14 @@ export enum PluginFilterType {
   Authority,
 }
 
-const pluginList = [
+interface PluginOption {
+  name: string
+  value: Plugin
+  type: PluginFilterType
+  managed?: PluginFilterType
+}
+
+const pluginList: PluginOption[] = [
   {
     name: 'Attributes Plugin',
     value: 'attributes',
@@ -51,7 +58,8 @@ const pluginList = [
   },
   {
     name: 'Immutable Metadata Plugin',
-    value: PluginFilterType.Common,
+    value: 'immutableMetadata',
+    type: PluginFilterType.Common,
     managed: PluginFilterType.Authority
   },
   {
@@ -61,17 +69,11 @@ const pluginList = [
     managed: PluginFilterType.Owner
   },
   {
-    name: 'Immutable Metadata Plugin',
-    value: 'immutableMetadata',
-    type: PluginFilterType.Common,
-  },
-  {
     name: 'Verified Creators Plugin',
     value: 'verifiedCreators',
     type: PluginFilterType.Common,
     managed: PluginFilterType.Owner
   },
-
   {
     name: 'Master Edition Plugin',
     value: 'masterEdition',
@@ -86,31 +88,23 @@ const pluginList = [
   },
   {
     name: 'Freeze Delegate Plugin',
-    value: 'freezeDelegate',
+    value: 'freeze',
     type: PluginFilterType.Asset,
     managed: PluginFilterType.Owner
   },
   {
     name: 'Burn Delegate Plugin',
-    value: 'burnDelegate',
+    value: 'burn',
     type: PluginFilterType.Asset,
     managed: PluginFilterType.Owner
   },
   {
     name: 'Transfer Delegate Plugin',
-    value: 'transferDelegate',
+    value: 'transfer',
     type: PluginFilterType.Asset,
     managed: PluginFilterType.Owner
   },
 ]
-
-
-
-// Selecting PluginFilterType.Asset will return all plugins that
-// are related to assets including the common plugins.
-
-// Selecting PluginFilterType.Collection will return all plugins
-// that are related to collections including the common plugins.
 
 interface PluginSelectorOptions {
   filter: PluginFilterType.Asset | PluginFilterType.Collection,
@@ -119,8 +113,7 @@ interface PluginSelectorOptions {
   message?: string,
 }
 
-const pluginSelector = async (options: PluginSelectorOptions): Promise<Plugin | Plugin[]> => {
-
+export const pluginSelector = async (options: PluginSelectorOptions): Promise<Plugin | Plugin[]> => {
   const filteredPlugins = pluginList.filter((plugin) => {
     if (options.managedBy) {
       return plugin.managed === options.managedBy
@@ -128,42 +121,16 @@ const pluginSelector = async (options: PluginSelectorOptions): Promise<Plugin | 
     return plugin.type === options.filter || plugin.type === PluginFilterType.Common
   })
 
-  console.log(filteredPlugins);
+  const selectedPlugin = await checkbox({
+    message: options.message || `Select plugins to add to your ${options.filter === PluginFilterType.Asset ? 'Asset' : 'Collection'}`,
+    loop: false,
+    pageSize: 99,
+    choices: filteredPlugins.map(plugin => ({
+      name: plugin.name,
+      value: plugin.value
+    }))
+    
+  })
 
-
-  const selectedPlugins = await inquirer
-    .prompt([
-      /* Pass your questions in here */
-      {
-        type: options.type ? options.type : 'checkbox',
-        name: 'Plugins',
-        choices: filteredPlugins.map((plugin) => {
-          return {
-            name: plugin.name,
-            value: plugin.value,
-          }
-        }), // Add the plugin name and value here
-        message: options.message
-          ? options.message
-          : `Would you like to add any plugins to the ${options.filter === PluginFilterType.Asset ? 'Asset' : 'Collection'}?`,
-        pageSize: 20,
-      },
-    ])
-    .then((answers) => {
-      return answers.Plugins
-    })
-    .catch((error) => {
-      if (error.isTtyError) {
-        // Prompt couldn't be rendered in the current environment
-        console.log("Prompt couldn't be rendered in the current environment")
-      } else {
-        // Something else went wrong
-        console.log(error)
-      }
-    })
-
-  console.log(selectedPlugins)
-  return selectedPlugins
+  return selectedPlugin
 }
-
-export { pluginSelector }

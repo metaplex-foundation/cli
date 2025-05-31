@@ -11,7 +11,9 @@ const extractNumberPattern = (str: string) => {
     key = key.replaceAll(/^["']|["']$/g, '');
     const numberPattern = /^\d+(\/\d+){0,2}$/;
     if (numberPattern.test(key)) {
-      return key;
+      return `/${key}`;
+    } else {
+      throw new Error(`Invalid ledger path: ${str}`)
     }
   }
 
@@ -21,7 +23,7 @@ const extractNumberPattern = (str: string) => {
 export const createSignerFromLedgerPath = async (path: string): Promise<Signer> => {
   const transport = await TransportNodeHidSingleton.default.create(10_000, 10_000);
 
-  const dPath = `44/501/${extractNumberPattern(path)}`
+  const dPath = `44/501${extractNumberPattern(path)}`
 
   const solana = new Solana.default(transport);
   const pubkeyBuffer = await solana.getAddress(dPath);

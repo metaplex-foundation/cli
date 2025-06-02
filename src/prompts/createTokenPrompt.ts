@@ -60,23 +60,32 @@ export default async function createTokenPrompt(): Promise<TokenWizardInput> {
   const decimalsStr = await input({
     message: 'How many decimals should your token have?',
     validate: (input) => {
-      const num = parseInt(input)
-      if (isNaN(num)) return 'Please enter a valid number'
-      if (num < 0 || num > 9) return 'Decimals must be between 0 and 9'
-      return true
+      if (input) {
+        const num = Number.parseInt(input)
+        if (isNaN(num) || num < 0 || num > 9) {
+          return 'Please enter a number between 0 and 9'
+        }
+        return true
+      }
+      return 'Please enter a number between 0 and 9'
     },
   })
-  const decimals = parseInt(decimalsStr)
+  const decimals = Number.parseInt(decimalsStr)
 
   const mintAmountStr = await input({
     message: `How many tokens do you want to mint? (Enter the exact amount including decimals. Example: For 500 tokens with ${decimals} decimals, enter 500_${'0'.repeat(decimals)})`,
     validate: (input) => {
-      const num = parseInt(input)
-      if (isNaN(num) || num <= 0) return 'Please enter a valid number greater than 0'
-      return true
+      if (input) {
+        const num = Number.parseInt(input)
+        if (isNaN(num) || num <= 0) {
+          return 'Please enter a number greater than 0'
+        }
+        return true
+      }
+      return 'Please enter a number greater than 0'
     },
   })
-  const mintAmount = parseInt(mintAmountStr)
+  const mintAmount = Number.parseInt(mintAmountStr)
 
   return {
     name,

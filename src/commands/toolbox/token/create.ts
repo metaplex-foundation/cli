@@ -142,7 +142,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
         'mint-amount'?: number;
         [key: string]: any;
     }) {
-        const requiredFlags = ['name', 'symbol', 'description', 'mint-amount', 'decimals'];
+        const requiredFlags = ['name', 'symbol', 'description', 'mint-amount'];
         const missingFlags = requiredFlags.filter(flag => !flags[flag]);
         
         if (missingFlags.length > 0) {
@@ -176,7 +176,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
             symbol: validateTokenSymbol(flags.symbol as string),
             description: flags.description as string,
             image: flags.image as string,
-            decimals: flags.decimals,
+            decimals: flags.decimals ?? 0,
             mint: validateMintAmount(flags['mint-amount'] as number)
         };
     }
@@ -232,21 +232,31 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                 symbol: wizard.symbol,
                 description: wizard.description || '',
                 image: jsonUri,
-                decimals: wizard.decimals,
+                decimals: wizard.decimals ?? 0,
                 mintAmount: wizard.mintAmount,
             }, explorer as ExplorerType)
         } else {
-            const validatedFlags = await this.validateFlags(flags)
+            if (!flags.name || !flags.symbol || !flags['mint-amount']) {
+                const missingFlags = [];
+                if (!flags.name) missingFlags.push('--name: Name of the token');
+                if (!flags.symbol) missingFlags.push('--symbol: Token symbol');
+                if (!flags['mint-amount']) missingFlags.push('--mint-amount: Initial amount of tokens to mint');
 
-            let imageUri = ''
-            if (validatedFlags.image) {
-                imageUri = await this.uploadAsset(umi, 'image', validatedFlags.image)
+                throw new Error(
+                    `Missing required information:\n${missingFlags.join('\n')}\n\n` +
+                    'Please provide all required information or use --wizard for interactive mode.'
+                );
             }
 
-            const jsonUri = await this.uploadAsset(umi, 'json', {
-                name: validatedFlags.name,
-                symbol: validatedFlags.symbol,
-                description: validatedFlags.description,
+            let imageUri = ''
+            if (flags.image) {
+                imageUri = await imageUploader(umi, flags.image)
+            }
+
+            const jsonUri = await uploadJson(umi, {
+                name: flags.name,
+                symbol: flags.symbol,
+                description: flags.description || '',
                 image: imageUri,
             })
 
@@ -255,12 +265,12 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
             }
 
             await this.createToken(umi, {
-                name: validatedFlags.name,
-                symbol: validatedFlags.symbol,
-                description: validatedFlags.description,
+                name: flags.name,
+                symbol: flags.symbol,
+                description: flags.description || '',
                 image: jsonUri,
-                decimals: validatedFlags.decimals,
-                mintAmount: validatedFlags.mint,
+                decimals: flags.decimals ?? 0,
+                mintAmount: flags['mint-amount']
             }, explorer as ExplorerType)
         }
     }

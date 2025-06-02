@@ -15,9 +15,6 @@ export function validateTokenSymbol(symbol: string): string {
     if (symbol.length > 6) {
         throw new Error('Token symbol cannot exceed 6 characters');
     }
-    if (!/^[A-Z0-9]+$/.test(symbol)) {
-        throw new Error('Token symbol can only contain uppercase letters and numbers');
-    }
     return symbol;
 }
 

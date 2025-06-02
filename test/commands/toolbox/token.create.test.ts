@@ -62,12 +62,13 @@ describe('toolbox token commands', () => {
 
         // Simulate wizard inputs
         const cliStdin = [
-            'Test Token',      // name
-            'TEST',           // symbol
-            'Test description', // description
-            'n',               // skip image
-            '2',              // decimals
-            '1000000'         // mint amount
+            'Test Token', // name
+            'TEST', // symbol
+            'Test token description', // description
+            '', // external_url (optional)
+            'n', // hasImage (no)
+            '2', // decimals
+            '1000', // mintAmount
         ]
 
         const { stdout, stderr, code } = await runCli(cliInput, cliStdin)

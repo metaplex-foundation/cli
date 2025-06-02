@@ -17,20 +17,23 @@ import fetchCoreAsset from '../../../lib/core/fetch/fetch.js'
 */
 
 export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
-  static description = 'Fetch an asset by mint address'
+  static description = 'Fetch an asset by mint address. Use --download to save files to disk. Without specific flags, downloads all files (asset data, metadata, and image).'
 
   static examples = [
     '<%= config.bin %> <%= command.id %> <assetId>',
+    '<%= config.bin %> <%= command.id %> <assetId> --download',
     '<%= config.bin %> <%= command.id %> <assetId> --download --output ./assets',
-    '<%= config.bin %> <%= command.id %> <assetId> --download --image-only',
-    '<%= config.bin %> <%= command.id %> <assetId> --download --metadata-only',
+    '<%= config.bin %> <%= command.id %> <assetId> --download --image',
+    '<%= config.bin %> <%= command.id %> <assetId> --download --metadata',
+    '<%= config.bin %> <%= command.id %> <assetId> --download --asset',
+    '<%= config.bin %> <%= command.id %> <assetId> --download --image --metadata',
   ]
 
   static flags = {
     // Not implemented yet
     // assetList: Flags.file({ name: 'assetList', description: 'A file containing a list of asset IDs to fetch' }),
     download: Flags.boolean({
-      description: 'Download asset files to disk',
+      description: 'Download asset files to disk. Without specific flags, downloads all files.',
       required: false,
     }),
     output: Flags.string({
@@ -39,13 +42,13 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
       dependsOn: ['download'],
     }),
     image: Flags.boolean({
-      description: 'Only download the image file (requires --download)',
+      description: 'Download the image file (requires --download)',
       required: false,
       exclusive: ['metadata-only'],
       dependsOn: ['download'],
     }),
     metadata: Flags.boolean({
-      description: 'Only download the metadata file (requires --download)',
+      description: 'Download the metadata file (requires --download)',
       required: false,
       exclusive: ['image-only'],
       dependsOn: ['download'],

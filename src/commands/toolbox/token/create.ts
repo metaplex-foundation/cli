@@ -51,9 +51,15 @@ const SUCCESS_MESSAGE = (
     details: { name: string; symbol: string; decimals: number; mintAmount: number },
     options: { explorer: ExplorerType; executionTime?: number }
 ) => {
-    const formattedAmount = details.decimals > 0 
-        ? `${Math.floor(details.mintAmount / Math.pow(10, details.decimals))}.${details.mintAmount % Math.pow(10, details.decimals)}`
-        : details.mintAmount.toString();
+    // Split the amount into integer and fractional parts
+    const divisor = Math.pow(10, details.decimals);
+    const integerPart = Math.floor(details.mintAmount / divisor);
+    const fractionalPart = details.mintAmount % divisor;
+    
+    // Format the amount with proper decimal places
+    const formattedAmount = details.decimals > 0
+        ? `${integerPart}.${fractionalPart.toString().padStart(details.decimals, '0')}`
+        : integerPart.toString();
 
     const timingInfo = options.executionTime 
         ? `\nExecution Time: ${(options.executionTime / 1000).toFixed(4)} seconds`
@@ -204,6 +210,45 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
         }
     }
 
+    private async createTokenWithMetadata(
+        umi: Umi,
+        input: {
+            name: string;
+            symbol: string;
+            description: string;
+            image?: string;
+            decimals: number;
+            mintAmount: number;
+        },
+        explorer: ExplorerType,
+        executionTime?: number
+    ) {
+        let imageUri = '';
+        if (input.image) {
+            imageUri = await this.uploadAsset(umi, 'image', input.image);
+        }
+
+        const jsonUri = await this.uploadAsset(umi, 'json', {
+            name: input.name,
+            symbol: input.symbol,
+            description: input.description,
+            image: imageUri,
+        });
+
+        if (!jsonUri) {
+            this.error('Failed to upload token metadata');
+        }
+
+        await this.createToken(umi, {
+            name: input.name,
+            symbol: input.symbol,
+            description: input.description,
+            image: jsonUri,
+            decimals: input.decimals,
+            mintAmount: input.mintAmount,
+        }, explorer, executionTime);
+    }
+
     public async run() {
         const startTime = Date.now();
         const { flags } = await this.parse(ToolboxTokenCreate)
@@ -218,56 +263,24 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                     throw new Error('Missing required fields in wizard response')
                 }
 
-                let imageUri = ''
-                if (wizard?.image) {
-                    imageUri = await this.uploadAsset(umi, 'image', wizard.image)
-                }
-
-                const jsonUri = await this.uploadAsset(umi, 'json', {
+                await this.createTokenWithMetadata(umi, {
                     name: wizard.name,
                     symbol: wizard.symbol,
                     description: wizard.description || '',
-                    image: imageUri,
-                })
-
-                if (!jsonUri) {
-                    this.error('Failed to upload token metadata')
-                }
-
-                await this.createToken(umi, {
-                    name: wizard.name,
-                    symbol: wizard.symbol,
-                    description: wizard.description || '',
-                    image: jsonUri,
+                    image: wizard.image,
                     decimals: wizard.decimals ?? 0,
                     mintAmount: wizard.mintAmount,
-                }, explorer as ExplorerType, flags['speed-run'] ? Date.now() - startTime : undefined)
+                }, explorer as ExplorerType, flags['speed-run'] ? Date.now() - startTime : undefined);
             } else {
-                const validatedFlags = await this.validateFlags(flags)
-                let imageUri = ''
-                if (flags.image) {
-                    imageUri = await this.uploadAsset(umi, 'image', flags.image)
-                }
-
-                const jsonUri = await this.uploadAsset(umi, 'json', {
+                const validatedFlags = await this.validateFlags(flags);
+                await this.createTokenWithMetadata(umi, {
                     name: validatedFlags.name,
                     symbol: validatedFlags.symbol,
                     description: validatedFlags.description,
-                    image: imageUri,
-                })
-
-                if (!jsonUri) {
-                    this.error('Failed to upload token metadata')
-                }
-
-                await this.createToken(umi, {
-                    name: validatedFlags.name,
-                    symbol: validatedFlags.symbol,
-                    description: validatedFlags.description,
-                    image: jsonUri,
+                    image: flags.image,
                     decimals: validatedFlags.decimals,
-                    mintAmount: validatedFlags.mint
-                }, explorer as ExplorerType, flags['speed-run'] ? Date.now() - startTime : undefined)
+                    mintAmount: validatedFlags.mint,
+                }, explorer as ExplorerType, flags['speed-run'] ? Date.now() - startTime : undefined);
             }
         } catch (error) {
             if (flags['speed-run']) {

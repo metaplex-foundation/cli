@@ -221,7 +221,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
             mintAmount: number;
         },
         explorer: ExplorerType,
-        executionTime?: number
+        startTime: number
     ) {
         let imageUri = '';
         if (input.image) {
@@ -246,7 +246,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
             image: jsonUri,
             decimals: input.decimals,
             mintAmount: input.mintAmount,
-        }, explorer, executionTime);
+        }, explorer, startTime);
     }
 
     public async run() {
@@ -270,7 +270,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                     image: wizard.image,
                     decimals: wizard.decimals ?? 0,
                     mintAmount: wizard.mintAmount,
-                }, explorer as ExplorerType, flags['speed-run'] ? Date.now() - startTime : undefined);
+                }, explorer as ExplorerType, startTime);
             } else {
                 const validatedFlags = await this.validateFlags(flags);
                 await this.createTokenWithMetadata(umi, {
@@ -280,7 +280,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                     image: flags.image,
                     decimals: validatedFlags.decimals,
                     mintAmount: validatedFlags.mint,
-                }, explorer as ExplorerType, flags['speed-run'] ? Date.now() - startTime : undefined);
+                }, explorer as ExplorerType, startTime);
             }
         } catch (error) {
             if (flags['speed-run']) {
@@ -291,7 +291,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
         }
     }
 
-    private async createToken(umi: Umi, input: TokenInput, explorer: ExplorerType, executionTime?: number) {
+    private async createToken(umi: Umi, input: TokenInput, explorer: ExplorerType, startTime: number) {
         const mint = generateSigner(umi)
         const createFunigbleIx = createFungible(umi, {
             mint,
@@ -319,6 +319,8 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
             if (!result.transaction.signature) {
                 throw new Error('Transaction signature is missing')
             }
+
+            const executionTime = Date.now() - startTime;
 
             this.logSuccess(SUCCESS_MESSAGE(
                 mint.publicKey.toString(),

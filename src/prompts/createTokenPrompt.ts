@@ -27,16 +27,14 @@ export default async function createTokenPrompt(): Promise<TokenWizardInput> {
     },
   })
 
-  const decimalsStr = await input({
-    message: 'How many decimals should your token have?',
-    validate: (input) => {
-      const num = parseInt(input)
-      if (isNaN(num)) return 'Please enter a valid number'
-      if (num < 0 || num > 9) return 'Decimals must be between 0 and 9'
-      return true
-    },
+  const description = await input({
+    message: 'What is the description of your token?',
+    validate: (input) => input.length > 0 || 'Description is required',
   })
-  const decimals = parseInt(decimalsStr)
+
+  const external_url = await input({
+    message: 'What is the external URL for your token? (optional)',
+  })
 
   const hasImage = await confirm({
     message: 'Do you want to add an image to your token?',
@@ -59,17 +57,19 @@ export default async function createTokenPrompt(): Promise<TokenWizardInput> {
     })
   }
 
-  const description = await input({
-    message: 'What is the description of your token?',
-    validate: (input) => input.length > 0 || 'Description is required',
+  const decimalsStr = await input({
+    message: 'How many decimals should your token have?',
+    validate: (input) => {
+      const num = parseInt(input)
+      if (isNaN(num)) return 'Please enter a valid number'
+      if (num < 0 || num > 9) return 'Decimals must be between 0 and 9'
+      return true
+    },
   })
-
-  const external_url = await input({
-    message: 'What is the external URL for your token? (optional)',
-  })
+  const decimals = parseInt(decimalsStr)
 
   const mintAmountStr = await input({
-    message: 'How many tokens do you want to mint?',
+    message: `How many tokens do you want to mint? (Enter the exact amount including decimals. Example: For 500 tokens with ${decimals} decimals, enter 500_${'0'.repeat(decimals)})`,
     validate: (input) => {
       const num = parseInt(input)
       if (isNaN(num) || num <= 0) return 'Please enter a valid number greater than 0'

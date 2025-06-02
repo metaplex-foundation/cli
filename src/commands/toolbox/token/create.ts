@@ -10,6 +10,8 @@ import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import imageUploader from '../../../lib/uploader/imageUploader.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
 import createTokenPrompt from '../../../prompts/createTokenPrompt.js'
+import { validateTokenName, validateTokenSymbol, validateMintAmount } from '../../../lib/validations.js'
+import { ExplorerLinkType, ExplorerType, generateExplorerUrl } from '../../../explorers.js'
 
 
 /* 
@@ -21,115 +23,250 @@ import createTokenPrompt from '../../../prompts/createTokenPrompt.js'
 
 */
 
+interface TokenInput {
+    name: string;
+    symbol: string;
+    description: string;
+    image: string;
+    decimals?: number;
+    mintAmount: number;
+}
+
+interface WizardResponse {
+    name?: string;
+    symbol?: string;
+    description?: string;
+    image?: string;
+    decimals?: number;
+    mintAmount?: number;
+}
+
+const WELCOME_MESSAGE = `--------------------------------
+Welcome to the Token Creator Wizard!
+
+This wizard will guide you through the process of creating a new token.                
+--------------------------------`;
+
+const SUCCESS_MESSAGE = (
+    mint: string,
+    signature: Uint8Array,
+    details: { name: string; symbol: string; decimals: number; mintAmount: number },
+    options: { explorer: ExplorerType }
+) => {
+    const formattedAmount = details.decimals > 0 
+        ? `${Math.floor(details.mintAmount / Math.pow(10, details.decimals))}.${details.mintAmount % Math.pow(10, details.decimals)}`
+        : details.mintAmount.toString();
+
+    return `--------------------------------
+Token created successfully!
+
+Token Details:
+Name: ${details.name}
+Symbol: ${details.symbol}
+Decimals: ${details.decimals}
+Initial Supply: ${formattedAmount}
+
+Mint Address: ${mint}
+Explorer: ${generateExplorerUrl(options.explorer, mint, 'account')}
+
+Transaction Signature: ${base58.deserialize(signature)[0]}
+Explorer: ${generateExplorerUrl(options.explorer, base58.deserialize(signature)[0], 'transaction')}
+--------------------------------`;
+}
+
 export default class ToolboxTokenCreate extends TransactionCommand<typeof ToolboxTokenCreate> {
-    static override description = 'Create a fungible token either through an interactive wizard or by providing specific parameters'
+    static override description = `Create a fungible token using 2 different methods:
+
+  1. Simple Creation: Create a token by providing the name, symbol, and mint amount.
+     Example: mplx toolbox token create --name "My Token" --symbol "TOKEN" --mint-amount 1000000
+
+  2. Interactive Wizard: Create a token using the interactive wizard which guides you through the process.
+     Example: mplx toolbox token create --wizard
+
+  Additional Options:
+  - Use --decimals to specify the number of decimal places (0-9, default: 0)
+  - Use --description to add a description to your token
+  - Use --image to add an image to your token metadata
+  `
 
     static override examples = [
-        '<%= config.bin %> <%= command.id %>  toolbox token create --wizard',
-        '<%= config.bin %> <%= command.id %> toolbox token create --name "My Token" --symbol "TOKEN" --decimals 2 --image ./image.png --mint-amount 1000000000',
+        '<%= config.bin %> <%= command.id %> --wizard',
+        '<%= config.bin %> <%= command.id %> --name "My Token" --symbol "TOKEN" --description "My awesome token" --image ./image.png --decimals 2 --mint-amount 1000000',
     ]
 
+    static override usage = 'toolbox token create [FLAGS]'
+
     static override flags = {
-        wizard: Flags.boolean({ description: 'Wizard mode', required: false }),
-        name: Flags.string({ description: 'Name of the token', required: false, exclusive: ['wizard'] }),
-        symbol: Flags.string({ description: 'Symbol of the token', required: false, exclusive: ['wizard'] }),
-        decimals: Flags.integer({ description: 'Number of decimals the token has', required: false, exclusive: ['wizard'] }),
-        description: Flags.string({ description: 'Description of the token', required: false, exclusive: ['wizard'] }),
-        image: Flags.file({ description: 'Image of the token', required: false, exclusive: ['wizard'] }),
-        mint: Flags.integer({ name: 'mint-amount', description: 'Amount of tokens to mint', required: false, exclusive: ['wizard'] }),
+        wizard: Flags.boolean({
+            description: 'Interactive mode that guides you through token creation step by step',
+            required: false,
+        }),
+        name: Flags.string({
+            description: 'Name of the token (e.g., "My Awesome Token")',
+            required: false,
+            exclusive: ['wizard'],
+        }),
+        symbol: Flags.string({
+            description: 'Token symbol (2-6 characters, e.g., "MAT")',
+            required: false,
+            exclusive: ['wizard'],
+        }),
+        decimals: Flags.integer({
+            description: 'Number of decimal places (0-9, default: 0). Example: 2 decimals means 100 tokens = 100_00',
+            required: false,
+            exclusive: ['wizard'],
+        }),
+        description: Flags.string({
+            description: 'Description of the token and its purpose',
+            required: false,
+            exclusive: ['wizard'],
+        }),
+        image: Flags.file({
+            description: 'Path to the token image file (PNG, JPG, or GIF)',
+            required: false,
+            exclusive: ['wizard'],
+        }),
+        'mint-amount': Flags.integer({
+            description: 'Initial amount of tokens to mint (must be greater than 0). Example: With 2 decimals, 1000 = 1000_00 tokens',
+            required: false,
+            exclusive: ['wizard'],
+        }),
     }
 
+    private async validateFlags(flags: {
+        name?: string;
+        symbol?: string;
+        description?: string;
+        image?: string;
+        decimals?: number;
+        'mint-amount'?: number;
+        [key: string]: any;
+    }) {
+        const requiredFlags = ['name', 'symbol', 'description', 'mint-amount', 'decimals'];
+        const missingFlags = requiredFlags.filter(flag => !flags[flag]);
+        
+        if (missingFlags.length > 0) {
+            const flagDescriptions = missingFlags.map(flag => {
+                switch (flag) {
+                    case 'name':
+                        return '--name: Name of the token (e.g., "My Awesome Token")';
+                    case 'symbol':
+                        return '--symbol: Token symbol (2-6 characters, e.g., "MAT")';
+                    case 'description':
+                        return '--description: Description of the token and its purpose';
+                    case 'image':
+                        return '--image: Path to the token image file (PNG, JPG, or GIF)';
+                    case 'mint-amount':
+                        return '--mint-amount: Initial amount of tokens to mint (must be greater than 0). Example: With 2 decimals, 1000 = 1000_00 tokens';
+                    case 'decimals':
+                        return '--decimals: Number of decimal places (0-9, default: 0). Example: 2 decimals means 100 tokens = 100_00';
+                    default:
+                        return `--${flag}: Required field`;
+                }
+            });
+            
+            throw new Error(
+                `Missing required information:\n${flagDescriptions.join('\n')}\n\n` +
+                'Please provide all required information or use --wizard for interactive mode.'
+            );
+        }
 
-    public async run() {
-        const { args, flags } = await this.parse(ToolboxTokenCreate)
+        return {
+            name: validateTokenName(flags.name as string),
+            symbol: validateTokenSymbol(flags.symbol as string),
+            description: flags.description as string,
+            image: flags.image as string,
+            decimals: flags.decimals,
+            mint: validateMintAmount(flags['mint-amount'] as number)
+        };
+    }
 
-        const { umi } = this.context
-
-
-        if (flags.wizard) {
-            this.logSuccess(
-                `--------------------------------
-    
-    Welcome to the Token Creator Wizard!
-
-    This wizard will guide you through the process of creating a new token.                
-                
---------------------------------`
-            )
-
-
-            const wizard = await createTokenPrompt()
-
-            let imageUri
-            let jsonUri
-
-            if (wizard?.image) {
-                imageUri = await imageUploader(umi, wizard.image)
+    private async uploadAsset(umi: Umi, type: 'image' | 'json', asset: any) {
+        const spinner = ora(`Uploading ${type}...`).start();
+        try {
+            const uri = type === 'image' 
+                ? await imageUploader(umi, asset)
+                : await uploadJson(umi, asset);
+            
+            spinner.succeed(`${type} uploaded successfully`);
+            return uri;
+        } catch (error) {
+            spinner.fail(`Failed to upload ${type}`);
+            if (error instanceof Error) {
+                throw new Error(`Failed to upload ${type}: ${error.message}`);
             }
-
-            // upload json
-
-            jsonUri = await umi.uploader.uploadJson({
-                name: wizard?.name,
-                symbol: wizard?.symbol,
-                description: wizard?.description,
-                image: imageUri,
-            })
-
-
-            if (!jsonUri) {
-                this.error('Missing required json')
-            }
-
-            this.createToken(umi, { 
-              name: wizard?.name, 
-              symbol: wizard?.symbol, 
-              description: wizard?.description, 
-              image: jsonUri, 
-              mintAmount: wizard?.mintAmount 
-            })
-
-
-
-        } else {
-            // Type assertion after validation
-            if (!flags.name || !flags.symbol || !flags.description || !flags.image || !flags.mint) {
-                const missingFlags = [];
-                if (!flags.name) missingFlags.push('name');
-                if (!flags.symbol) missingFlags.push('symbol');
-                if (!flags.description) missingFlags.push('description');
-                if (!flags.image) missingFlags.push('image');
-                if (!flags.mint) missingFlags.push('mint-amount');
-
-                throw new Error(`Missing required flags: ${missingFlags.join(', ')}`);
-            }
-
-            const imageUri = await imageUploader(umi, flags.image)
-
-            const jsonUri = await uploadJson(umi, {
-                name: flags.name,
-                symbol: flags.symbol,
-                description: flags.description,
-                image: imageUri,
-            })
-
-            if (!jsonUri) {
-                this.error('Missing required json')
-            }
-
-            await this.createToken(umi, {
-                name: flags.name,
-                symbol: flags.symbol,
-                description: flags.description,
-                image: jsonUri,
-                mintAmount: flags.mint
-            })
+            throw new Error(`Failed to upload ${type}: Unknown error occurred`);
         }
     }
 
-    private async createToken(umi: Umi, input: { name: string, symbol: string, description: string, image: string, decimals?: number, mintAmount: number }) {
-        const mint = generateSigner(umi)
+    public async run() {
+        const { flags } = await this.parse(ToolboxTokenCreate)
+        const { umi, explorer } = this.context
 
+        if (flags.wizard) {
+            this.logSuccess(WELCOME_MESSAGE)
+            const wizard = await createTokenPrompt() as WizardResponse
+
+            if (!wizard?.name || !wizard?.symbol || !wizard?.mintAmount) {
+                throw new Error('Missing required fields in wizard response')
+            }
+
+            let imageUri = ''
+            if (wizard?.image) {
+                imageUri = await this.uploadAsset(umi, 'image', wizard.image)
+            }
+
+            const jsonUri = await this.uploadAsset(umi, 'json', {
+                name: wizard.name,
+                symbol: wizard.symbol,
+                description: wizard.description || '',
+                image: imageUri,
+            })
+
+            if (!jsonUri) {
+                this.error('Failed to upload token metadata')
+            }
+
+            await this.createToken(umi, {
+                name: wizard.name,
+                symbol: wizard.symbol,
+                description: wizard.description || '',
+                image: jsonUri,
+                decimals: wizard.decimals,
+                mintAmount: wizard.mintAmount,
+            }, explorer as ExplorerType)
+        } else {
+            const validatedFlags = await this.validateFlags(flags)
+
+            let imageUri = ''
+            if (validatedFlags.image) {
+                imageUri = await this.uploadAsset(umi, 'image', validatedFlags.image)
+            }
+
+            const jsonUri = await this.uploadAsset(umi, 'json', {
+                name: validatedFlags.name,
+                symbol: validatedFlags.symbol,
+                description: validatedFlags.description,
+                image: imageUri,
+            })
+
+            if (!jsonUri) {
+                this.error('Failed to upload token metadata')
+            }
+
+            await this.createToken(umi, {
+                name: validatedFlags.name,
+                symbol: validatedFlags.symbol,
+                description: validatedFlags.description,
+                image: jsonUri,
+                decimals: validatedFlags.decimals,
+                mintAmount: validatedFlags.mint,
+            }, explorer as ExplorerType)
+        }
+    }
+
+    private async createToken(umi: Umi, input: TokenInput, explorer: ExplorerType) {
+        const mint = generateSigner(umi)
         const createFunigbleIx = createFungible(umi, {
             mint,
             name: input.name,
@@ -148,23 +285,34 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                 amount: input.mintAmount,
             }))
 
-        const createSpinner = ora('Creating token...').start()
+        const createSpinner = ora('Creating token on the blockchain...').start()
         try {
             const result = await umiSendAndConfirmTransaction(umi, createFunigbleIx)
             createSpinner.succeed('Token created successfully')
 
-            this.logSuccess(
-                `--------------------------------
-    Token created successfully
-    Mint: ${mint.publicKey}
-    Signature: ${base58.deserialize(result.transaction.signature as Uint8Array)[0]}
---------------------------------`
-            )
+            if (!result.transaction.signature) {
+                throw new Error('Transaction signature is missing')
+            }
+
+            this.logSuccess(SUCCESS_MESSAGE(
+                mint.publicKey.toString(),
+                result.transaction.signature as Uint8Array,
+                {
+                    name: input.name,
+                    symbol: input.symbol,
+                    decimals: input.decimals || 0,
+                    mintAmount: input.mintAmount,
+                },
+                { explorer }
+            ))
 
             return result
         } catch (error: unknown) {
             createSpinner.fail('Token creation failed')
-            throw error instanceof Error ? error : new Error('Unknown error occurred')
+            if (error instanceof Error) {
+                throw new Error(`Token creation failed: ${error.message}`)
+            }
+            throw new Error('An unknown error occurred during token creation')
         }
     }
 }

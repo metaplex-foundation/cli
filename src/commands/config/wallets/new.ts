@@ -7,18 +7,6 @@ import { getDefaultConfigPath, readConfig } from '../../../lib/Context.js'
 import { ensureDirectoryExists, writeJsonSync } from '../../../lib/file.js'
 import { shortenAddress } from '../../../lib/util.js'
 
-/* 
-  Fetch Possibilities:
-
-  1. Fetch a single Asset by providing the Asset ID and display the metadata.
-
-  TODO
-  2. Fetch a single Asset by providing the Asset ID and download the metadata and image to disk.
-
-  TODO
-  3. Fetch multiple Assets by providing multiple Asset IDs from a .txt/.csv/json file and save metadata and image to disk (original or DAS format).
-*/
-
 export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNew> {
     static description = 'Create a new wallet and optionally add it to the config file'
 

@@ -1,116 +1,158 @@
 import { AssetV1, fetchAsset } from '@metaplex-foundation/mpl-core'
 import { publicKey, Umi } from '@metaplex-foundation/umi'
+import { fileTypeFromBuffer } from 'file-type'
 import mime from 'mime-types'
-import { basename } from 'node:path'
 import fs from 'node:fs'
-import { JsonMetadata } from '@metaplex-foundation/mpl-token-metadata'
-import { jsonStringify } from '../../util.js'
-import ora from 'ora'
+import { join } from 'node:path'
 import util from 'node:util'
+import ora from 'ora'
+import { jsonStringify } from '../../util.js'
 
-interface FetchCoreAssetOptions {
+interface FetchCoreAssetDownloadOptions {
   outputPath?: string
+  download?: boolean
   image?: boolean
   metadata?: boolean
+  asset?: boolean
 }
 
-const fetchCoreAsset = async (umi: Umi, asset: string, options: FetchCoreAssetOptions) => {
+interface DownloadedImage {
+  fileName: string
+  ext: string
+  data: ArrayBuffer
+}
 
-  // Fetch the Asset
-  const fetchedAsset = await fetchAsset(umi, publicKey(asset))
+const fetchJson = async (url: string): Promise<any> => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch JSON from ${url}: ${response.statusText}`);
+  }
+  return response.json();
+};
 
-  if (options.outputPath) {
+const fetchImage = async (url: string): Promise<DownloadedImage> => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch image from ${url}: ${response.statusText}`);
+  }
 
-    const fetchSpinner = ora('Downloading Asset...').start()
-    // TODO: decide on what to download as team.
-    // 1. Download asset.json file?
-    // 2. Download asset image?
-    // 3. Download metadata.json?
-    // Fix grouped files into a single <assetId> folder.
+  const data = await response.arrayBuffer();
+  const buffer = Buffer.from(data);
 
-    let downloadAll = true
+  // Try to detect file type from bytes first
+  const fileType = await fileTypeFromBuffer(buffer);
+  let ext = fileType?.ext;
 
-    if (options.image || options.metadata) {
-      downloadAll = false
+  // If no extension from bytes, try content-type
+  if (!ext) {
+    const contentType = response.headers.get('content-type');
+    const mimeExt = contentType ? mime.extension(contentType) : undefined;
+    ext = typeof mimeExt === 'string' ? mimeExt : undefined;
+  }
+
+  // If still no extension, try URL
+  if (!ext) {
+    const urlExt = mime.extension(mime.lookup(url) || '');
+    ext = typeof urlExt === 'string' ? urlExt : undefined;
+  }
+
+  // If still no extension, use a safe default
+  if (!ext) {
+    // Check if URL ends with a common image extension
+    const urlLower = url.toLowerCase();
+    const commonExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+    const foundExt = commonExts.find(ext => urlLower.endsWith(ext));
+    if (foundExt) {
+      ext = foundExt.slice(1); // Remove the leading dot
+    } else {
+      // Default to .bin for unknown types
+      ext = 'bin';
+    }
+  }
+
+  return {
+    fileName: `image.${ext}`,
+    ext,
+    data,
+  };
+};
+
+const fetchCoreAsset = async (umi: Umi, asset: string, options: FetchCoreAssetDownloadOptions) => {
+  try {
+    // Fetch the Asset
+    const fetchedAsset = await fetchAsset(umi, publicKey(asset));
+    
+    // If not in download mode, just display the asset info
+    if (!options.download) {
+      console.log(util.inspect(fetchedAsset, false, null, true));
+      return;
     }
 
-    const directory = options.outputPath || process.cwd()
+    const fetchSpinner = ora('Downloading Asset data...').start();
+    
+    try {
+      // Use current directory if no output path specified
+      const baseDirectory = options.outputPath || process.cwd();
 
-    // download JSON metadata
-    const uri = fetchedAsset.uri
+      // Determine what to download based on options
+      const shouldDownloadImage = options.image;
+      const shouldDownloadMetadata = options.metadata;
+      const shouldDownloadAsset = options.asset;
 
-    const jsonFile: JsonMetadata = await fetch(uri)
-      .then(async (res) => {
-        return await res.json()
-      })
-      .catch((err) => {
-        throw new Error(`Failed to fetch offchain metadata. ${err}`)
-      })
+      // If no specific download options are selected, download everything
+      const downloadAll = !shouldDownloadImage && !shouldDownloadMetadata && !shouldDownloadAsset;
 
-
-    // create directory for asset
-
-    const assetDirectory = directory + `${asset}`
-
-    const dirExists = fs.existsSync(assetDirectory)
-
-    if (!dirExists) {
-      fs.mkdirSync(assetDirectory, { recursive: true })
-    }
-
-    if (options.image || downloadAll) {
-
-      let image
-
-      if (jsonFile.image) {
-        image = await fetch(jsonFile.image)
-          .then(async (res) => {
-            const contentType = res.headers.get('content-type')
-
-            const ext = contentType && mime.extension(contentType)
-
-            // TODO: Fix `jsonFile.image!`
-            const fileName = basename(jsonFile.image!) + (ext && `.${ext}`)
-
-            const data = await res.arrayBuffer()
-
-            return {
-              fileName,
-              ext,
-              data,
-            }
-          })
-          .catch((err) => {
-            throw new Error(`Failed to fetch offchain metadata. ${err}`)
-          })
+      // Save asset data if requested or if downloading all
+      if (shouldDownloadAsset || downloadAll) {
+        fs.writeFileSync(
+          join(baseDirectory, `${asset}-asset.json`),
+          jsonStringify(fetchedAsset, 2)
+        );
       }
 
-      // write image file to disk
-      image && fs.writeFileSync(assetDirectory + `/image.${image.ext}`, new Uint8Array(image.data))
+      // Always fetch metadata if we need the image or metadata
+      if (shouldDownloadImage || shouldDownloadMetadata || downloadAll) {
+        const jsonFile = await fetchJson(fetchedAsset.uri);
+        
+        // Save metadata if requested or if downloading all
+        if (shouldDownloadMetadata || downloadAll) {
+          fs.writeFileSync(
+            join(baseDirectory, `${asset}-metadata.json`),
+            jsonStringify(jsonFile, 2)
+          );
+        }
 
+        // Download image if requested or if downloading all
+        if ((shouldDownloadImage || downloadAll) && jsonFile.image) {
+          const image = await fetchImage(jsonFile.image);
+          fs.writeFileSync(
+            join(baseDirectory, `${asset}-image.${image.ext}`),
+            new Uint8Array(image.data)
+          );
+        } else if ((shouldDownloadImage || downloadAll) && !jsonFile.image) {
+          throw new Error('Image URL not found in metadata');
+        }
+      }
+
+      fetchSpinner.succeed('Asset downloaded successfully');
+
+      // Display results
+      console.log(`--------------------------------`);
+      console.log(`Asset: ${asset}`);
+      console.log(`Files saved to: ${baseDirectory}`);
+      console.log(`--------------------------------`);
+
+      return baseDirectory;
+    } catch (error) {
+      fetchSpinner.fail('Failed to download asset');
+      throw error;
     }
-
-    if (options.metadata || downloadAll) {
-      // write metadata file to disk
-      jsonFile && fs.writeFileSync(assetDirectory + '/metadata.json', jsonStringify(jsonFile, 2))
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch asset: ${error.message}`);
     }
-
-    if (downloadAll) {
-      fs.writeFileSync(assetDirectory + '/asset.json', jsonStringify(fetchedAsset, 2))
-    }
-
-    fetchSpinner.succeed(`Asset Downloaded`)
-
-    console.log(`--------------------------------\n`)
-    console.log(`Asset ${asset}\n`)
-    console.log(util.inspect(fetchedAsset, false, null, true /* enable colors */))
-    console.log(`Location: ${assetDirectory}`)
-    console.log(`---------------------------------`)
-
-    return assetDirectory
-  } else {
-    console.log(util.inspect(fetchedAsset, false, null, true /* enable colors */))
+    throw new Error('Failed to fetch asset: Unknown error occurred');
   }
-}
+};
 
-export default fetchCoreAsset
+export default fetchCoreAsset;

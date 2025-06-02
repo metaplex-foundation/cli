@@ -63,7 +63,7 @@ export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNe
 
         // Generate new wallet
         const wallet = generateSigner(umi)
-        const walletJson = JSON.stringify(Array.from(wallet.secretKey))
+        const walletData = Array.from(wallet.secretKey)
 
         // Create filename with sanitized name if provided
         const fileName = flags.name 
@@ -72,7 +72,7 @@ export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNe
 
         // Save wallet file
         const filePath = join(savePath, fileName)
-        fs.writeFileSync(filePath, walletJson)
+        writeJsonSync(filePath, walletData)
         console.log(`Wallet saved to: ${filePath}`)
 
         // Add to config if name provided

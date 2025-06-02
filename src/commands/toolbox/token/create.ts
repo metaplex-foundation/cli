@@ -6,12 +6,12 @@ import { generateSigner, percentAmount, Umi } from '@metaplex-foundation/umi'
 import { base58 } from '@metaplex-foundation/umi/serializers'
 import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
+import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import imageUploader from '../../../lib/uploader/imageUploader.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
+import { validateMintAmount, validateTokenName, validateTokenSymbol } from '../../../lib/validations.js'
 import createTokenPrompt from '../../../prompts/createTokenPrompt.js'
-import { validateTokenName, validateTokenSymbol, validateMintAmount } from '../../../lib/validations.js'
-import { ExplorerLinkType, ExplorerType, generateExplorerUrl } from '../../../explorers.js'
 
 
 /* 
@@ -51,11 +51,15 @@ const SUCCESS_MESSAGE = (
     mint: string,
     signature: Uint8Array,
     details: { name: string; symbol: string; decimals: number; mintAmount: number },
-    options: { explorer: ExplorerType }
+    options: { explorer: ExplorerType; executionTime?: number }
 ) => {
     const formattedAmount = details.decimals > 0 
         ? `${Math.floor(details.mintAmount / Math.pow(10, details.decimals))}.${details.mintAmount % Math.pow(10, details.decimals)}`
         : details.mintAmount.toString();
+
+    const timingInfo = options.executionTime 
+        ? `\nExecution Time: ${(options.executionTime / 1000).toFixed(4)} seconds`
+        : '';
 
     return `--------------------------------
 Token created successfully!
@@ -70,7 +74,7 @@ Mint Address: ${mint}
 Explorer: ${generateExplorerUrl(options.explorer, mint, 'account')}
 
 Transaction Signature: ${base58.deserialize(signature)[0]}
-Explorer: ${generateExplorerUrl(options.explorer, base58.deserialize(signature)[0], 'transaction')}
+Explorer: ${generateExplorerUrl(options.explorer, base58.deserialize(signature)[0], 'transaction')}${timingInfo}
 --------------------------------`;
 }
 
@@ -87,6 +91,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
   - Use --decimals to specify the number of decimal places (0-9, default: 0)
   - Use --description to add a description to your token
   - Use --image to add an image to your token metadata
+  - Use --speed-run to measure execution time
   `
 
     static override examples = [
@@ -99,6 +104,10 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
     static override flags = {
         wizard: Flags.boolean({
             description: 'Interactive mode that guides you through token creation step by step',
+            required: false,
+        }),
+        'speed-run': Flags.boolean({
+            description: 'Enable speed run mode to measure execution time',
             required: false,
         }),
         name: Flags.string({
@@ -200,82 +209,91 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
     }
 
     public async run() {
+        const startTime = Date.now();
         const { flags } = await this.parse(ToolboxTokenCreate)
         const { umi, explorer } = this.context
 
-        if (flags.wizard) {
-            this.logSuccess(WELCOME_MESSAGE)
-            const wizard = await createTokenPrompt() as WizardResponse
+        try {
+            if (flags.wizard) {
+                this.logSuccess(WELCOME_MESSAGE)
+                const wizard = await createTokenPrompt() as WizardResponse
 
-            if (!wizard?.name || !wizard?.symbol || !wizard?.mintAmount) {
-                throw new Error('Missing required fields in wizard response')
+                if (!wizard?.name || !wizard?.symbol || !wizard?.mintAmount) {
+                    throw new Error('Missing required fields in wizard response')
+                }
+
+                let imageUri = ''
+                if (wizard?.image) {
+                    imageUri = await this.uploadAsset(umi, 'image', wizard.image)
+                }
+
+                const jsonUri = await this.uploadAsset(umi, 'json', {
+                    name: wizard.name,
+                    symbol: wizard.symbol,
+                    description: wizard.description || '',
+                    image: imageUri,
+                })
+
+                if (!jsonUri) {
+                    this.error('Failed to upload token metadata')
+                }
+
+                await this.createToken(umi, {
+                    name: wizard.name,
+                    symbol: wizard.symbol,
+                    description: wizard.description || '',
+                    image: jsonUri,
+                    decimals: wizard.decimals ?? 0,
+                    mintAmount: wizard.mintAmount,
+                }, explorer as ExplorerType, flags['speed-run'] ? Date.now() - startTime : undefined)
+            } else {
+                if (!flags.name || !flags.symbol || !flags['mint-amount']) {
+                    const missingFlags = [];
+                    if (!flags.name) missingFlags.push('--name: Name of the token');
+                    if (!flags.symbol) missingFlags.push('--symbol: Token symbol');
+                    if (!flags['mint-amount']) missingFlags.push('--mint-amount: Initial amount of tokens to mint');
+
+                    throw new Error(
+                        `Missing required information:\n${missingFlags.join('\n')}\n\n` +
+                        'Please provide all required information or use --wizard for interactive mode.'
+                    );
+                }
+
+                let imageUri = ''
+                if (flags.image) {
+                    imageUri = await imageUploader(umi, flags.image)
+                }
+
+                const jsonUri = await uploadJson(umi, {
+                    name: flags.name,
+                    symbol: flags.symbol,
+                    description: flags.description || '',
+                    image: imageUri,
+                })
+
+                if (!jsonUri) {
+                    this.error('Failed to upload token metadata')
+                }
+
+                await this.createToken(umi, {
+                    name: flags.name,
+                    symbol: flags.symbol,
+                    description: flags.description || '',
+                    image: jsonUri,
+                    decimals: flags.decimals ?? 0,
+                    mintAmount: flags['mint-amount']
+                }, explorer as ExplorerType, flags['speed-run'] ? Date.now() - startTime : undefined)
             }
-
-            let imageUri = ''
-            if (wizard?.image) {
-                imageUri = await this.uploadAsset(umi, 'image', wizard.image)
+        } catch (error) {
+            if (flags['speed-run']) {
+                const executionTime = Date.now() - startTime;
+                this.error(`Command failed after ${(executionTime / 1000).toFixed(4)} seconds: ${error instanceof Error ? error.message : 'Unknown error'}`);
             }
-
-            const jsonUri = await this.uploadAsset(umi, 'json', {
-                name: wizard.name,
-                symbol: wizard.symbol,
-                description: wizard.description || '',
-                image: imageUri,
-            })
-
-            if (!jsonUri) {
-                this.error('Failed to upload token metadata')
-            }
-
-            await this.createToken(umi, {
-                name: wizard.name,
-                symbol: wizard.symbol,
-                description: wizard.description || '',
-                image: jsonUri,
-                decimals: wizard.decimals ?? 0,
-                mintAmount: wizard.mintAmount,
-            }, explorer as ExplorerType)
-        } else {
-            if (!flags.name || !flags.symbol || !flags['mint-amount']) {
-                const missingFlags = [];
-                if (!flags.name) missingFlags.push('--name: Name of the token');
-                if (!flags.symbol) missingFlags.push('--symbol: Token symbol');
-                if (!flags['mint-amount']) missingFlags.push('--mint-amount: Initial amount of tokens to mint');
-
-                throw new Error(
-                    `Missing required information:\n${missingFlags.join('\n')}\n\n` +
-                    'Please provide all required information or use --wizard for interactive mode.'
-                );
-            }
-
-            let imageUri = ''
-            if (flags.image) {
-                imageUri = await imageUploader(umi, flags.image)
-            }
-
-            const jsonUri = await uploadJson(umi, {
-                name: flags.name,
-                symbol: flags.symbol,
-                description: flags.description || '',
-                image: imageUri,
-            })
-
-            if (!jsonUri) {
-                this.error('Failed to upload token metadata')
-            }
-
-            await this.createToken(umi, {
-                name: flags.name,
-                symbol: flags.symbol,
-                description: flags.description || '',
-                image: jsonUri,
-                decimals: flags.decimals ?? 0,
-                mintAmount: flags['mint-amount']
-            }, explorer as ExplorerType)
+            throw error;
         }
     }
 
-    private async createToken(umi: Umi, input: TokenInput, explorer: ExplorerType) {
+    private async createToken(umi: Umi, input: TokenInput, explorer: ExplorerType, executionTime?: number) {
         const mint = generateSigner(umi)
         const createFunigbleIx = createFungible(umi, {
             mint,
@@ -313,7 +331,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                     decimals: input.decimals || 0,
                     mintAmount: input.mintAmount,
                 },
-                { explorer }
+                { explorer, executionTime }
             ))
 
             return result

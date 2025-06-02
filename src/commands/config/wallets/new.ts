@@ -40,7 +40,7 @@ export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNe
         }),
         name: Flags.string({ 
             name: 'name', 
-            description: 'Name for wallet. If provided, the wallet will be added to the config file',
+            description: 'Name for wallet (max 6 characters, alphanumeric, hyphens and underscores only). If provided, the wallet will be added to the config file',
             required: false,
         }),
     }
@@ -50,6 +50,19 @@ export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNe
     public async run() {
         const { flags } = await this.parse(ConfigWalletsNew)
         const { umi } = this.context
+
+        // Validate name if provided
+        if (flags.name) {
+            if (flags.name.length > 6) {
+                this.error('Name must be 6 characters or less')
+            }
+
+            // Validate name contains only safe characters for all platforms
+            // TODO: Move validation to validations file that is in other PR
+            if (!/^[a-zA-Z0-9-_]+$/.test(flags.name)) {
+                this.error('Name must contain only alphanumeric characters, hyphens and underscores')
+            }
+        }
 
         // Determine save path
         const savePath = flags.hidden 
@@ -66,7 +79,7 @@ export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNe
 
         // Create filename with sanitized name if provided
         const fileName = flags.name 
-            ? `${flags.name.replace(/[^a-z0-9-]/gi, '-')}-${wallet.publicKey}.json`
+            ? `${flags.name}-${wallet.publicKey}.json`
             : `${wallet.publicKey}.json`
 
         // Save wallet file

@@ -10,7 +10,7 @@ export default class ConfigWalletAddsCommand extends Command {
 
   static override args = {
     name: Args.string({
-      description: 'Name of wallet (max 6 characters and no spaces)',
+      description: 'Name of wallet (max 6 characters, alphanumeric, hyphens and underscores only)',
       required: true,
     }),
     path: Args.string({ description: 'Path to keypair json file', required: true }),
@@ -26,17 +26,17 @@ export default class ConfigWalletAddsCommand extends Command {
     const { flags, args } = await this.parse(ConfigWalletAddsCommand)
 
     // Validate name
-
     if (args.name.length > 6) {
       this.error('Name must be 6 characters or less')
     }
 
-    if (args.name.includes(' ')) {
-      this.error('Name must not contain spaces')
+    // Validate name contains only safe characters for all platforms
+    // TODO: Move validation to validations file that is in other PR
+    if (!/^[a-zA-Z0-9-_]+$/.test(args.name)) {
+      this.error('Name must contain only alphanumeric characters, hyphens and underscores')
     }
 
     // Validate path
-
     if (!args.path.endsWith('.json')) {
       this.error('Path must be a json file')
     }

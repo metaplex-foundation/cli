@@ -1,5 +1,4 @@
 import { Flags } from '@oclif/core'
-
 import { createFungible } from '@metaplex-foundation/mpl-token-metadata'
 import { createTokenIfMissing, findAssociatedTokenPda, mintTokensTo } from '@metaplex-foundation/mpl-toolbox'
 import { generateSigner, percentAmount, Umi } from '@metaplex-foundation/umi'
@@ -12,7 +11,6 @@ import imageUploader from '../../../lib/uploader/imageUploader.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
 import { validateMintAmount, validateTokenName, validateTokenSymbol } from '../../../lib/validations.js'
 import createTokenPrompt from '../../../prompts/createTokenPrompt.js'
-
 
 /* 
   Create Possibilities:
@@ -151,7 +149,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
         'mint-amount'?: number;
         [key: string]: any;
     }) {
-        const requiredFlags = ['name', 'symbol', 'description', 'mint-amount'];
+        const requiredFlags = ['name', 'symbol', 'mint-amount'];
         const missingFlags = requiredFlags.filter(flag => !flags[flag]);
         
         if (missingFlags.length > 0) {
@@ -161,14 +159,8 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                         return '--name: Name of the token (e.g., "My Awesome Token")';
                     case 'symbol':
                         return '--symbol: Token symbol (2-6 characters, e.g., "MAT")';
-                    case 'description':
-                        return '--description: Description of the token and its purpose';
-                    case 'image':
-                        return '--image: Path to the token image file (PNG, JPG, or GIF)';
                     case 'mint-amount':
                         return '--mint-amount: Initial amount of tokens to mint (must be greater than 0). Example: With 2 decimals, 1000 = 1000_00 tokens';
-                    case 'decimals':
-                        return '--decimals: Number of decimal places (0-9, default: 0). Example: 2 decimals means 100 tokens = 100_00';
                     default:
                         return `--${flag}: Required field`;
                 }
@@ -180,13 +172,17 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
             );
         }
 
+        // Using non-null assertions (!) here is safe because:
+        // 1. We've already validated that these required fields exist above
+        // 2. If any were missing, we would have thrown an error
+        // 3. TypeScript can't infer this guarantee, so we need to tell it explicitly
         return {
-            name: validateTokenName(flags.name as string),
-            symbol: validateTokenSymbol(flags.symbol as string),
-            description: flags.description as string,
-            image: flags.image as string,
+            name: validateTokenName(flags.name!),
+            symbol: validateTokenSymbol(flags.symbol!),
+            description: flags.description || '',
+            image: flags.image || '',
             decimals: flags.decimals ?? 0,
-            mint: validateMintAmount(flags['mint-amount'] as number)
+            mint: validateMintAmount(flags['mint-amount']!)
         };
     }
 
@@ -247,27 +243,16 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                     mintAmount: wizard.mintAmount,
                 }, explorer as ExplorerType, flags['speed-run'] ? Date.now() - startTime : undefined)
             } else {
-                if (!flags.name || !flags.symbol || !flags['mint-amount']) {
-                    const missingFlags = [];
-                    if (!flags.name) missingFlags.push('--name: Name of the token');
-                    if (!flags.symbol) missingFlags.push('--symbol: Token symbol');
-                    if (!flags['mint-amount']) missingFlags.push('--mint-amount: Initial amount of tokens to mint');
-
-                    throw new Error(
-                        `Missing required information:\n${missingFlags.join('\n')}\n\n` +
-                        'Please provide all required information or use --wizard for interactive mode.'
-                    );
-                }
-
+                const validatedFlags = await this.validateFlags(flags)
                 let imageUri = ''
                 if (flags.image) {
-                    imageUri = await imageUploader(umi, flags.image)
+                    imageUri = await this.uploadAsset(umi, 'image', flags.image)
                 }
 
-                const jsonUri = await uploadJson(umi, {
-                    name: flags.name,
-                    symbol: flags.symbol,
-                    description: flags.description || '',
+                const jsonUri = await this.uploadAsset(umi, 'json', {
+                    name: validatedFlags.name,
+                    symbol: validatedFlags.symbol,
+                    description: validatedFlags.description,
                     image: imageUri,
                 })
 
@@ -276,12 +261,12 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                 }
 
                 await this.createToken(umi, {
-                    name: flags.name,
-                    symbol: flags.symbol,
-                    description: flags.description || '',
+                    name: validatedFlags.name,
+                    symbol: validatedFlags.symbol,
+                    description: validatedFlags.description,
                     image: jsonUri,
-                    decimals: flags.decimals ?? 0,
-                    mintAmount: flags['mint-amount']
+                    decimals: validatedFlags.decimals,
+                    mintAmount: validatedFlags.mint
                 }, explorer as ExplorerType, flags['speed-run'] ? Date.now() - startTime : undefined)
             }
         } catch (error) {

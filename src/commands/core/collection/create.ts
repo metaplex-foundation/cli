@@ -240,7 +240,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
         .then(async (tx) => {
           const txStr = txSignatureToString(tx.signature)
           spinner.succeed('Collection created successfully')
-          const result = await this.formatCollectionResult(collection.publicKey, txStr, explorer as ExplorerType)
+          const result = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
           console.log(result)
         })
         .catch((error) => {
@@ -252,7 +252,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
         this.error('You must provide an image --image and JSON --json file')
       }
 
-      await this.handleFileBasedCreation(umi, flags.image, flags.json, explorer as ExplorerType)
+      await this.handleFileBasedCreation(umi, flags.image, flags.json, explorer)
     } else {
       // Create collection from name and uri flags
       if (!flags.name) {
@@ -276,7 +276,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
         .then(async (tx) => {
           const txStr = txSignatureToString(tx.signature)
           spinner.succeed('Collection created successfully')
-          const result = await this.formatCollectionResult(collection.publicKey, txStr, explorer as ExplorerType)
+          const result = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
           console.log(result)
         })
         .catch((error) => {

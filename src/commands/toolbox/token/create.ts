@@ -272,7 +272,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                     image: wizard.image,
                     decimals: wizard.decimals ?? 0,
                     mintAmount: wizard.mintAmount,
-                }, explorer as ExplorerType, startTime);
+                }, explorer, startTime);
             } else {
                 const validatedFlags = await this.validateFlags(flags);
                 await this.createTokenWithMetadata(umi, {
@@ -282,7 +282,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                     image: flags.image,
                     decimals: validatedFlags.decimals,
                     mintAmount: validatedFlags.mint,
-                }, explorer as ExplorerType, startTime);
+                }, explorer, startTime);
             }
         } catch (error) {
             if (flags['speed-run']) {

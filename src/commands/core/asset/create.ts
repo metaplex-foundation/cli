@@ -144,7 +144,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     })
 
     assetSpinner.succeed('Asset created successfully')
-    this.log(this.formatAssetResult(result, this.context.explorer as ExplorerType))
+    this.log(this.formatAssetResult(result, this.context.explorer))
     return result
   }
 
@@ -254,7 +254,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       })
 
       spinner.succeed('Asset created successfully')
-      this.log(this.formatAssetResult(result, explorer as ExplorerType))
+      this.log(this.formatAssetResult(result, explorer))
       return result
     } else if (flags.files) {
       if (!flags.image || !flags.json) {
@@ -262,7 +262,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       }
 
       const result = await this.handleFileBasedCreation(umi, flags.image, flags.json, flags.collection)
-      this.log(this.formatAssetResult(result, explorer as ExplorerType))
+      this.log(this.formatAssetResult(result, explorer))
       return result
     } else {
       // Create asset from name and uri flags
@@ -289,7 +289,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       })
 
       spinner.succeed('Asset created successfully')
-      this.log(this.formatAssetResult(result, explorer as ExplorerType))
+      this.log(this.formatAssetResult(result, explorer))
       return result
     }
   }

@@ -31,7 +31,7 @@ interface Explorer {
 export type ExplorerType = keyof typeof explorers
 export type ExplorerLinkType = 'account' | 'transaction'
 
-export const generateExplorerUrl = (explorer: "solanaExplorer" | "solscan" | "solanaFm", chain: RpcChain, signatureOrAccount: string, type: ExplorerLinkType): string => {
+export const generateExplorerUrl = (explorer: ExplorerType, chain: RpcChain, signatureOrAccount: string, type: ExplorerLinkType): string => {
     const explorerObj = explorers[explorer]
     return explorerObj.baseUrl + explorerObj[type] + signatureOrAccount + (chain === RpcChain.Mainnet ? '' : explorerObj.devnet)
 }

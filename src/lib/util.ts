@@ -112,17 +112,19 @@ export enum RpcChain {
   Localnet
 }
 
-export const mainnetGenesisHash = '5eykt4UsFv8P8NJdTREpY1vzqKqZKvLmE7zcjTnrnY5'
-export const devnetGenesisHash = 'GH7ome3EiwEr7tu9JuTh2dpYWBJK3z69Xm1ZE3MEE6JC'
+const GENESIS_HASH_MAP = new Map<string, RpcChain>([
+  ['5eykt4UsFv8P8NJdTREpY1vzqKqZKvLmE7zcjTnrnY5', RpcChain.Mainnet], // Solana Mainnet
+  ['GH7ome3EiwEr7tu9JuTh2dpYWBJK3z69Xm1ZE3MEE6JC', RpcChain.Devnet], // Solana Devnet
+])
 
-export const checkRpcChain = async (rpcUrl: string) => {
-  const connection = new Connection(rpcUrl)
-  const genesisHash = await connection.getGenesisHash()
-  if (genesisHash === mainnetGenesisHash) {
-    return RpcChain.Mainnet
-  } else if (genesisHash === devnetGenesisHash) {
-    return RpcChain.Devnet
-  } else {
-    return RpcChain.Localnet
+
+// A valid Solana or SVM RPC URL (including localnet) should be able to get a response from the getGenesisHash method
+export const chain = async (rpcUrl: string): Promise<RpcChain> => {
+  try {
+    const connection = new Connection(rpcUrl)
+    const genesisHash = await connection.getGenesisHash()
+    return GENESIS_HASH_MAP.get(genesisHash) ?? RpcChain.Localnet
+  } catch (error) {
+    throw new Error('Could not determine a genesis hash from RPC URL: ' + rpcUrl + '\nPlease set a different RPC URL in your config file or use the --rpc-url flag')
   }
 }

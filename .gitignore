@@ -1,18 +1,20 @@
+# Log files
 *-debug.log
 *-error.log
+
+# macOS system files
 **/.DS_Store
-/.idea
-/dist
-/tmp
-/node_modules
+
+# IDEs and editors
+.idea/
+
+# Build and temp folders
+dist/
+tmp/
+node_modules/
+tsconfig.build.tsbuildinfo
 oclif.manifest.json
 
-# test folders
-/asset
-/collection
-
+# Lockfiles (choose one depending on your package manager)
 yarn.lock
 package-lock.json
-
-
-tsconfig.build.tsbuildinfo

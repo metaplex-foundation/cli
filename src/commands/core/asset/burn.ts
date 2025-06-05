@@ -11,7 +11,6 @@ import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { UmiTransactionResponce } from '../../../lib/umi/sendTransaction.js'
 
 import fs from 'node:fs'
-import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 
 interface BurnAssetData {

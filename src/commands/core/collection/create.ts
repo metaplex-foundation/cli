@@ -199,12 +199,11 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
     return { collectionName: wizard.name, metadataUri }
   }
 
-  private formatCollectionResult(collection: PublicKey, signature: string, explorer: ExplorerType): string {
-    const explorerUrl = generateExplorerUrl(explorer, signature, 'transaction')
+  private async formatCollectionResult(collection: PublicKey, signature: string, explorer: ExplorerType): Promise<string> {
     return `--------------------------------
   Collection: ${collection}
   Signature: ${signature}
-  Explorer: ${explorerUrl}
+  Explorer: ${await generateExplorerUrl(explorer, this.context.rpcUrl, signature, 'transaction')}
   Core Explorer: https://core.metaplex.com/explorer/${collection}
 --------------------------------`
   }

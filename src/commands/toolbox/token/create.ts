@@ -11,6 +11,7 @@ import imageUploader from '../../../lib/uploader/imageUploader.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
 import { validateMintAmount, validateTokenName, validateTokenSymbol } from '../../../lib/validations.js'
 import createTokenPrompt from '../../../prompts/createTokenPrompt.js'
+import { Context } from '../../../lib/Context.js'
 
 /* 
   Create Possibilities:
@@ -45,7 +46,8 @@ Welcome to the Token Creator Wizard!
 This wizard will guide you through the process of creating a new token.                
 --------------------------------`;
 
-const SUCCESS_MESSAGE = (
+const SUCCESS_MESSAGE = async (
+    rpc: string,
     mint: string,
     signature: Uint8Array,
     details: { name: string; symbol: string; decimals: number; mintAmount: number },
@@ -55,13 +57,13 @@ const SUCCESS_MESSAGE = (
     const divisor = Math.pow(10, details.decimals);
     const integerPart = Math.floor(details.mintAmount / divisor);
     const fractionalPart = details.mintAmount % divisor;
-    
+
     // Format the amount with proper decimal places
     const formattedAmount = details.decimals > 0
         ? `${integerPart}.${fractionalPart.toString().padStart(details.decimals, '0')}`
         : integerPart.toString();
 
-    const timingInfo = options.executionTime 
+    const timingInfo = options.executionTime
         ? `\nExecution Time: ${(options.executionTime / 1000).toFixed(4)} seconds`
         : '';
 
@@ -75,10 +77,10 @@ Decimals: ${details.decimals}
 Initial Supply: ${formattedAmount}
 
 Mint Address: ${mint}
-Explorer: ${generateExplorerUrl(options.explorer, mint, 'account')}
+Explorer: ${await generateExplorerUrl(options.explorer, rpc, mint, 'account')}
 
 Transaction Signature: ${base58.deserialize(signature)[0]}
-Explorer: ${generateExplorerUrl(options.explorer, base58.deserialize(signature)[0], 'transaction')}${timingInfo}
+Explorer: ${await generateExplorerUrl(options.explorer, rpc, base58.deserialize(signature)[0], 'transaction')}${timingInfo}
 --------------------------------`;
 }
 
@@ -157,7 +159,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
     }) {
         const requiredFlags = ['name', 'symbol', 'mint-amount'];
         const missingFlags = requiredFlags.filter(flag => !flags[flag]);
-        
+
         if (missingFlags.length > 0) {
             const flagDescriptions = missingFlags.map(flag => {
                 switch (flag) {
@@ -171,7 +173,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                         return `--${flag}: Required field`;
                 }
             });
-            
+
             throw new Error(
                 `Missing required information:\n${flagDescriptions.join('\n')}\n\n` +
                 'Please provide all required information or use --wizard for interactive mode.'
@@ -195,10 +197,10 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
     private async uploadAsset(umi: Umi, type: 'image' | 'json', asset: any) {
         const spinner = ora(`Uploading ${type}...`).start();
         try {
-            const uri = type === 'image' 
+            const uri = type === 'image'
                 ? await imageUploader(umi, asset)
                 : await uploadJson(umi, asset);
-            
+
             spinner.succeed(`${type} uploaded successfully`);
             return uri;
         } catch (error) {
@@ -322,7 +324,8 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
 
             const executionTime = Date.now() - startTime;
 
-            this.logSuccess(SUCCESS_MESSAGE(
+            this.logSuccess(await SUCCESS_MESSAGE(
+                this.context.rpcUrl,
                 mint.publicKey.toString(),
                 result.transaction.signature as Uint8Array,
                 {

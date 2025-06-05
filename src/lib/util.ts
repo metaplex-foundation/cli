@@ -6,6 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import fs from 'node:fs'
 import mime from 'mime'
+import { Connection } from '@solana/web3.js'
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -95,8 +96,6 @@ export const readFile = (relativeFilePath: string) => {
   }
 }
 
-
-
 export const terminalStyle = {
   bold: '\x1b[1m',
   underline: '\x1b[4m',
@@ -105,4 +104,25 @@ export const terminalStyle = {
 
 export const shortenAddress = (address: string, chars = 4): string => {
   return `${address.slice(0, chars)}...${address.slice(-chars)}`
+}
+
+export enum RpcChain {
+  Mainnet,
+  Devnet,
+  Localnet
+}
+
+export const mainnetGenesisHash = '5eykt4UsFv8P8NJdTREpY1vzqKqZKvLmE7zcjTnrnY5'
+export const devnetGenesisHash = 'GH7ome3EiwEr7tu9JuTh2dpYWBJK3z69Xm1ZE3MEE6JC'
+
+export const checkRpcChain = async (rpcUrl: string) => {
+  const connection = new Connection(rpcUrl)
+  const genesisHash = await connection.getGenesisHash()
+  if (genesisHash === mainnetGenesisHash) {
+    return RpcChain.Mainnet
+  } else if (genesisHash === devnetGenesisHash) {
+    return RpcChain.Devnet
+  } else {
+    return RpcChain.Localnet
+  }
 }

@@ -204,11 +204,11 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     return jsonUri
   }
 
-  private formatAssetResult(result: any, explorer: ExplorerType): string {
+  private async formatAssetResult(result: any, explorer: ExplorerType): Promise<string> {
     return `--------------------------------
   Asset: ${result.asset}
   Signature: ${base58.deserialize(result.signature! as Uint8Array)[0]}
-  Explorer: ${generateExplorerUrl(explorer, base58.deserialize(result.signature! as Uint8Array)[0], 'transaction')}
+  Explorer: ${await generateExplorerUrl(explorer, this.context.rpcUrl, base58.deserialize(result.signature! as Uint8Array)[0], 'transaction')}
   Core Explorer: https://core.metaplex.com/explorer/${result.asset}\n
 --------------------------------`
   }
@@ -248,7 +248,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       })
 
       spinner.succeed('Asset created successfully')
-      this.log(this.formatAssetResult(result, explorer as ExplorerType))
+      this.log(await this.formatAssetResult(result, explorer as ExplorerType))
       return result
     } else if (flags.files) {
       if (!flags.image || !flags.json) {
@@ -256,7 +256,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       }
 
       const result = await this.handleFileBasedCreation(umi, flags.image, flags.json, flags.collection)
-      this.log(this.formatAssetResult(result, explorer as ExplorerType))
+      this.log(await this.formatAssetResult(result, explorer as ExplorerType))
       return result
     } else {
       // Create asset from name and uri flags
@@ -283,7 +283,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       })
 
       spinner.succeed('Asset created successfully')
-      this.log(this.formatAssetResult(result, explorer as ExplorerType))
+      this.log(await this.formatAssetResult(result, explorer as ExplorerType))
       return result
     }
   }

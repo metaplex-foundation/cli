@@ -1,3 +1,5 @@
+import { checkRpcChain, RpcChain } from "./lib/util.js"
+
 export const explorers = {
     solanaExplorer: {
         baseUrl: 'https://explorer.solana.com/',
@@ -29,7 +31,9 @@ interface Explorer {
 export type ExplorerType = keyof typeof explorers
 export type ExplorerLinkType = 'account' | 'transaction'
 
-export const generateExplorerUrl = (explorer: "solanaExplorer" | "solscan" | "solanaFm", signatureOrAccount: string, type: ExplorerLinkType): string => {
+export const generateExplorerUrl = async (explorer: "solanaExplorer" | "solscan" | "solanaFm", rpcUrl: string, signatureOrAccount: string, type: ExplorerLinkType): Promise<string> => {
+
+    const chain = await checkRpcChain(rpcUrl)
     const explorerObj = explorers[explorer]
-    return explorerObj.baseUrl + explorerObj[type] + signatureOrAccount
+    return explorerObj.baseUrl + explorerObj[type] + signatureOrAccount + (chain === RpcChain.Mainnet ? '' : explorerObj.devnet)
 }

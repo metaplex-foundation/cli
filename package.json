@@ -47,6 +47,7 @@
     "ansis": "^3.17.0",
     "chalk": "^5.4.1",
     "cli-progress": "^3.12.0",
+    "file-type": "^21.0.0",
     "mime": "^4.0.7",
     "mime-types": "^2.1.35",
     "node-fetch": "^3.3.2",

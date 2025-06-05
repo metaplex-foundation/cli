@@ -3,9 +3,10 @@ import { getDefaultConfigPath, readConfig } from '../../../lib/Context.js'
 
 import { dirname } from 'path'
 import { ensureDirectoryExists, writeJsonSync } from '../../../lib/file.js'
-import explorerSelectorPrompt from '../../../prompts/explorerSelectorPrompt.js'
+import explorerSelectorPrompt, { ExplorerEndpoint } from '../../../prompts/explorerSelectorPrompt.js'
+import { ExplorerType } from '../../../explorers.js'
 
-const explorers = [
+const explorers: ExplorerEndpoint[] = [
     {
         displayName: 'Solana Explorer',
         name: 'solanaExplorer',
@@ -32,7 +33,7 @@ export default class ConfigExplorerSetCommand extends Command {
         const config = readConfig(path)
 
         const selectedExplorer = await explorerSelectorPrompt(explorers)
-        config.explorer = selectedExplorer.url
+        config.explorer = selectedExplorer.name as ExplorerType
 
         const dir = dirname(path)
         ensureDirectoryExists(dir)

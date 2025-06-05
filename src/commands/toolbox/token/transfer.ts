@@ -23,7 +23,7 @@ export default class ToolboxTokenTransfer extends TransactionCommand<typeof Tool
 
     static override args = {
         mintAddress: Args.string({ description: 'Mint address of the token', required: true }),
-        amount: Args.integer({ description: 'Amount of tokens to transfer in basis points', required: true }),
+        amount: Args.integer({ description: 'Amount of tokens to transfer in basis points (if decimals is 2, then 100 = 1 token)', required: true }),
         destination: Args.string({ description: 'Destination wallet address', required: true }),
     }
 

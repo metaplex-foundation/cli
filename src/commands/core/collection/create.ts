@@ -151,10 +151,11 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       plugins: pluginData ? mapPluginDataToArray(pluginData) : undefined,
     })
       .sendAndConfirm(umi)
-      .then((tx) => {
+      .then(async (tx) => {
         const txStr = txSignatureToString(tx.signature)
         spinner.succeed('Collection created successfully')
-        console.log(this.formatCollectionResult(collection.publicKey, txStr, explorer))
+        const result = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
+        console.log(result)
       })
       .catch((error) => {
         spinner.fail(`Error creating Collection: ${error}`)
@@ -236,10 +237,11 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
         plugins: wizardData.plugins ? mapPluginDataToArray(wizardData.plugins) : undefined,
       })
         .sendAndConfirm(umi)
-        .then((tx) => {
+        .then(async (tx) => {
           const txStr = txSignatureToString(tx.signature)
           spinner.succeed('Collection created successfully')
-          console.log(this.formatCollectionResult(collection.publicKey, txStr, explorer as ExplorerType))
+          const result = await this.formatCollectionResult(collection.publicKey, txStr, explorer as ExplorerType)
+          console.log(result)
         })
         .catch((error) => {
           spinner.fail(`Error creating Collection: ${error}`)
@@ -271,10 +273,11 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
         plugins: pluginData ? mapPluginDataToArray(pluginData) : undefined,
       })
         .sendAndConfirm(umi)
-        .then((tx) => {
+        .then(async (tx) => {
           const txStr = txSignatureToString(tx.signature)
           spinner.succeed('Collection created successfully')
-          console.log(this.formatCollectionResult(collection.publicKey, txStr, explorer as ExplorerType))
+          const result = await this.formatCollectionResult(collection.publicKey, txStr, explorer as ExplorerType)
+          console.log(result)
         })
         .catch((error) => {
           spinner.fail(`Error creating Collection: ${error}`)

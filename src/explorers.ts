@@ -1,4 +1,4 @@
-import { checkRpcChain, RpcChain } from "./lib/util.js"
+import { RpcChain } from "./lib/util.js"
 
 export const explorers = {
     solanaExplorer: {

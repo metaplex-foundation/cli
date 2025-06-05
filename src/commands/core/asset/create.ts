@@ -130,8 +130,10 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
     const pluginData = await this.getPluginData()
     const assetSpinner = ora('Creating Asset...').start()
+    const assetSigner = generateSigner(umi)
 
     const result = await createAssetFromArgs(umi, {
+      assetSigner,
       name: jsonFile.name,
       uri: jsonUri,
       collection,
@@ -142,6 +144,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     })
 
     assetSpinner.succeed('Asset created successfully')
+    this.log(this.formatAssetResult(result, this.context.explorer as ExplorerType))
     return result
   }
 
@@ -154,7 +157,6 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       throw err
     })
     imageSpinner.succeed(`Image uploaded to ${imageResult.uri}`)
-    const imageUri = imageResult.uri
 
     // Upload animation file if provided
     let animationUri: string | undefined
@@ -174,12 +176,12 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       description: wizard.description,
       external_url: wizard.external_url,
       attributes: wizard.attributes || [],
-      image: imageUri,
+      image: imageResult.uri,
       animation_url: animationUri,
       properties: {
         files: [
           {
-            uri: imageUri,
+            uri: imageResult.uri,
             type: 'image/png' // TODO: Get actual mime type
           },
           ...(animationUri ? [{
@@ -207,7 +209,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
   }
 
   // TODO: Fix any typings
-  private async formatAssetResult(result: any, explorer: ExplorerType): Promise<string> {
+  private formatAssetResult(result: any, explorer: ExplorerType): string {
     const signature = txSignatureToString(result.signature as Uint8Array)
     return `--------------------------------
   Asset: ${result.asset}
@@ -252,7 +254,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       })
 
       spinner.succeed('Asset created successfully')
-      this.log(await this.formatAssetResult(result, explorer as ExplorerType))
+      this.log(this.formatAssetResult(result, explorer as ExplorerType))
       return result
     } else if (flags.files) {
       if (!flags.image || !flags.json) {
@@ -260,7 +262,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       }
 
       const result = await this.handleFileBasedCreation(umi, flags.image, flags.json, flags.collection)
-      this.log(await this.formatAssetResult(result, explorer as ExplorerType))
+      this.log(this.formatAssetResult(result, explorer as ExplorerType))
       return result
     } else {
       // Create asset from name and uri flags
@@ -287,7 +289,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       })
 
       spinner.succeed('Asset created successfully')
-      this.log(await this.formatAssetResult(result, explorer as ExplorerType))
+      this.log(this.formatAssetResult(result, explorer as ExplorerType))
       return result
     }
   }

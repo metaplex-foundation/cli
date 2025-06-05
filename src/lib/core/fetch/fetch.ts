@@ -1,4 +1,4 @@
-import { AssetV1, fetchAsset } from '@metaplex-foundation/mpl-core'
+import { fetchAsset } from '@metaplex-foundation/mpl-core'
 import { publicKey, Umi } from '@metaplex-foundation/umi'
 import { fileTypeFromBuffer } from 'file-type'
 import mime from 'mime-types'
@@ -6,6 +6,7 @@ import fs from 'node:fs'
 import { join } from 'node:path'
 import util from 'node:util'
 import ora from 'ora'
+import { ensureDirectoryExists } from '../../file.js'
 import { jsonStringify } from '../../util.js'
 
 interface FetchCoreAssetDownloadOptions {
@@ -93,6 +94,9 @@ const fetchCoreAsset = async (umi: Umi, asset: string, options: FetchCoreAssetDo
     try {
       // Use current directory if no output path specified
       const baseDirectory = options.outputPath || process.cwd();
+      
+      // Ensure the output directory exists
+      ensureDirectoryExists(baseDirectory);
 
       // Determine what to download based on options
       const shouldDownloadImage = options.image;

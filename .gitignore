@@ -15,4 +15,4 @@ yarn.lock
 package-lock.json
 
 
-tsconfig.tsbuildinfo
+tsconfig.build.tsbuildinfo

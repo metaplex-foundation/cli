@@ -44,13 +44,11 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
     image: Flags.boolean({
       description: 'Download the image file (requires --download)',
       required: false,
-      exclusive: ['metadata-only'],
       dependsOn: ['download'],
     }),
     metadata: Flags.boolean({
       description: 'Download the metadata file (requires --download)',
       required: false,
-      exclusive: ['image-only'],
       dependsOn: ['download'],
     }),
     asset: Flags.boolean({

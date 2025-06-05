@@ -19,7 +19,7 @@ import { createSignerFromFile } from './FileSigner.js'
 import { createSignerFromLedgerPath } from './LedgerSigner.js'
 import { readJsonSync } from './file.js'
 import initStorageProvider from './uploader/initStorageProvider.js'
-import { DUMMY_UMI } from './util.js'
+import { DUMMY_UMI, RpcChain, checkRpcChain } from './util.js'
 
 export type ConfigJson = {
   commitment?: Commitment
@@ -49,6 +49,7 @@ export type Context = {
   signer: Signer
   umi: Umi
   explorer: string
+  chain: RpcChain
 }
 
 export const DEFAULT_CONFIG = {
@@ -160,6 +161,7 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
   const storageProvider = await initStorageProvider(config)
   storageProvider && umi.use(storageProvider)
 
+  const chain = await checkRpcChain(config.rpcUrl || DEFAULT_CONFIG.rpcUrl)
 
   return {
     commitment: config.commitment!,
@@ -168,5 +170,6 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
     signer,
     umi,
     explorer: config.explorer || DEFAULT_CONFIG.explorer,
+    chain,
   }
 }

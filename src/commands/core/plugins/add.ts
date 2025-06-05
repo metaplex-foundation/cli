@@ -88,7 +88,7 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
                 `--------------------------------\n
                 Asset: ${asset}\n
                 Signature: ${txSignatureToString(res.transaction.signature as Uint8Array)}\n
-                Explorer: ${await generateExplorerUrl(explorer as ExplorerType, this.context.rpcUrl, txSignatureToString(res.transaction.signature as Uint8Array), 'transaction')}\n
+                Explorer: ${generateExplorerUrl(explorer as ExplorerType, this.context.chain, txSignatureToString(res.transaction.signature as Uint8Array), 'transaction')}\n
                 Core Explorer: https://core.metaplex.com/explorer/${asset}\n
                 --------------------------------`
             )

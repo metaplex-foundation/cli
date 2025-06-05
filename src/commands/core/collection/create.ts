@@ -204,7 +204,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
     return `--------------------------------
   Collection: ${collection}
   Signature: ${signature}
-  Explorer: ${await generateExplorerUrl(explorer, this.context.rpcUrl, signature, 'transaction')}
+  Explorer: ${generateExplorerUrl(explorer, this.context.chain, signature, 'transaction')}
   Core Explorer: https://core.metaplex.com/explorer/${collection}
 --------------------------------`
   }

@@ -11,6 +11,7 @@ import imageUploader from '../../../lib/uploader/imageUploader.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
 import { validateMintAmount, validateTokenName, validateTokenSymbol } from '../../../lib/validations.js'
 import createTokenPrompt from '../../../prompts/createTokenPrompt.js'
+import { RpcChain, txSignatureToString } from '../../../lib/util.js'
 
 /* 
   Create Possibilities:
@@ -46,7 +47,7 @@ This wizard will guide you through the process of creating a new token.
 --------------------------------`;
 
 const SUCCESS_MESSAGE = async (
-    rpc: string,
+    chain: RpcChain,
     mint: string,
     signature: Uint8Array,
     details: { name: string; symbol: string; decimals: number; mintAmount: number },
@@ -76,10 +77,10 @@ Decimals: ${details.decimals}
 Initial Supply: ${formattedAmount}
 
 Mint Address: ${mint}
-Explorer: ${await generateExplorerUrl(options.explorer, rpc, mint, 'account')}
+Explorer: ${generateExplorerUrl(options.explorer, chain, mint, 'account')}
 
-Transaction Signature: ${base58.deserialize(signature)[0]}
-Explorer: ${await generateExplorerUrl(options.explorer, rpc, base58.deserialize(signature)[0], 'transaction')}${timingInfo}
+Transaction Signature: ${txSignatureToString(signature)}
+Explorer: ${generateExplorerUrl(options.explorer, chain, txSignatureToString(signature), 'transaction')}${timingInfo}
 --------------------------------`;
 }
 
@@ -324,7 +325,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
             const executionTime = Date.now() - startTime;
 
             this.logSuccess(await SUCCESS_MESSAGE(
-                this.context.rpcUrl,
+                this.context.chain,
                 mint.publicKey.toString(),
                 result.transaction.signature as Uint8Array,
                 {

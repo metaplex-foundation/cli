@@ -14,6 +14,8 @@ import pluginConfigurator from '../../../prompts/pluginInquirer.js'
 import { PluginFilterType, pluginSelector } from '../../../prompts/pluginSelector.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import createAssetPrompt, { NftType } from '../../../prompts/createAssetPrompt.js'
+import { txSignatureToString } from '../../../lib/util.js'
+
 
 export default class AssetCreate extends TransactionCommand<typeof AssetCreate> {
   static override description = `Create an MPL Core Asset using 3 different methods:
@@ -204,12 +206,14 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     return jsonUri
   }
 
+  // TODO: Fix any typings
   private async formatAssetResult(result: any, explorer: ExplorerType): Promise<string> {
+    const signature = txSignatureToString(result.signature as Uint8Array)
     return `--------------------------------
   Asset: ${result.asset}
-  Signature: ${base58.deserialize(result.signature! as Uint8Array)[0]}
-  Explorer: ${await generateExplorerUrl(explorer, this.context.rpcUrl, base58.deserialize(result.signature! as Uint8Array)[0], 'transaction')}
-  Core Explorer: https://core.metaplex.com/explorer/${result.asset}\n
+  Signature: ${signature}
+  Explorer: ${generateExplorerUrl(explorer, this.context.chain, signature, 'transaction')}
+  Core Explorer: https://core.metaplex.com/explorer/${result.asset}
 --------------------------------`
   }
 

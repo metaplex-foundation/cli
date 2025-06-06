@@ -6,6 +6,7 @@ import os from 'node:os'
 import path from 'node:path'
 import fs from 'node:fs'
 import mime from 'mime'
+import { Connection } from '@solana/web3.js'
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -95,8 +96,6 @@ export const readFile = (relativeFilePath: string) => {
   }
 }
 
-
-
 export const terminalStyle = {
   bold: '\x1b[1m',
   underline: '\x1b[4m',
@@ -105,4 +104,27 @@ export const terminalStyle = {
 
 export const shortenAddress = (address: string, chars = 4): string => {
   return `${address.slice(0, chars)}...${address.slice(-chars)}`
+}
+
+export enum RpcChain {
+  Mainnet,
+  Devnet,
+  Localnet
+}
+
+const GENESIS_HASH_MAP = new Map<string, RpcChain>([
+  ['5eykt4UsFv8P8NJdTREpY1vzqKqZKvLmE7zcjTnrnY5', RpcChain.Mainnet], // Solana Mainnet
+  ['GH7ome3EiwEr7tu9JuTh2dpYWBJK3z69Xm1ZE3MEE6JC', RpcChain.Devnet], // Solana Devnet
+])
+
+
+// A valid Solana or SVM RPC URL (including localnet) should be able to get a response from the getGenesisHash method
+export const chain = async (rpcUrl: string): Promise<RpcChain> => {
+  try {
+    const connection = new Connection(rpcUrl)
+    const genesisHash = await connection.getGenesisHash()
+    return GENESIS_HASH_MAP.get(genesisHash) ?? RpcChain.Localnet
+  } catch (error) {
+    throw new Error('Could not determine a genesis hash from RPC URL: ' + rpcUrl + '\nPlease set a different RPC URL in your config file or use the --rpc-url flag')
+  }
 }

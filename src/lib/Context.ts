@@ -19,7 +19,8 @@ import { createSignerFromFile } from './FileSigner.js'
 import { createSignerFromLedgerPath } from './LedgerSigner.js'
 import { readJsonSync } from './file.js'
 import initStorageProvider from './uploader/initStorageProvider.js'
-import { DUMMY_UMI } from './util.js'
+import { DUMMY_UMI, RpcChain, chain as getChain } from './util.js'
+import { ExplorerType } from '../explorers.js'
 
 export type ConfigJson = {
   commitment?: Commitment
@@ -39,7 +40,7 @@ export type ConfigJson = {
     name: string
     endpoint: string
   }[]
-  explorer?: string
+  explorer?: ExplorerType
 }
 
 export type Context = {
@@ -48,7 +49,8 @@ export type Context = {
   rpcUrl: string
   signer: Signer
   umi: Umi
-  explorer: string
+  explorer: ExplorerType
+  chain: RpcChain
 }
 
 export const DEFAULT_CONFIG = {
@@ -58,7 +60,7 @@ export const DEFAULT_CONFIG = {
     name: 'irys' as const,
     options: {},
   },
-  explorer: 'solanaExplorer',
+  explorer: 'solanaExplorer' as ExplorerType,
 }
 
 export const CONFIG_KEYS: Array<keyof ConfigJson> = [
@@ -147,19 +149,20 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
 
   const payer = config.payer ? await createSignerFromPath(config.payer) : signer
 
-  const umi = createUmi(config.rpcUrl! , {
+  const umi = createUmi(config.rpcUrl!, {
     commitment: config.commitment!,
   })
 
   umi.use(signerIdentity(signer))
-  .use(signerPayer(payer))
-  .use(mplCore())
-  .use(mplTokenMetadata())
-  .use(mplToolbox())
+    .use(signerPayer(payer))
+    .use(mplCore())
+    .use(mplTokenMetadata())
+    .use(mplToolbox())
 
   const storageProvider = await initStorageProvider(config)
   storageProvider && umi.use(storageProvider)
 
+  const chain = await getChain(config.rpcUrl || DEFAULT_CONFIG.rpcUrl)
 
   return {
     commitment: config.commitment!,
@@ -168,5 +171,6 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
     signer,
     umi,
     explorer: config.explorer || DEFAULT_CONFIG.explorer,
+    chain,
   }
 }

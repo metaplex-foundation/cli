@@ -11,8 +11,8 @@ import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { UmiTransactionResponce } from '../../../lib/umi/sendTransaction.js'
 
 import fs from 'node:fs'
-import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
+import { txSignatureToString } from '../../../lib/util.js'
 
 interface BurnAssetData {
   asset: string
@@ -120,7 +120,7 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
           ...cache.items[index].tx,
           transaction: {
             ...response,
-            signature: response.signature ? base58.deserialize(response.signature as Uint8Array)[0] : null
+            signature: response.signature ? txSignatureToString(response.signature as Uint8Array) : null
           }
         }
 
@@ -174,7 +174,7 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
         transactionSpinner.fail('Failed to burn asset')
         this.error(result.transaction.err)
       } else {
-        const signature = base58.deserialize(result.transaction.signature! as Uint8Array)[0]
+        const signature = txSignatureToString(result.transaction.signature! as Uint8Array)
         transactionSpinner.succeed(`Asset burned: ${args.asset}`)
         this.logSuccess(`--------------------------------
   Asset burned: ${args.asset}

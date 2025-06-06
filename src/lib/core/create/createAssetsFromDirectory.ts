@@ -17,6 +17,7 @@ import umiSendAllTransactions from '../../umi/sendAllTransactions.js'
 import { UmiTransactionResponce } from '../../umi/sendTransaction.js'
 import createAssetTx from './createTx.js'
 import { base58 } from '@metaplex-foundation/umi/serializers'
+import { txSignatureToString } from '../../util.js'
 
 interface CreateAssetsFromDirectoryOptions {
   collection?: string
@@ -235,7 +236,7 @@ Creating Assets from Directory: ${directoryPath}
 
       cache.items[index].assetId = assetSigner.publicKey
 
-      return   await createAssetTx(umi, {
+      return await createAssetTx(umi, {
         assetSigner: assetSigner,
         // TODO: Fix !s, and undefineds
         name: assetData.name!,
@@ -245,7 +246,7 @@ Creating Assets from Directory: ${directoryPath}
         plugins: assetData.pluginData,
       })
     }
-    
+
     )
   )
 
@@ -263,7 +264,7 @@ Creating Assets from Directory: ${directoryPath}
       ...cache.items[index].tx,
       transaction: {
         ...response,
-        signature: base58.deserialize(response.signature as Uint8Array)[0]
+        signature: txSignatureToString(response.signature as Uint8Array)
       }
     }
 

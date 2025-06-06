@@ -6,6 +6,7 @@ import { base58 } from '@metaplex-foundation/umi/serializers'
 import ora from 'ora'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
+import { txSignatureToString } from '../../../lib/util.js'
 
 /*
   Transfer tokens from the payer's wallet to a destination address.
@@ -23,7 +24,7 @@ export default class ToolboxTokenTransfer extends TransactionCommand<typeof Tool
 
     static override args = {
         mintAddress: Args.string({ description: 'Mint address of the token', required: true }),
-        amount: Args.integer({ description: 'Amount of tokens to transfer in basis points', required: true }),
+        amount: Args.integer({ description: 'Amount to transfer in smallest unit (e.g., if decimals = 2, amount 100 represents 1 token)', required: true }),
         destination: Args.string({ description: 'Destination wallet address', required: true }),
     }
 
@@ -68,7 +69,7 @@ export default class ToolboxTokenTransfer extends TransactionCommand<typeof Tool
         this.logSuccess(
             `--------------------------------
     'Tokens Transferred Successfully!'
-    Signature: ${base58.deserialize(result.transaction.signature as Uint8Array)[0]}
+    Signature: ${txSignatureToString(result.transaction.signature as Uint8Array)}
 --------------------------------`
         )
 

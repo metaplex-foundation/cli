@@ -56,11 +56,6 @@ const createCoreAsset = async (collectionId?: string): Promise<{ assetId: string
         cliStdin
     )
 
-    // console.log('Test completed')
-    // console.log('Final stdout:', stdout)
-    // console.log('Final stderr:', stderr)
-    // console.log('Exit code:', code)
-
     const cleanStderr = stripAnsi(stderr)
     const cleanStdout = stripAnsi(stdout)
     const assetId = extractAssetId(cleanStdout) || extractAssetId(cleanStderr)
@@ -93,16 +88,26 @@ const createCoreCollection = async (options: {plugins?: any[], pluginsFile?: str
         cliStdin
     )
 
-    // console.log('Test completed')
-    // console.log('Final stdout:', stdout)
-    // console.log('Final stderr:', stderr)
+    // Debug logging
+    // console.log('Raw stdout:', stdout)
+    // console.log('Raw stderr:', stderr)
     // console.log('Exit code:', code)
 
     const cleanStderr = stripAnsi(stderr)
     const cleanStdout = stripAnsi(stdout)
+    
+    // Debug logging after cleaning
+    // console.log('Clean stdout:', cleanStdout)
+    // console.log('Clean stderr:', cleanStderr)
+
     const collectionId = extractCollectionId(cleanStdout) || extractCollectionId(cleanStderr)
 
     if (!collectionId) {
+        console.log('No collection ID found in output')
+        console.log('Available patterns:', [
+            /Collection: ([a-zA-Z0-9]+)/,
+            /Collection created with ID: ([a-zA-Z0-9]+)/
+        ])
         throw new Error('Collection ID not found')
     }
 

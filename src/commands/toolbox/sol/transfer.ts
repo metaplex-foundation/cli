@@ -6,6 +6,7 @@ import { base58 } from '@metaplex-foundation/umi/serializers'
 import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
+import { txSignatureToString } from '../../../lib/util.js'
 
 
 
@@ -62,7 +63,7 @@ export default class ToolboxSolTransfer extends TransactionCommand<typeof Toolbo
         this.logSuccess(
             `--------------------------------
     Transferred ${args.amount} SOL to ${args.address}
-    Signature: ${base58.deserialize(result.transaction.signature as Uint8Array)}
+    Signature: ${txSignatureToString(result.transaction.signature as Uint8Array)}
 --------------------------------`
         )
 

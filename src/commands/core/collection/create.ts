@@ -151,10 +151,11 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       plugins: pluginData ? mapPluginDataToArray(pluginData) : undefined,
     })
       .sendAndConfirm(umi)
-      .then((tx) => {
+      .then(async (tx) => {
         const txStr = txSignatureToString(tx.signature)
         spinner.succeed('Collection created successfully')
-        console.log(this.formatCollectionResult(collection.publicKey, txStr, explorer))
+        const result = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
+        console.log(result)
       })
       .catch((error) => {
         spinner.fail(`Error creating Collection: ${error}`)
@@ -199,12 +200,11 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
     return { collectionName: wizard.name, metadataUri }
   }
 
-  private formatCollectionResult(collection: PublicKey, signature: string, explorer: ExplorerType): string {
-    const explorerUrl = generateExplorerUrl(explorer, signature, 'transaction')
+  private async formatCollectionResult(collection: PublicKey, signature: string, explorer: ExplorerType): Promise<string> {
     return `--------------------------------
   Collection: ${collection}
   Signature: ${signature}
-  Explorer: ${explorerUrl}
+  Explorer: ${generateExplorerUrl(explorer, this.context.chain, signature, 'transaction')}
   Core Explorer: https://core.metaplex.com/explorer/${collection}
 --------------------------------`
   }
@@ -237,10 +237,11 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
         plugins: wizardData.plugins ? mapPluginDataToArray(wizardData.plugins) : undefined,
       })
         .sendAndConfirm(umi)
-        .then((tx) => {
+        .then(async (tx) => {
           const txStr = txSignatureToString(tx.signature)
           spinner.succeed('Collection created successfully')
-          console.log(this.formatCollectionResult(collection.publicKey, txStr, explorer as ExplorerType))
+          const result = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
+          console.log(result)
         })
         .catch((error) => {
           spinner.fail(`Error creating Collection: ${error}`)
@@ -251,7 +252,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
         this.error('You must provide an image --image and JSON --json file')
       }
 
-      await this.handleFileBasedCreation(umi, flags.image, flags.json, explorer as ExplorerType)
+      await this.handleFileBasedCreation(umi, flags.image, flags.json, explorer)
     } else {
       // Create collection from name and uri flags
       if (!flags.name) {
@@ -272,10 +273,11 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
         plugins: pluginData ? mapPluginDataToArray(pluginData) : undefined,
       })
         .sendAndConfirm(umi)
-        .then((tx) => {
+        .then(async (tx) => {
           const txStr = txSignatureToString(tx.signature)
           spinner.succeed('Collection created successfully')
-          console.log(this.formatCollectionResult(collection.publicKey, txStr, explorer as ExplorerType))
+          const result = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
+          console.log(result)
         })
         .catch((error) => {
           spinner.fail(`Error creating Collection: ${error}`)

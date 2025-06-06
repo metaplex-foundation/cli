@@ -1,8 +1,9 @@
 import { select } from '@inquirer/prompts'
+import { ExplorerType } from '../explorers.js'
 
 export interface ExplorerEndpoint {
   displayName: string
-  name: string
+  name: ExplorerType
   url: string
 }
 

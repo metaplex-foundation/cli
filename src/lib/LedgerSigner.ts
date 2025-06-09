@@ -13,8 +13,7 @@ const extractNumberPattern = (str: string) => {
     if (numberPattern.test(key)) {
       return `/${key}`;
     } else {
--      throw new Error(`Invalid ledger path: ${str}`)
-+      throw new Error(`Invalid ledger path: ${str}. Expected format: ?key="<number>[/<number>][/<number>]"`)
+      throw new Error(`Invalid ledger path: ${str}. Expected format: usb://ledger?key="<number>[/<number>][/<number>]"`)
     }
   }
 

@@ -1,6 +1,6 @@
 import { Args, Command } from '@oclif/core'
 import fs from 'fs'
-import { dirname } from 'path'
+import { dirname, resolve } from 'path'
 import { createSignerFromPath, getDefaultConfigPath, readConfig } from '../../../lib/Context.js'
 import { ensureDirectoryExists, writeJsonSync } from '../../../lib/file.js'
 import { shortenAddress } from '../../../lib/util.js'
@@ -41,8 +41,11 @@ export default class ConfigWalletAddsCommand extends Command {
       this.error('Path must be a json file')
     }
 
-    // check if the file exists on intial add
-    if (!fs.existsSync(args.path)) {
+    // Normalize the path to be absolute
+    const normalizedPath = resolve(args.path)
+
+    // check if the file exists on initial add
+    if (!fs.existsSync(normalizedPath)) {
       this.error('File does not exist')
     }
 
@@ -50,7 +53,7 @@ export default class ConfigWalletAddsCommand extends Command {
 
     const config = readConfig(path)
 
-    const signer = await createSignerFromPath(args.path)
+    const signer = await createSignerFromPath(normalizedPath)
 
     if (!config.wallets) {
       config.wallets = []
@@ -60,9 +63,9 @@ export default class ConfigWalletAddsCommand extends Command {
         this.error(`Wallet with name ${args.name} already exists`)
       }
 
-      const existingPath = config.wallets.find((wallet) => wallet.path === args.path)
+      const existingPath = config.wallets.find((wallet) => wallet.path === normalizedPath)
       if (existingPath) {
-        this.error(`Wallet with path ${args.path} already exists`)
+        this.error(`Wallet with path ${normalizedPath} already exists`)
       }
 
       const existingAddress = config.wallets.find((wallet) => wallet.address === signer.publicKey.toString())
@@ -74,7 +77,7 @@ export default class ConfigWalletAddsCommand extends Command {
     config.wallets?.push({
       name: args.name,
       address: signer.publicKey,
-      path: args.path,
+      path: normalizedPath,
     })
 
     const dir = dirname(path)

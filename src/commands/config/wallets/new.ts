@@ -1,7 +1,7 @@
 import { generateSigner } from '@metaplex-foundation/umi'
 import { Flags } from '@oclif/core'
 import fs from 'node:fs'
-import { dirname, join, normalize } from 'node:path'
+import { dirname, normalize, resolve } from 'node:path'
 import { BaseCommand } from '../../../BaseCommand.js'
 import { getDefaultConfigPath, readConfig } from '../../../lib/Context.js'
 import { ensureDirectoryExists, writeJsonSync } from '../../../lib/file.js'
@@ -71,7 +71,7 @@ export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNe
             : `${wallet.publicKey}.json`
 
         // Save wallet file
-        const filePath = join(savePath, fileName)
+        const filePath = resolve(savePath, fileName)
         writeJsonSync(filePath, walletData)
         console.log(`Wallet saved to: ${filePath}`)
 
@@ -104,7 +104,7 @@ export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNe
 
             const newWallet = {
                 name: flags.name,
-                path: filePath,
+                path: filePath.replace(/\\/g, '\\\\'), // Escape backslashes for JSON
                 address: wallet.publicKey.toString(),
             }
 

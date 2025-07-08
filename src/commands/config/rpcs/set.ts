@@ -1,15 +1,15 @@
-import {Command} from '@oclif/core'
-import {getDefaultConfigPath, readConfig} from '../../../lib/Context.js'
+import { Command } from '@oclif/core'
+import { getDefaultConfigPath, readConfig } from '../../../lib/Context.js'
 
-import {dirname} from 'path'
-import {ensureDirectoryExists, writeJsonSync} from '../../../lib/file.js'
+import { dirname } from 'path'
+import { ensureDirectoryExists, writeJsonSync } from '../../../lib/file.js'
 import rpcSelector from '../../../prompts/rpcSelectorPrompt.js'
 
 export default class ConfigRpcSetCommand extends Command {
   static override description = 'Set a new active wallet from a list of wallets'
 
   public async run(): Promise<void> {
-    const {flags, args} = await this.parse(ConfigRpcSetCommand)
+    const { flags, args } = await this.parse(ConfigRpcSetCommand)
 
     const path = flags.config ?? getDefaultConfigPath()
 

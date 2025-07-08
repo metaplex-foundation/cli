@@ -1,8 +1,11 @@
-import {RpcConfirmTransactionResult} from '@metaplex-foundation/umi'
-import {BlockhashWithExpiryBlockHeight} from '@solana/web3.js'
+import { RpcConfirmTransactionResult } from '@metaplex-foundation/umi'
+import { BlockhashWithExpiryBlockHeight } from '@solana/web3.js'
 
 export interface BaseCacheItem {
-  transaction: RpcConfirmTransactionResult & {blockhash?: BlockhashWithExpiryBlockHeight}
+  transaction: RpcConfirmTransactionResult & { blockhash?: BlockhashWithExpiryBlockHeight } & {
+    checked: boolean,
+    confirmed?: boolean,
+  }
 }
 
 export interface BaseCache {

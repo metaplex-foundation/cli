@@ -63,7 +63,6 @@
     "@types/async-retry": "^1.4.9",
     "@types/bn.js": "^5.1.6",
     "@types/chai": "^4.3.20",
-    "@types/chalk": "^2.2.4",
     "@types/cli-progress": "^3.11.6",
     "@types/mime-types": "^2.1.4",
     "@types/mocha": "^10.0.10",
@@ -115,7 +114,8 @@
     "version": "oclif readme && git add README.md",
     "validator": "CI=1 amman start --config ./.validator.cjs",
     "validator:stop": "amman stop",
-    "verify": "tsc --noEmit && pnpm run build:clean"
+    "verify": "tsc --noEmit && pnpm run build:clean",
+    "create-test-cm": "ts-node scripts/createTestCandyMachineDirectory.ts"
   },
   "types": "dist/index.d.ts",
   "packageManager": "pnpm@9.12.3+sha512.cce0f9de9c5a7c95bef944169cc5dfe8741abfb145078c0d508b868056848a87c81e626246cb60967cbd7fd29a6c062ef73ff840d96b3c86c40ac92cf4a813ee"

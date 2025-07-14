@@ -1,0 +1,20 @@
+{
+  "name": "Asset 75",
+  "description": "Asset 75 description",
+  "image": "https://example.com/75.png",
+  "attributes": [
+    {
+      "trait_type": "Index",
+      "value": "75"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://example.com/75.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image"
+  }
+}

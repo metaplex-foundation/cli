@@ -1,0 +1,20 @@
+{
+  "name": "Collection",
+  "description": "Collection description",
+  "image": "https://gateway.irys.xyz/D64L8EYeWwZB1w74JnWKpqZoLaKXwfU7x46YzPhBv87m",
+  "attributes": [
+    {
+      "trait_type": "Index",
+      "value": "Collection"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "https://gateway.irys.xyz/D64L8EYeWwZB1w74JnWKpqZoLaKXwfU7x46YzPhBv87m",
+        "type": "image/png"
+      }
+    ],
+    "category": "image"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "candy1",
+  "config": {
+    "collection": "Fws2S456CvP6GZWruqp2N2R4wDbRELvcohHCruWbWsss",
+    "itemsAvailable": 100,
+    "isSequential": false,
+    "isMutable": true,
+    "guardConfig": {},
+    "groups": []
+  },
+  "candyMachineId": "8cM1NNTAi7myv6n41WTvjN43ceBunhdq7VeQpZUvwT24"
+}

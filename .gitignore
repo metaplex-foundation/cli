@@ -18,3 +18,10 @@ oclif.manifest.json
 # Lockfiles (choose one depending on your package manager)
 yarn.lock
 package-lock.json
+
+# Know created test folders
+candy1
+testCm1
+testCm2
+testcm3
+testCmW

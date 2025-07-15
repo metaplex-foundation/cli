@@ -1,16 +1,17 @@
 import path from "node:path"
 import fs from 'node:fs'
 
-interface CreateTestCandyMachineOptions {
-    withConfig?: boolean
-    withAssets?: boolean
-    name?: string
-    numberOfAssets?: number
-    collection?: string
-    uploaded?: boolean
-}
+/**
+ * @typedef {Object} CreateTestCandyMachineOptions
+ * @property {boolean} [withConfig]
+ * @property {boolean} [withAssets]
+ * @property {string} [name]
+ * @property {number} [numberOfAssets]
+ * @property {string} [collection]
+ * @property {boolean} [uploaded]
+ */
 
-const parseArgs = (): CreateTestCandyMachineOptions => {
+const parseArgs = () => {
     const args = process.argv.slice(2)
     return {
         withConfig: args.includes('--with-config'),
@@ -22,7 +23,7 @@ const parseArgs = (): CreateTestCandyMachineOptions => {
     }
 }
 
-const createDummyConfig = (candyMachineDir: string, numberOfAssets: number, collection?: string) => {
+const createDummyConfig = (candyMachineDir, numberOfAssets, collection) => {
     const config = {
         "name": "candy1",
         "config": {
@@ -65,7 +66,7 @@ const createDummyConfig = (candyMachineDir: string, numberOfAssets: number, coll
     console.log(`Created config file: ${configPath}`)
 }
 
-const createAssetMetadata = (index?: string, collection?: boolean) => {
+const createAssetMetadata = (index, collection) => {
     return {
         name: collection ? 'Collection' : `Asset ${index}`,
         description: collection ? 'Collection description' : `Asset ${index} description`,
@@ -73,7 +74,7 @@ const createAssetMetadata = (index?: string, collection?: boolean) => {
         attributes: [
             {
                 trait_type: 'Index',
-                value: index?.toString() || 'Collection'
+                value: index !== undefined ? index.toString() : 'Collection'
             }
         ],
         properties: {
@@ -83,7 +84,7 @@ const createAssetMetadata = (index?: string, collection?: boolean) => {
     }
 }
 
-const createDummyPNG = (): Buffer => {
+const createDummyPNG = () => {
     return Buffer.from([
         0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
         0x00, 0x00, 0x00, 0x0D, // IHDR chunk length
@@ -102,7 +103,7 @@ const createDummyPNG = (): Buffer => {
     ])
 }
 
-export const createTestCandyMachineAssetDirectory = (options: CreateTestCandyMachineOptions = {}) => {
+export const createTestCandyMachineAssetDirectory = (options = {}) => {
     const {
         withConfig = false,
         withAssets = false,
@@ -126,7 +127,7 @@ export const createTestCandyMachineAssetDirectory = (options: CreateTestCandyMac
     // Create assets if requested
     if (withAssets) {
         const assetCache = {
-            assetItems: {} as Record<string, any>
+            assetItems: {}
         }
 
         for (let i = 0; i < numberOfAssets; i++) {

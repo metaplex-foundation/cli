@@ -240,7 +240,7 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
             }
             // Store raw guard data - will be parsed later by jsonGuardParser
             if (candyMachineConfig.config?.guardConfig) {
-                candyMachineConfig.config.guardConfig[guard as keyof RawGuardConfig] = answers as any
+                ;(candyMachineConfig.config.guardConfig as any)[guard] = answers
             }
         }
 
@@ -290,7 +290,7 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
                     answers[prompt.name] = res as string | number | boolean
                 }
 
-                groupGuards[selectedGuard as keyof RawGuardConfig] = answers as any
+                ;(groupGuards as any)[selectedGuard] = answers
             }
 
             if (candyMachineConfig.config?.groups) {

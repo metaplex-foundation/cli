@@ -2,7 +2,7 @@ import { addConfigLines } from "@metaplex-foundation/mpl-core-candy-machine";
 import { publicKey, Umi } from "@metaplex-foundation/umi";
 import umiSendAllTransactionsAndConfirm from "../umi/sendAllTransactionsAndConfirm.js";
 import { CandyMachineAssetCache, CandyMachineAssetCacheItem, CandyMachineConfig } from "./types.js";
-import validateCacheUploads, { ValidateCacheUploadsOptions } from "./validateCacheUploads.js";
+import { validateCacheUploads, ValidateCacheUploadsOptions } from "./validateCacheUploads.js";
 
 const insertItems = async (umi: Umi, candyMachineConfig: CandyMachineConfig, assetCache: CandyMachineAssetCache) => {
 

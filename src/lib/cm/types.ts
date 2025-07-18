@@ -45,7 +45,7 @@ export type RawAssetPaymentMulti = {
 }
 
 export type RawBotTax = {
-    lamports: string
+    lamports: string | number
     lastInstruction: boolean
 }
 
@@ -58,7 +58,7 @@ export type RawEndDate = {
 }
 
 export type RawFreezeSolPayment = {
-    lamports: string
+    lamports: string | number
     destination: string
     period: number
 }
@@ -108,12 +108,12 @@ export type RawRedeemedAmount = {
 }
 
 export type RawSolFixedFee = {
-    lamports: string
+    lamports: string | number
     destination: string
 }
 
 export type RawSolPayment = {
-    lamports: string
+    lamports: string | number
     destination: string
 }
 

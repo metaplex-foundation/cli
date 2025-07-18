@@ -2,7 +2,7 @@ import { Args } from '@oclif/core'
 import ora from 'ora'
 import { TransactionCommand } from '../../TransactionCommand.js'
 import uploadCandyMachineItems from '../../lib/cm/uploadItems.js'
-import validateCacheUploads, { ValidateCacheUploadsOptions } from '../../lib/cm/validateCacheUploads.js'
+import { validateCacheUploads, ValidateCacheUploadsOptions } from '../../lib/cm/validateCacheUploads.js'
 import { createUploadProgressHandler } from '../../lib/ui/uploadProgressHandler.js'
 import { 
     readAssetCache, 

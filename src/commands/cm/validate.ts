@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import ora from 'ora'
 import { BaseCommand } from '../../BaseCommand.js'
-import validateCacheUploads, { ValidateCacheUploadsOptions } from '../../lib/cm/validateCacheUploads.js'
+import { validateCacheUploads, ValidateCacheUploadsOptions } from '../../lib/cm/validateCacheUploads.js'
 
 export default class CmValidate extends BaseCommand<typeof CmValidate> {
     static override description = `Validate the asset cache file`
@@ -42,7 +42,7 @@ export default class CmValidate extends BaseCommand<typeof CmValidate> {
                 .then(() => {
                     validateSpinner.succeed('Cache validated');
                 })
-                .catch((error) => {
+                .catch((error: Error) => {
                     validateSpinner.fail(error.message);
                 });
         } catch (error) {

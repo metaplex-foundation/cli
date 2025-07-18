@@ -50,13 +50,18 @@ const isValidHexString = (value: string): boolean => {
     return /^[0-9a-fA-F]+$/.test(value)
 }
 
-// Helper function to validate lamports values (should be string representing a number)
-const isValidLamports = (value: unknown): value is string => {
-    if (typeof value !== 'string') return false
-    const numValue = Number(value)
-    return !Number.isNaN(numValue) && 
-           Number.isFinite(numValue) && 
-           numValue >= 0
+// Helper function to validate lamports values (should be string or number representing a number)
+const isValidLamports = (value: unknown): value is string | number => {
+    if (typeof value === 'string') {
+        const numValue = Number(value)
+        return !Number.isNaN(numValue) && 
+               Number.isFinite(numValue) && 
+               numValue >= 0
+    }
+    if (typeof value === 'number') {
+        return Number.isFinite(value) && value >= 0
+    }
+    return false
 }
 
 const validateAddressGate = (guardValue: unknown): guardValue is RawAddressGate => {

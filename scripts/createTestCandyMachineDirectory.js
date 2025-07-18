@@ -1,5 +1,5 @@
-import path from "node:path"
-import fs from 'node:fs'
+import path from "node:path";
+import fs from 'node:fs';
 
 /**
  * @typedef {Object} CreateTestCandyMachineOptions
@@ -17,10 +17,10 @@ const parseArgs = () => {
         withConfig: args.includes('--with-config'),
         withAssets: args.includes('--with-assets'),
         name: args.find(arg => arg.startsWith('--name='))?.split('=')[1] || 'candy1',
-        numberOfAssets: parseInt(args.find(arg => arg.startsWith('--assets='))?.split('=')[1] || '100'),
+        numberOfAssets: Number.parseInt(args.find(arg => arg.startsWith('--assets='))?.split('=')[1] || '100'),
         collection: args.find(arg => arg.startsWith('--collection='))?.split('=')[1],
         uploaded: args.includes('--uploaded')
-    }
+    };
 }
 
 const createDummyConfig = (candyMachineDir, numberOfAssets, collection) => {
@@ -62,8 +62,8 @@ const createDummyConfig = (candyMachineDir, numberOfAssets, collection) => {
       }
     
     const configPath = path.join(candyMachineDir, 'cm-config.json')
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), { encoding: 'utf-8' })
-    console.log(`Created config file: ${configPath}`)
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), { encoding: 'utf-8' });
+    console.log(`Created config file: ${configPath}`);
 }
 
 const createAssetMetadata = (index, collection) => {
@@ -81,7 +81,7 @@ const createAssetMetadata = (index, collection) => {
             files: [{ uri: collection ? `https://example.com/collection.png` : `https://example.com/${index}.png`, type: 'image/png' }],
             category: 'image',
         }
-    }
+    };
 }
 
 const createDummyPNG = () => {
@@ -100,8 +100,8 @@ const createDummyPNG = () => {
         0x00, 0x00, 0x00, 0x00, // IEND chunk length
         0x49, 0x45, 0x4E, 0x44, // IEND
         0xAE, 0x42, 0x60, 0x82  // IEND CRC
-    ])
-}
+    ]);
+};
 
 export const createTestCandyMachineAssetDirectory = (options = {}) => {
     const {
@@ -113,16 +113,16 @@ export const createTestCandyMachineAssetDirectory = (options = {}) => {
         uploaded = false
     } = options
 
-    const candyMachineDir = path.join(process.cwd(), name)
-    const assetsDir = path.join(candyMachineDir, 'assets')
-    const cacheFile = path.join(candyMachineDir, 'asset-cache.json')
+    const candyMachineDir = path.join(process.cwd(), name);
+    const assetsDir = path.join(candyMachineDir, 'assets');
+    const cacheFile = path.join(candyMachineDir, 'asset-cache.json');
 
-    console.log(`Creating test candy machine directory: ${candyMachineDir}`)
-    console.log(`Options: withConfig=${withConfig}, withAssets=${withAssets}, assets=${numberOfAssets}, collection=${collection}, uploaded=${uploaded}`)
+    console.log(`Creating test candy machine directory: ${candyMachineDir}`);
+    console.log(`Options: withConfig=${withConfig}, withAssets=${withAssets}, assets=${numberOfAssets}, collection=${collection}, uploaded=${uploaded}`);
 
     // Create directory structure
-    fs.mkdirSync(candyMachineDir, { recursive: true })
-    fs.mkdirSync(assetsDir, { recursive: true })
+    fs.mkdirSync(candyMachineDir, { recursive: true });
+    fs.mkdirSync(assetsDir, { recursive: true });
 
     // Create assets if requested
     if (withAssets) {
@@ -140,24 +140,24 @@ export const createTestCandyMachineAssetDirectory = (options = {}) => {
                 imageType: 'image/png',
                 jsonUri: uploaded ? `https://example.com/${i}.json` : undefined
             }
-            assetCache.assetItems[i] = asset
+            assetCache.assetItems[i] = asset;
         }
 
         // Write cache file
-        fs.writeFileSync(cacheFile, JSON.stringify(assetCache, null, 2), { encoding: 'utf-8' })
-        console.log(`Created asset cache: ${cacheFile}`)
+        fs.writeFileSync(cacheFile, JSON.stringify(assetCache, null, 2), { encoding: 'utf-8' });
+        console.log(`Created asset cache: ${cacheFile}`);
 
-        console.log(`Creating ${numberOfAssets} test assets...`)
-        const imageBuffer = createDummyPNG()
+        console.log(`Creating ${numberOfAssets} test assets...`);
+        const imageBuffer = createDummyPNG();
 
         // Create individual assets
         for (const [key, asset] of Object.entries(assetCache.assetItems)) {
-            fs.writeFileSync(path.join(assetsDir, `${key}.png`), imageBuffer)
+            fs.writeFileSync(path.join(assetsDir, `${key}.png`), imageBuffer);
             fs.writeFileSync(
                 path.join(assetsDir, `${key}.json`), 
                 JSON.stringify(createAssetMetadata(key), null, 2), 
                 { encoding: 'utf-8' }
-            )
+            );
         }
 
         // Create collection files
@@ -165,22 +165,22 @@ export const createTestCandyMachineAssetDirectory = (options = {}) => {
             path.join(assetsDir, 'collection.json'), 
             JSON.stringify(createAssetMetadata(undefined, true), null, 2), 
             { encoding: 'utf-8' }
-        )
-        fs.writeFileSync(path.join(assetsDir, 'collection.png'), imageBuffer)
+        );
+        fs.writeFileSync(path.join(assetsDir, 'collection.png'), imageBuffer);
 
-        console.log(`Created ${numberOfAssets} test assets in ${assetsDir}`)
+        console.log(`Created ${numberOfAssets} test assets in ${assetsDir}`);
     }
 
     // Create config file if requested
     if (withConfig) {
-        createDummyConfig(candyMachineDir, numberOfAssets, collection)
+        createDummyConfig(candyMachineDir, numberOfAssets, collection);
     }
 
-    console.log(`Test candy machine directory created successfully: ${candyMachineDir}`)
+    console.log(`Test candy machine directory created successfully: ${candyMachineDir}`);
 }
 
 // CLI entrypoint
 if (import.meta.url === `file://${process.argv[1]}`) {
-    const options = parseArgs()
-    createTestCandyMachineAssetDirectory(options)
+    const options = parseArgs();
+    createTestCandyMachineAssetDirectory(options);
 }

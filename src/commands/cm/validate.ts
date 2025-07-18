@@ -1,10 +1,9 @@
 import { Args } from '@oclif/core'
+import fs from 'node:fs'
+import path from 'node:path'
 import ora from 'ora'
-import path from 'path'
 import { BaseCommand } from '../../BaseCommand.js'
 import validateCacheUploads, { ValidateCacheUploadsOptions } from '../../lib/cm/validateCacheUploads.js'
-import { readAssetCache } from '../../lib/cm/cm-utils.js'
-import fs from 'node:fs'
 
 export default class CmValidate extends BaseCommand<typeof CmValidate> {
     static override description = `Validate the asset cache file`

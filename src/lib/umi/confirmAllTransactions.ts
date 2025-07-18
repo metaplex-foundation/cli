@@ -21,7 +21,6 @@ const confirmAllTransactions = async (
       onProgress && onProgress(index, { confirmed: false, error: transaction?.err || 'transaction has no signature' })
       index++
       continue
-
     }
 
     let signature = transaction.signature

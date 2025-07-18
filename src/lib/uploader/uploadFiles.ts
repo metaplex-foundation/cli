@@ -3,7 +3,7 @@ import mime from 'mime'
 import { createGenericFile, sol, Umi } from '@metaplex-foundation/umi'
 import { createIrysUploader } from '@metaplex-foundation/umi-uploader-irys'
 
-export interface UploadFileRessult {
+export interface UploadFileResult {
     index?: number
     fileName: string
     uri?: string
@@ -24,15 +24,24 @@ const uploadFiles = async (umi: Umi, filePaths: string[], onProgress?: (progress
 
     const cost = await umi.uploader.getUploadPrice(files)
 
-    const balance = await uploader.getBalance()
+    // Check balance and fund if necessary with error handling
+    try {
+        const balance = await uploader.getBalance()
 
-    if (balance < cost) {
-        await uploader.fund(sol(Number(cost.basisPoints)), true)
+        if (balance < cost) {
+            console.log(`Insufficient balance. Current: ${balance.basisPoints}, Required: ${cost.basisPoints}. Funding account...`)
+            await uploader.fund(sol(Number(cost.basisPoints)), true)
+            console.log('Account funded successfully')
+        }
+    } catch (error) {
+        console.error('Failed to check balance or fund account:', error)
+        throw new Error(`Upload preparation failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 
-    const uploadResults: UploadFileRessult[] = []
+    const uploadResults: UploadFileResult[] = []
 
     // Upload each file individually with retry logic (sequentially to maintain order)
+    // Uses exponential backoff: 2^retry * 1000ms delay between retries
     for (let index = 0; index < files.length; index++) {
         const file = files[index]
         let uploadErrorCount = 0
@@ -58,13 +67,16 @@ const uploadFiles = async (umi: Umi, filePaths: string[], onProgress?: (progress
             } catch (error) {
                 uploadErrorCount++
                 if (uploadErrorCount > maxRetries) {
+                    console.warn(`Upload failed for ${result.fileName} after ${maxRetries} retries:`, error)
                     result.uri = undefined
                     uploadResults.push(result)
                     onProgress?.(index)
-                    break // Success, exit retry loop
+                    break // Retry limit exceeded, marking upload as failed
                 }
-                // Wait a bit before retrying (exponential backoff)
-                await new Promise(resolve => setTimeout(resolve, Math.pow(2, uploadErrorCount) * 1000))
+                // Exponential backoff: wait 2^retry seconds before next attempt
+                const backoffDelay = Math.pow(2, uploadErrorCount) * 1000
+                console.log(`Upload attempt ${uploadErrorCount} failed for ${result.fileName}, retrying in ${backoffDelay}ms...`)
+                await new Promise(resolve => setTimeout(resolve, backoffDelay))
             }
         }
     }

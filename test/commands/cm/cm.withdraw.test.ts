@@ -1,9 +1,9 @@
-import { exec } from 'child_process'
+import { exec } from 'node:child_process'
 import { runCli } from '../../runCli'
-import { promisify } from 'util'
+import { promisify } from 'node:util'
 import { createCoreCollection } from '../core/corehelpers'
 import { expect } from 'chai'
-import fs from 'fs'
+import fs from 'node:fs'
 
 const execAsync = promisify(exec)
 
@@ -26,10 +26,10 @@ describe('cm withdraw commands', () => {
 
             // console.log('Creating test candy machine directory')
             // Await the directory creation
-            await execAsync("npm run create-test-cm -- --name=" + cmName + " --with-config --collection=" + collectionId)
+            await execAsync(`npm run create-test-cm -- --name=${cmName} --with-config --collection=${collectionId}`)
 
             const { stdout: cmCreateStdout, stderr: cmCreateStderr, code: cmCreateCode } = await runCli(
-                ["cm", "create", "./" + cmName]
+                ["cm", "create", `./${cmName}`]
             )
             // console.log('Cm create stdout:', cmCreateStdout)
             // console.log('Cm create stderr:', cmCreateStderr)
@@ -41,7 +41,7 @@ describe('cm withdraw commands', () => {
             expect(cmCreateStderr).to.include('Candy machine created')
 
             const { stdout, stderr, code } = await runCli(
-                ["cm", "withdraw", "./" + cmName, "--force"]
+                ["cm", "withdraw", `./${cmName}`, "--force"]
             )
 
             // console.log('Cm withdraw stdout:', stdout)
@@ -60,7 +60,7 @@ describe('cm withdraw commands', () => {
         } finally {
             // Clean up even if test fails
             try {
-                await execAsync("rm -rf ./" + cmName)
+                await execAsync(`rm -rf ./${cmName}`)
                 // console.log(`Cleaned up ${cmName} directory`)
             } catch (cleanupError) {
                 // console.error(`Cleanup failed for ${cmName}:`, cleanupError)

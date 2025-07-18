@@ -10,7 +10,7 @@ export const addressGateSchema: PromptItem[] = [
     }
 ]
 
-const allocationSchema: PromptItem[] = [
+export const allocationSchema: PromptItem[] = [
     {
         name: 'id',
         prompt: 'Enter id for the allocation. This is a unique identifier for the allocation',
@@ -271,7 +271,7 @@ export const tokenGateSchema: PromptItem[] = [
 export const token2022PaymentSchema: PromptItem[] = [
     {
         name: 'amount',
-        prompt: 'Enter amount of tokens to be held by the wallet',
+        prompt: 'Enter amount of tokens to be paid',
         type: 'number',
         required: true,
     },

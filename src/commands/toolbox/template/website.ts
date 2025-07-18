@@ -1,7 +1,9 @@
-import { Args, Command, Flags } from '@oclif/core'
-import { BaseCommand } from '../../../BaseCommand.js'
-import { exec } from 'child_process'
-import { confirm, select } from '@inquirer/prompts'
+import { select } from '@inquirer/prompts'
+import { Command, Flags } from '@oclif/core'
+import { exec } from 'node:child_process'
+import { promisify } from 'node:util'
+
+const execAsync = promisify(exec)
 
 const templates = {
     'standard - nextjs-tailwind-shadcn': 'https://github.com/metaplex-foundation/metaplex-nextjs-tailwind-shadcn-template.git',
@@ -17,7 +19,7 @@ export default class ToolboxWebsiteTemplate extends Command {
         '--template': Flags.string({
             description: 'The template to download',
             required: false,
-            options: ['mplx', 'cm']
+            options: Object.keys(templates)
         })
     }
 
@@ -35,13 +37,21 @@ export default class ToolboxWebsiteTemplate extends Command {
             })
         }
 
-        exec(`git clone ${templates[template as keyof typeof templates]}`, (error, stdout, stderr) => {
-            if (error) {
-                this.error(error)
+        try {
+            const { stdout, stderr } = await execAsync(`git clone ${templates[template as keyof typeof templates]}`)
+            
+            if (stdout) {
+                this.log(stdout)
             }
-            this.log(stdout)
-            this.log(stderr)
-        })
+            
+            if (stderr) {
+                this.error(stderr)
+            }
+            
+            this.log(`Template '${template}' cloned successfully`)
+        } catch (error) {
+            this.error(`Failed to clone template '${template}': ${error instanceof Error ? error.message : 'Unknown error'}`)
+        }
 
     }
 

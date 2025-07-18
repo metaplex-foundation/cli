@@ -1,7 +1,7 @@
 import { Command } from '@oclif/core'
 import { getDefaultConfigPath, readConfig } from '../../../lib/Context.js'
 
-import { dirname } from 'path'
+import { dirname } from 'node:path'
 import { ensureDirectoryExists, writeJsonSync } from '../../../lib/file.js'
 import rpcSelector from '../../../prompts/rpcSelectorPrompt.js'
 

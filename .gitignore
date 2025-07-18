@@ -19,7 +19,7 @@ oclif.manifest.json
 yarn.lock
 package-lock.json
 
-# Know created test folders
+# Known created test folders
 candy1
 testCm1
 testCm2

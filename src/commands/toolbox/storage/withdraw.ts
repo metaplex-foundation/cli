@@ -29,18 +29,35 @@ export default class ToolboxStorageWithdraw extends TransactionCommand<typeof To
         // // Todo work out a way to fix this for multiple storage providers
         const storageProvider = umi.uploader as IrysUploader
 
-        const withdrawSpinner = ora(`Withdrawing ${flags.all ? 'all' : args.amount} from storage account...`).start()
+        try {
+            // Input validation for amount when --all flag is not used
+            if (!flags.all) {
+                if (!args.amount) {
+                    this.error('Amount is required when --all flag is not used. Please specify an amount or use --all to withdraw all funds.')
+                }
 
-        if (flags.all) {
-            const balance = await storageProvider.getBalance()
+                const amount = Number(args.amount)
+                if (isNaN(amount) || amount <= 0) {
+                    this.error('Amount must be a valid positive number. Please provide a valid amount in SOL.')
+                }
+            }
 
-            await storageProvider.withdrawAll(balance)
-        } else {
-            await storageProvider.withdraw(sol(Number(args.amount)))
+            const withdrawSpinner = ora(`Withdrawing ${flags.all ? 'all' : args.amount} from storage account...`).start()
+
+            if (flags.all) {
+                const balance = await storageProvider.getBalance()
+
+                await storageProvider.withdrawAll(balance)
+            } else {
+                await storageProvider.withdraw(sol(Number(args.amount)))
+            }
+
+            const newBalance = await storageProvider.getBalance()
+            withdrawSpinner.succeed(`Funds withdrawn from storage account. New balance: ${newBalance.basisPoints}`)
+
+        } catch (error) {
+            this.error(`Withdrawal failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }
-
-        const newBalance = await storageProvider.getBalance()
-        withdrawSpinner.succeed('Funds withdrawn from storage account. New balance: ' + newBalance.basisPoints)
 
         return
     }

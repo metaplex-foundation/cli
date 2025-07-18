@@ -1,30 +1,154 @@
 import { DefaultGuardSet } from "@metaplex-foundation/mpl-core-candy-machine"
 import { publicKey, sol, some } from "@metaplex-foundation/umi"
-import { CandyMachineConfig, RawGuardConfig, RawGuardGroup } from "./types.js";
+import { 
+    CandyMachineConfig, 
+    RawGuardConfig, 
+    RawGuardGroup,
+    RawAddressGate,
+    RawAllocation,
+    RawAllowList,
+    RawAssetBurn,
+    RawAssetBurnMulti,
+    RawAssetGate,
+    RawAssetMintLimit,
+    RawAssetPayment,
+    RawAssetPaymentMulti,
+    RawBotTax,
+    RawEdition,
+    RawEndDate,
+    RawFreezeSolPayment,
+    RawFreezeTokenPayment,
+    RawGatekeeper,
+    RawMintLimit,
+    RawNftBurn,
+    RawNftGate,
+    RawNftMintLimit,
+    RawNftPayment,
+    RawProgramGate,
+    RawRedeemedAmount,
+    RawSolFixedFee,
+    RawSolPayment,
+    RawStartDate,
+    RawThirdPartySigner,
+    RawToken2022Payment,
+    RawTokenBurn,
+    RawTokenGate,
+    RawTokenPayment,
+    RawVanityMint
+} from "./types.js";
+
+// Type guard functions to validate guardValue structure
+const isValidGuardValue = (guardValue: unknown): guardValue is Record<string, unknown> => {
+    return guardValue !== null && typeof guardValue === 'object' && !Array.isArray(guardValue)
+}
+
+// Helper function to validate hex strings
+const isValidHexString = (value: string): boolean => {
+    // Check if string has even length (required for hex)
+    if (value.length % 2 !== 0) return false
+    // Check if string contains only valid hex characters (0-9, a-f, A-F)
+    return /^[0-9a-fA-F]+$/.test(value)
+}
+
+// Helper function to validate lamports values (should be string representing a number)
+const isValidLamports = (value: unknown): value is string => {
+    if (typeof value !== 'string') return false
+    const numValue = Number(value)
+    return !Number.isNaN(numValue) && 
+           Number.isFinite(numValue) && 
+           numValue >= 0
+}
+
+const validateAddressGate = (guardValue: unknown): guardValue is RawAddressGate => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.address === 'string' && 
+           guardValue.address.length > 0
+}
+
+const validateAllocation = (guardValue: unknown): guardValue is RawAllocation => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.id === 'number' && 
+           typeof guardValue.limit === 'number'
+}
+
+const validateAllowList = (guardValue: unknown): guardValue is RawAllowList => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.merkleRoot === 'string' && 
+           guardValue.merkleRoot.length > 0 &&
+           isValidHexString(guardValue.merkleRoot)
+}
+
+const validateAssetBurn = (guardValue: unknown): guardValue is RawAssetBurn => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.requiredCollection === 'string' && 
+           guardValue.requiredCollection.length > 0
+}
+
+const validateBotTax = (guardValue: unknown): guardValue is RawBotTax => {
+    return isValidGuardValue(guardValue) && 
+           isValidLamports(guardValue.lamports) && 
+           typeof guardValue.lastInstruction === 'boolean'
+}
+
+const validateFreezeSolPayment = (guardValue: unknown): guardValue is RawFreezeSolPayment => {
+    return isValidGuardValue(guardValue) && 
+           isValidLamports(guardValue.lamports) && 
+           typeof guardValue.destination === 'string' && 
+           guardValue.destination.length > 0 &&
+           typeof guardValue.period === 'number' && 
+           Number.isFinite(guardValue.period) && 
+           guardValue.period >= 0
+}
+
+const validateSolFixedFee = (guardValue: unknown): guardValue is RawSolFixedFee => {
+    return isValidGuardValue(guardValue) && 
+           isValidLamports(guardValue.lamports) && 
+           typeof guardValue.destination === 'string' && 
+           guardValue.destination.length > 0
+}
+
+const validateSolPayment = (guardValue: unknown): guardValue is RawSolPayment => {
+    return isValidGuardValue(guardValue) && 
+           isValidLamports(guardValue.lamports) && 
+           typeof guardValue.destination === 'string' && 
+           guardValue.destination.length > 0
+}
 
 // Helper function to parse individual guards
-const parseGuard = (guardName: string, guardValue: any): Partial<DefaultGuardSet> => {
+const parseGuard = (guardName: string, guardValue: unknown): Partial<DefaultGuardSet> => {
     const parsedGuard: Partial<DefaultGuardSet> = {}
 
     switch (guardName) {
         case 'addressGate': {
-            const { address } = guardValue as { address: string };
-            parsedGuard.addressGate = some({ address: publicKey(address) });
+            if (!validateAddressGate(guardValue)) {
+                throw new Error('addressGate guard requires a valid address field (string)')
+            }
+            parsedGuard.addressGate = some({ address: publicKey(guardValue.address) });
             break;
         }
         case 'allocation': {
-            const { id, limit } = guardValue as { id: number, limit: number };
-            parsedGuard.allocation = some({ id, limit });
+            if (!validateAllocation(guardValue)) {
+                throw new Error('allocation guard requires valid id and limit fields (numbers)')
+            }
+            parsedGuard.allocation = some({ id: guardValue.id, limit: guardValue.limit });
             break;
         }
         case 'allowList': {
-            const { merkleRoot } = guardValue as { merkleRoot: string };
-            parsedGuard.allowList = some({ merkleRoot: new Uint8Array(Buffer.from(merkleRoot, 'hex')) });
+            if (!validateAllowList(guardValue)) {
+                throw new Error('allowList guard requires a valid merkleRoot field (valid hex string)')
+            }
+            try {
+                parsedGuard.allowList = some({ merkleRoot: new Uint8Array(Buffer.from(guardValue.merkleRoot, 'hex')) });
+            } catch (error) {
+                throw new Error(`allowList guard merkleRoot contains invalid hex data: ${error instanceof Error ? error.message : 'Unknown error'}`)
+            }
             break;
         }
         case 'assetBurn': {
-            const { requiredCollection } = guardValue as { requiredCollection: string };
-            parsedGuard.assetBurn = some({ requiredCollection: publicKey(requiredCollection) });
+            if (!validateAssetBurn(guardValue)) {
+                throw new Error('assetBurn guard requires a valid requiredCollection field (string)')
+            }
+            parsedGuard.assetBurn = some({ requiredCollection: publicKey(guardValue.requiredCollection) });
             break;
         }
         case 'assetBurnMulti': {
@@ -67,10 +191,13 @@ const parseGuard = (guardName: string, guardValue: any): Partial<DefaultGuardSet
             break;
         }
         case 'botTax': {
-            const { lamports, lastInstruction } = guardValue as { lamports: number, lastInstruction: boolean };
+            if (!validateBotTax(guardValue)) {
+                throw new Error('botTax guard requires valid lamports (numeric string >= 0) and lastInstruction (boolean) fields')
+            }
+            const validatedGuard = guardValue as RawBotTax;
             parsedGuard.botTax = some({
-                lamports: sol(lamports / 10 ** 9),
-                lastInstruction
+                lamports: sol(Number(validatedGuard.lamports) / 10 ** 9),
+                lastInstruction: validatedGuard.lastInstruction
             });
             break;
         }
@@ -85,11 +212,14 @@ const parseGuard = (guardName: string, guardValue: any): Partial<DefaultGuardSet
             break;
         }
         case 'freezeSolPayment': {
-            const { lamports, destination, period } = guardValue as { lamports: number, destination: string, period: number };
+            if (!validateFreezeSolPayment(guardValue)) {
+                throw new Error('freezeSolPayment guard requires valid lamports (numeric string >= 0), destination (string), and period (finite number >= 0) fields')
+            }
+            const validatedGuard = guardValue as RawFreezeSolPayment;
             parsedGuard.freezeSolPayment = some({
-                lamports: sol(lamports / 10 ** 9),
-                destination: publicKey(destination),
-                period: BigInt(period)
+                lamports: sol(Number(validatedGuard.lamports) / 10 ** 9),
+                destination: publicKey(validatedGuard.destination),
+                period: BigInt(validatedGuard.period)
             });
             break;
         }
@@ -156,18 +286,24 @@ const parseGuard = (guardName: string, guardValue: any): Partial<DefaultGuardSet
             break;
         }
         case 'solFixedFee': {
-            const { lamports, destination } = guardValue as { lamports: number, destination: string };
+            if (!validateSolFixedFee(guardValue)) {
+                throw new Error('solFixedFee guard requires valid lamports (numeric string >= 0) and destination (string) fields')
+            }
+            const validatedGuard = guardValue as RawSolFixedFee;
             parsedGuard.solFixedFee = some({
-                lamports: sol(lamports / 10 ** 9),
-                destination: publicKey(destination)
+                lamports: sol(Number(validatedGuard.lamports) / 10 ** 9),
+                destination: publicKey(validatedGuard.destination)
             });
             break;
         }
         case 'solPayment': {
-            const { lamports, destination } = guardValue as { lamports: number, destination: string };
+            if (!validateSolPayment(guardValue)) {
+                throw new Error('solPayment guard requires valid lamports (numeric string >= 0) and destination (string) fields')
+            }
+            const validatedGuard = guardValue as RawSolPayment;
             parsedGuard.solPayment = some({
-                lamports: sol(lamports / 10 ** 9),
-                destination: publicKey(destination)
+                lamports: sol(Number(validatedGuard.lamports) / 10 ** 9),
+                destination: publicKey(validatedGuard.destination)
             });
             break;
         }
@@ -226,42 +362,62 @@ const parseGuard = (guardName: string, guardValue: any): Partial<DefaultGuardSet
 }
 
 const jsonGuardParser = (json: CandyMachineConfig) => {
-    const guards = json.config.guardConfig || {}
-    const parsedGuards: Partial<DefaultGuardSet> = {}
+    try {
+        const guards = json.config.guardConfig || {}
+        const parsedGuards: Partial<DefaultGuardSet> = {}
 
-    const groups = json.config.groups || []
-    const parsedGroups: Array<{ label: string, guards: Partial<DefaultGuardSet> }> = []
+        const groups = json.config.groups || []
+        const parsedGroups: Array<{ label: string, guards: Partial<DefaultGuardSet> }> = []
 
-    // parse guards
-    for (const [guardName, guardValue] of Object.entries(guards)) {
-        if (guardValue) {
-            const parsedGuard = parseGuard(guardName, guardValue)
-            Object.assign(parsedGuards, parsedGuard)
-        }
-    }
-
-    // parse groups
-    for (const group of groups) {
-        const groupGuards: Partial<DefaultGuardSet> = {}
-
-        if (group.guards) {
-            for (const [guardName, guardValue] of Object.entries(group.guards)) {
-                if (guardValue) {
+        // parse guards
+        for (const [guardName, guardValue] of Object.entries(guards)) {
+            if (guardValue) {
+                try {
                     const parsedGuard = parseGuard(guardName, guardValue)
-                    Object.assign(groupGuards, parsedGuard)
+                    Object.assign(parsedGuards, parsedGuard)
+                } catch (error) {
+                    console.error(`Error parsing guard '${guardName}':`, error)
+                    throw new Error(`Failed to parse guard '${guardName}': ${error instanceof Error ? error.message : 'Unknown error'}`)
                 }
             }
         }
 
-        parsedGroups.push({
-            label: group.label,
-            guards: groupGuards
-        })
-    }
+        // parse groups
+        for (const group of groups) {
+            const groupGuards: Partial<DefaultGuardSet> = {}
 
-    return {
-        guards: parsedGuards,
-        groups: parsedGroups
+            if (group.guards) {
+                for (const [guardName, guardValue] of Object.entries(group.guards)) {
+                    if (guardValue) {
+                        try {
+                            const parsedGuard = parseGuard(guardName, guardValue)
+                            Object.assign(groupGuards, parsedGuard)
+                        } catch (error) {
+                            console.error(`Error parsing guard '${guardName}' in group '${group.label}':`, error)
+                            throw new Error(`Failed to parse guard '${guardName}' in group '${group.label}': ${error instanceof Error ? error.message : 'Unknown error'}`)
+                        }
+                    }
+                }
+            }
+
+            parsedGroups.push({
+                label: group.label,
+                guards: groupGuards
+            })
+        }
+
+        return {
+            guards: parsedGuards,
+            groups: parsedGroups
+        }
+    } catch (error) {
+        console.error('Error in jsonGuardParser:', error)
+        if (error instanceof Error && error.message.includes('Failed to parse guard')) {
+            // Re-throw guard parsing errors with their specific context
+            throw error
+        }
+        // Handle other errors (malformed JSON structure, missing properties, etc.)
+        throw new Error(`Failed to parse candy machine guard configuration: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
 }
 

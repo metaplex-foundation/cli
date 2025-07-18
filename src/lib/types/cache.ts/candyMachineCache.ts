@@ -1,8 +1,7 @@
 
-import { UmiTransactionResponce } from "../../umi/sendTransaction.js";
 import { BaseCache, BaseCacheItem } from "./baseCache.js";
 
-interface CandyMachineCache extends BaseCache {
+export interface CandyMachineCache extends BaseCache {
     name: 'candyMachine',
     configFile?: string,
     candyMachineId?: string,
@@ -12,7 +11,7 @@ interface CandyMachineCache extends BaseCache {
     items: CandyMachineCacheItem[]
 }
 
-interface CandyMachineCacheItem extends BaseCacheItem {
+export interface CandyMachineCacheItem extends BaseCacheItem {
     name: string,
     uri: string,
     image: string,

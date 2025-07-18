@@ -1,12 +1,11 @@
-import { createIrysUploader, IrysUploader } from '@metaplex-foundation/umi-uploader-irys'
-import { TransactionCommand } from '../../../TransactionCommand.js'
-import { jsonStringify } from '../../../lib/util.js'
-import { Args } from '@oclif/core'
 import { sol } from '@metaplex-foundation/umi'
+import { IrysUploader } from '@metaplex-foundation/umi-uploader-irys'
+import { Args } from '@oclif/core'
 import ora from 'ora'
+import { TransactionCommand } from '../../../TransactionCommand.js'
 
 export default class ToolboxStorageFund extends TransactionCommand<typeof ToolboxStorageFund> {
-    static override description = 'Get the balance of the storage account'
+    static override description = 'Fund the storage account with the specified amount of SOL'
 
     static override examples = [
         '<%= config.bin %> <%= command.id %>',
@@ -32,7 +31,7 @@ export default class ToolboxStorageFund extends TransactionCommand<typeof Toolbo
 
         const balance = await storageProvider.getBalance()
 
-        fundingSpinner.succeed('Storage account funded new balance: ' + balance.basisPoints)
+        fundingSpinner.succeed(`Storage account funded new balance: ${balance.basisPoints}`)
 
         return
     }

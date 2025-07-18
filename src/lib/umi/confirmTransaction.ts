@@ -29,7 +29,7 @@ const umiConfirmTransaction = async (
     commitment: sendOptions?.commitment || 'confirmed',
   })
 
-  if (confirmation.value.err && confirmation.value.err.toString().includes('expired')) {
+  if (confirmation.value?.err && confirmation.value?.err.toString().includes('expired')) {
     const transactionResult = await umi.rpc.getTransaction(transaction.signature as Uint8Array)
 
     if (transactionResult && !transactionResult.meta.err) {

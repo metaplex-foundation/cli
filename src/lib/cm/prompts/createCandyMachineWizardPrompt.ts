@@ -38,7 +38,11 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
     // Prompt for directory-friendly name
     let dirName = await input({
         message: 'Directory name for your Candy Machine project? (letters, numbers, underscores, hyphens only, or q to quit)',
-        validate: (value) => true
+        validate: (value) => {
+            if (value === 'q') return true
+            if (/^[a-zA-Z0-9_-]+$/.test(value)) return true
+            return 'Directory name must only contain letters, numbers, underscores, or hyphens. Enter "q" to quit.'
+        }
     })
     checkAbort(dirName)
     candyMachineConfig.name = dirName
@@ -108,7 +112,6 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
             }
             // Print summary of what is present
             // Can't print details if error, so just continue
-            continue
         } else {
             console.log(`📁 Asset Discovery:`)
             console.log(`✔ Found ${assets.jsonFiles?.length} JSON files`)
@@ -149,7 +152,11 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
             if (existingCollection.trim().toLowerCase() === 'y') {
                 let collectionAddr = await input({
                     message: 'Collection Address? (or q to quit)',
-                    validate: (value) => true
+                    validate: (value) => {
+                        if (value === 'q') return true
+                        if (isPublicKey(value)) return true
+                        return 'Please enter a valid Solana public key address or "q" to quit.'
+                    }
                 })
                 checkAbort(collectionAddr)
                 candyMachineConfig.config.collection = collectionAddr
@@ -232,7 +239,9 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
                 candyMachineConfig.config.guardConfig = {}
             }
             // Store raw guard data - will be parsed later by jsonGuardParser
-            candyMachineConfig.config!.guardConfig![guard as keyof RawGuardConfig] = answers as any
+            if (candyMachineConfig.config?.guardConfig) {
+                candyMachineConfig.config.guardConfig[guard as keyof RawGuardConfig] = answers as any
+            }
         }
 
     }
@@ -284,10 +293,12 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
                 groupGuards[selectedGuard as keyof RawGuardConfig] = answers as any
             }
 
-            candyMachineConfig.config!.groups!.push({
-                label: groupName,
-                guards: groupGuards
-            })
+            if (candyMachineConfig.config?.groups) {
+                candyMachineConfig.config.groups.push({
+                    label: groupName,
+                    guards: groupGuards
+                })
+            }
         }
     }
 
@@ -297,8 +308,6 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
     if (!hasGlobalGuards && !hasGroups) {
         console.log('⚠️  Warning: You have not set any global guards or guard groups. This may result in a non-functional candy machine. Consider adding at least one guard or group.')
     }
-
-    return { candyMachineConfig, assets }
 
     return { candyMachineConfig, assets }
 }

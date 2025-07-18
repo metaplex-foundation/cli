@@ -4,7 +4,7 @@ import insertItems from '../../lib/cm/insertItems.js'
 import { readCmConfig, readAssetCache, writeAssetCache, getCmPaths } from '../../lib/cm/cm-utils.js'
 import fs from 'node:fs'
 
-export default class CmCreate extends TransactionCommand<typeof CmCreate> {
+export default class CmInsert extends TransactionCommand<typeof CmInsert> {
     static override description = `Inserts items into a candy machine
 
     This command requires:
@@ -29,7 +29,7 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
     }
 
     public async run() {
-        const { args } = await this.parse(CmCreate)
+        const { args } = await this.parse(CmInsert)
         const { umi } = this.context
 
         try {

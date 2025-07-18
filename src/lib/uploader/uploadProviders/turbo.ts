@@ -6,13 +6,13 @@
 // }
 
 // const turbo: StorageProvider<ArweaveUploaderOptions> = {
-//     name: 'cascade',
-//     description: 'Cascade is a storage provider that uses the Cascade network to store data.',
-//     website: 'https://cascade.network/',
+//     name: 'turbo',
+//     description: 'Turbo is a storage provider that uses the Arweave network via the Turbo uploader.',
+//     website: 'https://arweave.org/',
 //     params: [
 //         {
 //             name: 'apiKey',
-//             description: 'The API key to use for the Cascade storage provider',
+//             description: 'The API key to use for the Turbo storage provider',
 //             type: 'string',
 //             required: true
 //         }

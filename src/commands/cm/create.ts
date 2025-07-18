@@ -6,7 +6,7 @@ import { generateSigner, publicKey, Umi } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
 import fs from 'node:fs'
 import ora from 'ora'
-import path from 'path'
+import path from 'node:path'
 import { TransactionCommand } from '../../TransactionCommand.js'
 import {
     getConfigLineSettings,
@@ -154,29 +154,31 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
         fs.writeFileSync(path.join(candyMachineDir, 'asset-cache.json'), JSON.stringify(insertItemsRes.assetCache, null, 2))
 
         // Wizard completion message and summary (moved here after all processing is complete)
-        console.log('\n🎉 Wizard complete! Here is a summary of your setup:')
-        console.log(`- Directory: ${candyMachineConfig.name}`)
+        this.log('\n🎉 Wizard complete! Here is a summary of your setup:')
+        this.log(`- Directory: ${candyMachineConfig.name}`)
         if (!('error' in assets)) {
-            console.log(`- Assets: ${assets.jsonFiles?.length ?? 0} JSON, ${assets.imageFiles?.length ?? 0} images, ${assets.animationFiles?.length ?? 0} animations`)
+            this.log(`- Assets: ${assets.jsonFiles?.length ?? 0} JSON, ${assets.imageFiles?.length ?? 0} images, ${assets.animationFiles?.length ?? 0} animations`)
             if (assets.collectionFiles?.json) {
                 const collectionJsonPath = path.join(process.cwd(), candyMachineConfig.name, 'assets', assets.collectionFiles.json)
                 try {
                     const collectionJson = JSON.parse(fs.readFileSync(collectionJsonPath, 'utf8'))
-                    console.log(`- Collection: ${collectionJson.name}`)
-                } catch {}
+                    this.log(`- Collection: ${collectionJson.name}`)
+                } catch (error) {
+                    console.error(`Failed to read collection JSON file: ${error instanceof Error ? error.message : error}`)
+                }
             }
 
         }
         if (candyMachineConfig.config.collection) {
-            console.log(`- Collection ID: ${candyMachineConfig.config.collection}`)
+            this.log(`- Collection ID: ${candyMachineConfig.config.collection}`)
         }
         const hasGlobalGuards = candyMachineConfig.config.guardConfig && Object.keys(candyMachineConfig.config.guardConfig).length > 0
         const hasGroups = candyMachineConfig.config.groups && candyMachineConfig.config.groups.length > 0
         if (hasGlobalGuards) {
-            console.log(`- Global guards: ${Object.keys(candyMachineConfig.config.guardConfig!).join(', ')}`)
+            this.log(`- Global guards: ${Object.keys(candyMachineConfig.config.guardConfig!).join(', ')}`)
         }
         if (hasGroups) {
-            console.log(`- Guard groups: ${candyMachineConfig.config.groups!.map(g => g.label).join(', ')}`)
+            this.log(`- Guard groups: ${candyMachineConfig.config.groups!.map(g => g.label).join(', ')}`)
         }
 
         this.logSuccess(`🎉 Candy machine created successfully!`)
@@ -203,7 +205,7 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
             })
 
             const res = await umiSendAndConfirmTransaction(umi, tx)
-            console.log('Tx confirmed')
+            this.log('Tx confirmed')
 
             // Write candy machine id to config file
             candyMachineConfig.candyMachineId = candyMachineId.publicKey
@@ -273,23 +275,29 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
     private async createCollection(umi: Umi, candyMachineConfig: CandyMachineConfig, assets: any, candyMachineDir: string) {
         const collection = generateSigner(umi)
 
+        // Validate collection files exist
+        if (!assets.collectionFiles?.image) {
+            throw new Error('No collection image file found')
+        }
+        if (!assets.collectionFiles?.json) {
+            throw new Error('No collection json file found')
+        }
+
         // Collection image upload
         const collectionImageSpinner = ora('🖼️  Uploading collection image...').start()
-        const collectionImage = await uploadFiles(umi, [path.join(candyMachineDir, 'assets', assets.collectionFiles?.image!)])
+        const collectionImage = await uploadFiles(umi, [path.join(candyMachineDir, 'assets', assets.collectionFiles.image)])
         collectionImageSpinner.succeed('Collection image uploaded')
 
         // Update collection json with image URI
-        if (!assets.collectionFiles?.json) throw new Error('No collection json file found')
-
-        const collectionJson = JSON.parse(fs.readFileSync(path.join(candyMachineDir, 'assets', assets.collectionFiles?.json!), 'utf8'))
+        const collectionJson = JSON.parse(fs.readFileSync(path.join(candyMachineDir, 'assets', assets.collectionFiles.json), 'utf8'))
         collectionJson.image = collectionImage[0].uri
         collectionJson.properties.files[0].uri = collectionImage[0].uri
         collectionJson.properties.files[0].type = collectionImage[0].mimeType
-        fs.writeFileSync(path.join(candyMachineDir, 'assets', assets.collectionFiles?.json!), JSON.stringify(collectionJson, null, 2))
+        fs.writeFileSync(path.join(candyMachineDir, 'assets', assets.collectionFiles.json), JSON.stringify(collectionJson, null, 2))
 
         // Collection metadata upload
         const collectionJsonSpinner = ora('📄 Uploading collection metadata...').start()
-        const jsonUri = await uploadFiles(umi, [path.join(candyMachineDir, 'assets', assets.collectionFiles?.json!)])
+        const jsonUri = await uploadFiles(umi, [path.join(candyMachineDir, 'assets', assets.collectionFiles.json)])
         collectionJson.uri = jsonUri[0].uri
         collectionJsonSpinner.succeed('Collection metadata uploaded')
 
@@ -336,7 +344,7 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
             throw error;
         }
 
-        console.log('Tx confirmed')
+        this.log('Tx confirmed')
 
         // Update config with candy machine id
         candyMachineConfig.candyMachineId = candyMachine.publicKey

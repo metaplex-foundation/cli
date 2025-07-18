@@ -1,6 +1,6 @@
-import { exec } from 'child_process'
+import { exec } from 'node:child_process'
 import { runCli } from '../../runCli'
-import { promisify } from 'util'
+import { promisify } from 'node:util'
 import { createCoreCollection } from '../core/corehelpers'
 import { expect } from 'chai'
 
@@ -27,10 +27,10 @@ describe('cm create commands', () => {
 
             // console.log('Creating test candy machine directory')
             // Await the directory creation
-            await execAsync("npm run create-test-cm -- --name=" + cmName + " --with-config --collection=" + collectionId)
+            await execAsync(`npm run create-test-cm -- --name=${cmName} --with-config --collection=${collectionId}`)
 
             const { stdout, stderr, code } = await runCli(
-                ["cm", "create", "./" + cmName]
+                ["cm", "create", `./${cmName}`]
             )
 
             // Assert the command succeeded
@@ -40,7 +40,7 @@ describe('cm create commands', () => {
         } finally {
             // Clean up even if test fails
             try {
-                await execAsync("rm -rf ./" + cmName)
+                await execAsync(`rm -rf ./${cmName}`)
                 // console.log(`Cleaned up ${cmName} directory`)
             } catch (cleanupError) {
                 // console.error(`Cleanup failed for ${cmName}:`, cleanupError)

@@ -1,4 +1,4 @@
-import { Command } from '@oclif/core'
+import { Command, Flags } from '@oclif/core'
 import { getDefaultConfigPath, readConfig } from '../../../lib/Context.js'
 import { storageProviders } from '../../../lib/uploader/uploadProviders/index.js'
 import { select } from '@inquirer/prompts'

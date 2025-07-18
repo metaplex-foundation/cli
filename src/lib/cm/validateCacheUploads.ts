@@ -27,4 +27,4 @@ const validateCacheUploads = async (assetCache: CandyMachineAssetCache, option: 
     }
 }
 
-export default validateCacheUploads
+export { validateCacheUploads }

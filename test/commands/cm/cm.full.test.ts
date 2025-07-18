@@ -1,9 +1,9 @@
-import { exec } from 'child_process'
+import { exec } from 'node:child_process'
 import { runCli } from '../../runCli'
-import { promisify } from 'util'
+import { promisify } from 'node:util'
 import { createCoreCollection } from '../core/corehelpers'
 import { expect } from 'chai'
-import fs from 'fs'
+import fs from 'node:fs'
 
 const execAsync = promisify(exec)
 
@@ -26,12 +26,12 @@ describe('cm full lifecycle commands', () => {
 
             // console.log('Creating test candy machine directory with assets and config')
             // Create directory with assets (uploaded) and config
-            await execAsync("npm run create-test-cm -- --name=" + cmName + " --with-config --collection=" + collectionId + " --with-assets --uploaded --assets=10")
+            await execAsync(`npm run create-test-cm -- --name=${cmName} --with-config --collection=${collectionId} --with-assets --uploaded --assets=10`)
 
             // Step 1: Create candy machine
             // console.log('Step 1: Creating candy machine...')
             const { stdout: cmCreateStdout, stderr: cmCreateStderr, code: cmCreateCode } = await runCli(
-                ["cm", "create", "./" + cmName]
+                ["cm", "create", `./${cmName}`]
             )
             // console.log('Cm create stdout:', cmCreateStdout)
             // console.log('Cm create stderr:', cmCreateStderr)
@@ -45,7 +45,7 @@ describe('cm full lifecycle commands', () => {
             // Step 2: Insert assets
             // console.log('Step 2: Inserting assets...')
             const { stdout: cmInsertStdout, stderr: cmInsertStderr, code: cmInsertCode } = await runCli(
-                ["cm", "insert", "./" + cmName]
+                ["cm", "insert", `./${cmName}`]
             )
             // console.log('Cm insert stdout:', cmInsertStdout)
             // console.log('Cm insert stderr:', cmInsertStderr)
@@ -70,7 +70,7 @@ describe('cm full lifecycle commands', () => {
             // Step 3: Withdraw candy machine
             // console.log('Step 3: Withdrawing candy machine...')
             const { stdout: cmWithdrawStdout, stderr: cmWithdrawStderr, code: cmWithdrawCode } = await runCli(
-                ["cm", "withdraw", "./" + cmName, "--force"]
+                ["cm", "withdraw", `./${cmName}`, "--force"]
             )
             // console.log('Cm withdraw stdout:', cmWithdrawStdout)
             // console.log('Cm withdraw stderr:', cmWithdrawStderr)
@@ -86,7 +86,7 @@ describe('cm full lifecycle commands', () => {
         } finally {
             // Clean up even if test fails
             try {
-                await execAsync("rm -rf ./" + cmName)
+                await execAsync(`rm -rf ./${cmName}`)
                 // console.log(`Cleaned up ${cmName} directory`)
             } catch (cleanupError) {
                 // console.error(`Cleanup failed for ${cmName}:`, cleanupError)

@@ -14,7 +14,7 @@ All candy machine commands work from a **candy machine asset directory** that co
 
 ### Standard Directory Structure
 
-```
+```text
 candy-machine-name/
 ├── assets/
 │   ├── 0.png              # Image files (PNG, JPG)
@@ -419,7 +419,7 @@ mplx cm create --wizard
 ```
 
 **Example Output:**
-```
+```text
 --------------------------------
     
     Welcome to the Candy Machine Creator Wizard!

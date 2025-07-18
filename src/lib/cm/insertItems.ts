@@ -24,7 +24,13 @@ const insertItems = async (umi: Umi, candyMachineConfig: CandyMachineConfig, ass
         const { input } = await import('@inquirer/prompts')
         const reloadChoice = await input({
             message: 'Do you want to reload all items? (y/n or q to quit)',
-            validate: (value) => true
+            validate: (value) => {
+                const trimmedValue = value.trim().toLowerCase()
+                if (['y', 'n', 'q'].includes(trimmedValue)) {
+                    return true
+                }
+                return 'Please enter y, n, or q'
+            }
         })
         
         if (reloadChoice.trim().toLowerCase() === 'q') {
@@ -118,7 +124,6 @@ const insertItems = async (umi: Umi, candyMachineConfig: CandyMachineConfig, ass
         })
     }
 
-    // TODO: Send transaction and handle result
     const transactionResults = await umiSendAllTransactionsAndConfirm(umi, transactions, {
         message: 'Uploading Assets to Candy Machine...',
     })

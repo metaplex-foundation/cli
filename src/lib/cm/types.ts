@@ -1,4 +1,4 @@
-import { ConfigLineSettings, HiddenSettings } from "@metaplex-foundation/mpl-core-candy-machine"
+import type { ConfigLineSettings, HiddenSettings } from "@metaplex-foundation/mpl-core-candy-machine"
 
 // Raw guard configuration types (before parsing)
 export type RawAddressGate = {
@@ -45,7 +45,7 @@ export type RawAssetPaymentMulti = {
 }
 
 export type RawBotTax = {
-    lamports: number
+    lamports: string
     lastInstruction: boolean
 }
 
@@ -58,13 +58,13 @@ export type RawEndDate = {
 }
 
 export type RawFreezeSolPayment = {
-    lamports: number
+    lamports: string
     destination: string
     period: number
 }
 
 export type RawFreezeTokenPayment = {
-    amount: number
+    amount: string
     mint: string
     destinationAta: string
     period: number
@@ -108,12 +108,12 @@ export type RawRedeemedAmount = {
 }
 
 export type RawSolFixedFee = {
-    lamports: number
+    lamports: string
     destination: string
 }
 
 export type RawSolPayment = {
-    lamports: number
+    lamports: string
     destination: string
 }
 
@@ -126,23 +126,23 @@ export type RawThirdPartySigner = {
 }
 
 export type RawToken2022Payment = {
-    amount: number
+    amount: string
     mint: string
     destinationAta: string
 }
 
 export type RawTokenBurn = {
     mint: string
-    amount: number
+    amount: string
 }
 
 export type RawTokenGate = {
     mint: string
-    amount: number
+    amount: string
 }
 
 export type RawTokenPayment = {
-    amount: number
+    amount: string
     mint: string
     destinationAta: string
 }
@@ -151,8 +151,15 @@ export type RawVanityMint = {
     regex: string
 }
 
-// Union type for all raw guards
-export type RawGuardConfig = {
+// Utility type to ensure object has at least one property
+type NonEmptyObject<T> = {
+    [K in keyof T]: T[K]
+} & {
+    [K in keyof T]: T[K] extends undefined ? never : T[K]
+}
+
+// Union type for all raw guards - must have at least one guard property
+export type RawGuardConfig = NonEmptyObject<{
     addressGate?: RawAddressGate
     allocation?: RawAllocation
     allowList?: RawAllowList
@@ -184,7 +191,7 @@ export type RawGuardConfig = {
     tokenGate?: RawTokenGate
     tokenPayment?: RawTokenPayment
     vanityMint?: RawVanityMint
-}
+}>
 
 // Raw group configuration
 export type RawGuardGroup = {
@@ -192,25 +199,25 @@ export type RawGuardGroup = {
     guards: RawGuardConfig
 }
 
-export type CandyMachineConfig = {
+export interface CandyMachineConfig {
     name: string
     candyMachineId?: string
-    directory?: string
-    assetsDirectory?: string
+    readonly directory?: string
+    readonly assetsDirectory?: string
     config: {
         collection: string
         itemsAvailable: number
         isMutable: boolean
-        isSequential: boolean
+        readonly isSequential: boolean
         guardConfig?: RawGuardConfig
         groups?: RawGuardGroup[]
-        configLineSettings?: ConfigLineSettings
-        hiddenSettings?: HiddenSettings
+        readonly configLineSettings?: ConfigLineSettings
+        readonly hiddenSettings?: HiddenSettings
     }
 }
 
 export interface CandyMachineAssetCache {
-    assetItems: { [key: number]: CandyMachineAssetCacheItem }
+    assetItems: Record<number, CandyMachineAssetCacheItem>
 }
 
 export interface CandyMachineAssetCacheItem {

@@ -1,6 +1,9 @@
 import { select } from '@inquirer/prompts'
 import { Command, Flags, Args } from '@oclif/core'
-import { exec } from 'child_process'
+import { exec } from 'node:child_process'
+import { promisify } from 'node:util'
+
+const execAsync = promisify(exec)
 
 const templates = {
     'shank': 'https://github.com/metaplex-foundation/solana-project-template-2.0.git',
@@ -23,7 +26,6 @@ export default class ToolboxProgramTemplate extends Command {
 
         let template = args.template || undefined
 
-
         if (!template) {
             // launch a prompt to select the template
             template = await select({
@@ -32,15 +34,25 @@ export default class ToolboxProgramTemplate extends Command {
             })
         }
 
-        exec(`git clone ${templates[template as keyof typeof templates]}`, (error, stdout, stderr) => {
-            if (error) {
-                this.error(error)
+        // Validate that the selected template exists in the templates object
+        if (!templates[template as keyof typeof templates]) {
+            this.error(`Template '${template}' not found. Available templates: ${Object.keys(templates).join(', ')}`)
+        }
+
+        try {
+            const { stdout, stderr } = await execAsync(`git clone ${templates[template as keyof typeof templates]}`)
+            
+            if (stdout) {
+                this.log(stdout)
             }
-            this.log(stdout)
-            this.log(stderr)
-        })
-
+            
+            if (stderr) {
+                this.error(stderr)
+            }
+            
+            this.log(`Template '${template}' cloned successfully`)
+        } catch (error) {
+            this.error(`Failed to clone template '${template}': ${error instanceof Error ? error.message : 'Unknown error'}`)
+        }
     }
-
-
 }

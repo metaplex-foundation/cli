@@ -119,6 +119,188 @@ const validateSolPayment = (guardValue: unknown): guardValue is RawSolPayment =>
            guardValue.destination.length > 0
 }
 
+const validateAssetBurnMulti = (guardValue: unknown): guardValue is RawAssetBurnMulti => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.requiredCollection === 'string' && 
+           guardValue.requiredCollection.length > 0 &&
+           typeof guardValue.num === 'number' && 
+           Number.isInteger(guardValue.num) && 
+           guardValue.num > 0
+}
+
+const validateAssetGate = (guardValue: unknown): guardValue is RawAssetGate => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.requiredCollection === 'string' && 
+           guardValue.requiredCollection.length > 0
+}
+
+const validateAssetMintLimit = (guardValue: unknown): guardValue is RawAssetMintLimit => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.id === 'number' && 
+           typeof guardValue.limit === 'number' && 
+           typeof guardValue.requiredCollection === 'string' && 
+           guardValue.requiredCollection.length > 0
+}
+
+const validateAssetPayment = (guardValue: unknown): guardValue is RawAssetPayment => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.requiredCollection === 'string' && 
+           guardValue.requiredCollection.length > 0 &&
+           typeof guardValue.destination === 'string' && 
+           guardValue.destination.length > 0
+}
+
+const validateAssetPaymentMulti = (guardValue: unknown): guardValue is RawAssetPaymentMulti => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.requiredCollection === 'string' && 
+           guardValue.requiredCollection.length > 0 &&
+           typeof guardValue.destination === 'string' && 
+           guardValue.destination.length > 0 &&
+           typeof guardValue.num === 'number' && 
+           Number.isInteger(guardValue.num) && 
+           guardValue.num > 0
+}
+
+const validateEdition = (guardValue: unknown): guardValue is RawEdition => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.editionStartOffset === 'number' && 
+           Number.isInteger(guardValue.editionStartOffset) && 
+           guardValue.editionStartOffset >= 0
+}
+
+const validateEndDate = (guardValue: unknown): guardValue is RawEndDate => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.date === 'number' && 
+           Number.isInteger(guardValue.date) && 
+           guardValue.date > 0
+}
+
+const validateFreezeTokenPayment = (guardValue: unknown): guardValue is RawFreezeTokenPayment => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.amount === 'number' && 
+           guardValue.amount > 0 &&
+           typeof guardValue.mint === 'string' && 
+           guardValue.mint.length > 0 &&
+           typeof guardValue.destinationAta === 'string' && 
+           guardValue.destinationAta.length > 0 &&
+           typeof guardValue.period === 'number' && 
+           Number.isInteger(guardValue.period) && 
+           guardValue.period > 0
+}
+
+const validateGatekeeper = (guardValue: unknown): guardValue is RawGatekeeper => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.gatekeeperNetwork === 'string' && 
+           guardValue.gatekeeperNetwork.length > 0 &&
+           typeof guardValue.expireOnUse === 'boolean'
+}
+
+const validateMintLimit = (guardValue: unknown): guardValue is RawMintLimit => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.id === 'number' && 
+           typeof guardValue.limit === 'number' && 
+           Number.isInteger(guardValue.limit) && 
+           guardValue.limit > 0
+}
+
+const validateNftBurn = (guardValue: unknown): guardValue is RawNftBurn => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.requiredCollection === 'string' && 
+           guardValue.requiredCollection.length > 0
+}
+
+const validateNftGate = (guardValue: unknown): guardValue is RawNftGate => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.requiredCollection === 'string' && 
+           guardValue.requiredCollection.length > 0
+}
+
+const validateNftMintLimit = (guardValue: unknown): guardValue is RawNftMintLimit => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.id === 'number' && 
+           typeof guardValue.limit === 'number' && 
+           Number.isInteger(guardValue.limit) && 
+           guardValue.limit > 0 &&
+           typeof guardValue.requiredCollection === 'string' && 
+           guardValue.requiredCollection.length > 0
+}
+
+const validateNftPayment = (guardValue: unknown): guardValue is RawNftPayment => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.requiredCollection === 'string' && 
+           guardValue.requiredCollection.length > 0 &&
+           typeof guardValue.destination === 'string' && 
+           guardValue.destination.length > 0
+}
+
+const validateProgramGate = (guardValue: unknown): guardValue is RawProgramGate => {
+    return isValidGuardValue(guardValue) && 
+           Array.isArray(guardValue.additional) &&
+           guardValue.additional.every((item: unknown) => typeof item === 'string' && item.length > 0)
+}
+
+const validateRedeemedAmount = (guardValue: unknown): guardValue is RawRedeemedAmount => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.maximum === 'number' && 
+           Number.isInteger(guardValue.maximum) && 
+           guardValue.maximum > 0
+}
+
+const validateStartDate = (guardValue: unknown): guardValue is RawStartDate => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.date === 'number' && 
+           Number.isInteger(guardValue.date) && 
+           guardValue.date > 0
+}
+
+const validateThirdPartySigner = (guardValue: unknown): guardValue is RawThirdPartySigner => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.signerKey === 'string' && 
+           guardValue.signerKey.length > 0
+}
+
+const validateToken2022Payment = (guardValue: unknown): guardValue is RawToken2022Payment => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.amount === 'number' && 
+           guardValue.amount > 0 &&
+           typeof guardValue.mint === 'string' && 
+           guardValue.mint.length > 0 &&
+           typeof guardValue.destinationAta === 'string' && 
+           guardValue.destinationAta.length > 0
+}
+
+const validateTokenBurn = (guardValue: unknown): guardValue is RawTokenBurn => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.mint === 'string' && 
+           guardValue.mint.length > 0 &&
+           typeof guardValue.amount === 'number' && 
+           guardValue.amount > 0
+}
+
+const validateTokenGate = (guardValue: unknown): guardValue is RawTokenGate => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.mint === 'string' && 
+           guardValue.mint.length > 0 &&
+           typeof guardValue.amount === 'number' && 
+           guardValue.amount > 0
+}
+
+const validateTokenPayment = (guardValue: unknown): guardValue is RawTokenPayment => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.amount === 'number' && 
+           guardValue.amount > 0 &&
+           typeof guardValue.mint === 'string' && 
+           guardValue.mint.length > 0 &&
+           typeof guardValue.destinationAta === 'string' && 
+           guardValue.destinationAta.length > 0
+}
+
+const validateVanityMint = (guardValue: unknown): guardValue is RawVanityMint => {
+    return isValidGuardValue(guardValue) && 
+           typeof guardValue.regex === 'string' && 
+           guardValue.regex.length > 0
+}
+
 // Helper function to parse individual guards
 const parseGuard = (guardName: string, guardValue: unknown): Partial<DefaultGuardSet> => {
     const parsedGuard: Partial<DefaultGuardSet> = {}
@@ -157,41 +339,51 @@ const parseGuard = (guardName: string, guardValue: unknown): Partial<DefaultGuar
             break;
         }
         case 'assetBurnMulti': {
-            const { requiredCollection, num } = guardValue as { requiredCollection: string, num: number };
+            if (!validateAssetBurnMulti(guardValue)) {
+                throw new Error('assetBurnMulti guard requires valid requiredCollection (string) and num (positive integer) fields')
+            }
             parsedGuard.assetBurnMulti = some({
-                requiredCollection: publicKey(requiredCollection),
-                num
+                requiredCollection: publicKey(guardValue.requiredCollection),
+                num: guardValue.num
             });
             break;
         }
         case 'assetGate': {
-            const { requiredCollection } = guardValue as { requiredCollection: string };
-            parsedGuard.assetGate = some({ requiredCollection: publicKey(requiredCollection) });
+            if (!validateAssetGate(guardValue)) {
+                throw new Error('assetGate guard requires a valid requiredCollection field (string)')
+            }
+            parsedGuard.assetGate = some({ requiredCollection: publicKey(guardValue.requiredCollection) });
             break;
         }
         case 'assetMintLimit': {
-            const { id, limit, requiredCollection } = guardValue as { id: number, limit: number, requiredCollection: string };
+            if (!validateAssetMintLimit(guardValue)) {
+                throw new Error('assetMintLimit guard requires valid id (number), limit (number), and requiredCollection (string) fields')
+            }
             parsedGuard.assetMintLimit = some({
-                id,
-                limit,
-                requiredCollection: publicKey(requiredCollection)
+                id: guardValue.id,
+                limit: guardValue.limit,
+                requiredCollection: publicKey(guardValue.requiredCollection)
             });
             break;
         }
         case 'assetPayment': {
-            const { requiredCollection, destination } = guardValue as { requiredCollection: string, destination: string };
+            if (!validateAssetPayment(guardValue)) {
+                throw new Error('assetPayment guard requires valid requiredCollection (string) and destination (string) fields')
+            }
             parsedGuard.assetPayment = some({
-                requiredCollection: publicKey(requiredCollection),
-                destination: publicKey(destination)
+                requiredCollection: publicKey(guardValue.requiredCollection),
+                destination: publicKey(guardValue.destination)
             });
             break;
         }
         case 'assetPaymentMulti': {
-            const { requiredCollection, destination, num } = guardValue as { requiredCollection: string, destination: string, num: number };
+            if (!validateAssetPaymentMulti(guardValue)) {
+                throw new Error('assetPaymentMulti guard requires valid requiredCollection (string), destination (string), and num (positive integer) fields')
+            }
             parsedGuard.assetPaymentMulti = some({
-                requiredCollection: publicKey(requiredCollection),
-                destination: publicKey(destination),
-                num
+                requiredCollection: publicKey(guardValue.requiredCollection),
+                destination: publicKey(guardValue.destination),
+                num: guardValue.num
             });
             break;
         }
@@ -207,13 +399,17 @@ const parseGuard = (guardName: string, guardValue: unknown): Partial<DefaultGuar
             break;
         }
         case 'edition': {
-            const { editionStartOffset } = guardValue as { editionStartOffset: number };
-            parsedGuard.edition = some({ editionStartOffset });
+            if (!validateEdition(guardValue)) {
+                throw new Error('edition guard requires a valid editionStartOffset field (non-negative integer)')
+            }
+            parsedGuard.edition = some({ editionStartOffset: guardValue.editionStartOffset });
             break;
         }
         case 'endDate': {
-            const { date } = guardValue as { date: number };
-            parsedGuard.endDate = some({ date: BigInt(date) });
+            if (!validateEndDate(guardValue)) {
+                throw new Error('endDate guard requires a valid date field (positive integer)')
+            }
+            parsedGuard.endDate = some({ date: BigInt(guardValue.date) });
             break;
         }
         case 'freezeSolPayment': {
@@ -229,65 +425,83 @@ const parseGuard = (guardName: string, guardValue: unknown): Partial<DefaultGuar
             break;
         }
         case 'freezeTokenPayment': {
-            const { amount, mint, destinationAta, period } = guardValue as { amount: number, mint: string, destinationAta: string, period: number };
+            if (!validateFreezeTokenPayment(guardValue)) {
+                throw new Error('freezeTokenPayment guard requires valid amount (positive number), mint (string), destinationAta (string), and period (positive integer) fields')
+            }
             parsedGuard.freezeTokenPayment = some({
-                amount: BigInt(amount),
-                mint: publicKey(mint),
-                destinationAta: publicKey(destinationAta),
-                period: BigInt(period)
+                amount: BigInt(guardValue.amount),
+                mint: publicKey(guardValue.mint),
+                destinationAta: publicKey(guardValue.destinationAta),
+                period: BigInt(guardValue.period)
             });
             break;
         }
         case 'gatekeeper': {
-            const { gatekeeperNetwork, expireOnUse } = guardValue as { gatekeeperNetwork: string, expireOnUse: boolean };
+            if (!validateGatekeeper(guardValue)) {
+                throw new Error('gatekeeper guard requires valid gatekeeperNetwork (string) and expireOnUse (boolean) fields')
+            }
             parsedGuard.gatekeeper = some({
-                gatekeeperNetwork: publicKey(gatekeeperNetwork),
-                expireOnUse
+                gatekeeperNetwork: publicKey(guardValue.gatekeeperNetwork),
+                expireOnUse: guardValue.expireOnUse
             });
             break;
         }
         case 'mintLimit': {
-            const { id, limit } = guardValue as { id: number, limit: number };
-            parsedGuard.mintLimit = some({ id, limit });
+            if (!validateMintLimit(guardValue)) {
+                throw new Error('mintLimit guard requires valid id (number) and limit (positive integer) fields')
+            }
+            parsedGuard.mintLimit = some({ id: guardValue.id, limit: guardValue.limit });
             break;
         }
         case 'nftBurn': {
-            const { requiredCollection } = guardValue as { requiredCollection: string };
-            parsedGuard.nftBurn = some({ requiredCollection: publicKey(requiredCollection) });
+            if (!validateNftBurn(guardValue)) {
+                throw new Error('nftBurn guard requires a valid requiredCollection field (string)')
+            }
+            parsedGuard.nftBurn = some({ requiredCollection: publicKey(guardValue.requiredCollection) });
             break;
         }
         case 'nftGate': {
-            const { requiredCollection } = guardValue as { requiredCollection: string };
-            parsedGuard.nftGate = some({ requiredCollection: publicKey(requiredCollection) });
+            if (!validateNftGate(guardValue)) {
+                throw new Error('nftGate guard requires a valid requiredCollection field (string)')
+            }
+            parsedGuard.nftGate = some({ requiredCollection: publicKey(guardValue.requiredCollection) });
             break;
         }
         case 'nftMintLimit': {
-            const { id, limit, requiredCollection } = guardValue as { id: number, limit: number, requiredCollection: string };
+            if (!validateNftMintLimit(guardValue)) {
+                throw new Error('nftMintLimit guard requires valid id (number), limit (positive integer), and requiredCollection (string) fields')
+            }
             parsedGuard.nftMintLimit = some({
-                id,
-                limit,
-                requiredCollection: publicKey(requiredCollection)
+                id: guardValue.id,
+                limit: guardValue.limit,
+                requiredCollection: publicKey(guardValue.requiredCollection)
             });
             break;
         }
         case 'nftPayment': {
-            const { requiredCollection, destination } = guardValue as { requiredCollection: string, destination: string };
+            if (!validateNftPayment(guardValue)) {
+                throw new Error('nftPayment guard requires valid requiredCollection (string) and destination (string) fields')
+            }
             parsedGuard.nftPayment = some({
-                requiredCollection: publicKey(requiredCollection),
-                destination: publicKey(destination)
+                requiredCollection: publicKey(guardValue.requiredCollection),
+                destination: publicKey(guardValue.destination)
             });
             break;
         }
         case 'programGate': {
-            const { additional } = guardValue as { additional: string[] };
+            if (!validateProgramGate(guardValue)) {
+                throw new Error('programGate guard requires a valid additional field (array of strings)')
+            }
             parsedGuard.programGate = some({
-                additional: additional.map(pub => publicKey(pub))
+                additional: guardValue.additional.map(pub => publicKey(pub))
             });
             break;
         }
         case 'redeemedAmount': {
-            const { maximum } = guardValue as { maximum: number };
-            parsedGuard.redeemedAmount = some({ maximum: BigInt(maximum) });
+            if (!validateRedeemedAmount(guardValue)) {
+                throw new Error('redeemedAmount guard requires a valid maximum field (positive integer)')
+            }
+            parsedGuard.redeemedAmount = some({ maximum: BigInt(guardValue.maximum) });
             break;
         }
         case 'solFixedFee': {
@@ -313,52 +527,66 @@ const parseGuard = (guardName: string, guardValue: unknown): Partial<DefaultGuar
             break;
         }
         case 'startDate': {
-            const { date } = guardValue as { date: number };
-            parsedGuard.startDate = some({ date: BigInt(date) });
+            if (!validateStartDate(guardValue)) {
+                throw new Error('startDate guard requires a valid date field (positive integer)')
+            }
+            parsedGuard.startDate = some({ date: BigInt(guardValue.date) });
             break;
         }
         case 'thirdPartySigner': {
-            const { signerKey } = guardValue as { signerKey: string };
-            parsedGuard.thirdPartySigner = some({ signerKey: publicKey(signerKey) });
+            if (!validateThirdPartySigner(guardValue)) {
+                throw new Error('thirdPartySigner guard requires a valid signerKey field (string)')
+            }
+            parsedGuard.thirdPartySigner = some({ signerKey: publicKey(guardValue.signerKey) });
             break;
         }
         case 'token2022Payment': {
-            const { amount, mint, destinationAta } = guardValue as { amount: number, mint: string, destinationAta: string };
+            if (!validateToken2022Payment(guardValue)) {
+                throw new Error('token2022Payment guard requires valid amount (positive number), mint (string), and destinationAta (string) fields')
+            }
             parsedGuard.token2022Payment = some({
-                amount: BigInt(amount),
-                mint: publicKey(mint),
-                destinationAta: publicKey(destinationAta)
+                amount: BigInt(guardValue.amount),
+                mint: publicKey(guardValue.mint),
+                destinationAta: publicKey(guardValue.destinationAta)
             });
             break;
         }
         case 'tokenBurn': {
-            const { mint, amount } = guardValue as { mint: string, amount: number };
+            if (!validateTokenBurn(guardValue)) {
+                throw new Error('tokenBurn guard requires valid mint (string) and amount (positive number) fields')
+            }
             parsedGuard.tokenBurn = some({
-                mint: publicKey(mint),
-                amount: BigInt(amount)
+                mint: publicKey(guardValue.mint),
+                amount: BigInt(guardValue.amount)
             });
             break;
         }
         case 'tokenGate': {
-            const { mint, amount } = guardValue as { mint: string, amount: number };
+            if (!validateTokenGate(guardValue)) {
+                throw new Error('tokenGate guard requires valid mint (string) and amount (positive number) fields')
+            }
             parsedGuard.tokenGate = some({
-                mint: publicKey(mint),
-                amount: BigInt(amount)
+                mint: publicKey(guardValue.mint),
+                amount: BigInt(guardValue.amount)
             });
             break;
         }
         case 'tokenPayment': {
-            const { amount, mint, destinationAta } = guardValue as { amount: number, mint: string, destinationAta: string };
+            if (!validateTokenPayment(guardValue)) {
+                throw new Error('tokenPayment guard requires valid amount (positive number), mint (string), and destinationAta (string) fields')
+            }
             parsedGuard.tokenPayment = some({
-                amount: BigInt(amount),
-                mint: publicKey(mint),
-                destinationAta: publicKey(destinationAta)
+                amount: BigInt(guardValue.amount),
+                mint: publicKey(guardValue.mint),
+                destinationAta: publicKey(guardValue.destinationAta)
             });
             break;
         }
         case 'vanityMint': {
-            const { regex } = guardValue as { regex: string };
-            parsedGuard.vanityMint = some({ regex });
+            if (!validateVanityMint(guardValue)) {
+                throw new Error('vanityMint guard requires a valid regex field (string)')
+            }
+            parsedGuard.vanityMint = some({ regex: guardValue.regex });
             break;
         }
     }

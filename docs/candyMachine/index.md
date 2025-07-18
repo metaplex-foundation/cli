@@ -207,7 +207,7 @@ For advanced users who want full control, you can run commands individually:
 2. **Create `cm-config.json`** manually with your desired configuration
 3. **Prepare assets** in the `assets/` directory with proper naming
 
-#### Step 2: Upload Assets (Optional - can be done before or after create)
+#### Step 2: Upload Assets —Optional— can be done before or after create
 
 ```bash
 # Navigate to your candy machine directory

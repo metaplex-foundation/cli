@@ -164,7 +164,7 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
                     const collectionJson = JSON.parse(fs.readFileSync(collectionJsonPath, 'utf8'))
                     this.log(`- Collection: ${collectionJson.name}`)
                 } catch (error) {
-                    console.error(`Failed to read collection JSON file: ${error instanceof Error ? error.message : error}`)
+                    this.error(`Failed to read collection JSON file: ${error instanceof Error ? error.message : error}`)
                 }
             }
 
@@ -172,13 +172,15 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
         if (candyMachineConfig.config.collection) {
             this.log(`- Collection ID: ${candyMachineConfig.config.collection}`)
         }
-        const hasGlobalGuards = candyMachineConfig.config.guardConfig && Object.keys(candyMachineConfig.config.guardConfig).length > 0
-        const hasGroups = candyMachineConfig.config.groups && candyMachineConfig.config.groups.length > 0
+        const guardConfig = candyMachineConfig.config.guardConfig
+        const groups = candyMachineConfig.config.groups
+        const hasGlobalGuards = guardConfig && Object.keys(guardConfig).length > 0
+        const hasGroups = groups && groups.length > 0
         if (hasGlobalGuards) {
-            this.log(`- Global guards: ${Object.keys(candyMachineConfig.config.guardConfig!).join(', ')}`)
+            this.log(`- Global guards: ${Object.keys(guardConfig).join(', ')}`)
         }
         if (hasGroups) {
-            this.log(`- Guard groups: ${candyMachineConfig.config.groups!.map(g => g.label).join(', ')}`)
+            this.log(`- Guard groups: ${groups.map(g => g.label).join(', ')}`)
         }
 
         this.logSuccess(`🎉 Candy machine created successfully!`)
@@ -340,7 +342,7 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
             await tx.sendAndConfirm(umi);
         } catch (error) {
             candyMachineCreatorSpinner.fail('Candy machine creation failed');
-            console.error('Full error:', error);
+            this.error(`Full error: ${error instanceof Error ? error.message : String(error)}`);
             throw error;
         }
 

@@ -20,7 +20,7 @@ describe('cm create wizard commands', () => {
 
     it.skip('can create a candy machine through wizard (stdin automation currently unsupported)', async () => {
         const cmName = "testCmW"
-        let collectionId: string = ''
+        let collectionId = ''
         try {
             ({ collectionId } = await createCoreCollection())
 

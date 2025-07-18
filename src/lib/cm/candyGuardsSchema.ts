@@ -277,7 +277,7 @@ export const token2022PaymentSchema: PromptItem[] = [
     },
     {
         name: 'mint',
-        prompt: 'Enter mint address for the token to be held by the wallet',
+        prompt: 'Enter mint address for the payment token',
         type: 'publicKey',
         required: true,
     },

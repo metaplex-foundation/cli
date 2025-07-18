@@ -12,7 +12,7 @@ export type ValidateAssetsResult =
       collectionFiles: { json: string | undefined; image: string | undefined }
     }
 
-const validateAssetsFolder = async (assetsFolder: string): Promise<ValidateAssetsResult> => {
+const validateAssetsFolder = (assetsFolder: string): ValidateAssetsResult => {
     const files = fs.readdirSync(assetsFolder)
 
     // we should have 3-4 different sets of files
@@ -45,12 +45,12 @@ const validateAssetsFolder = async (assetsFolder: string): Promise<ValidateAsset
             file.endsWith('.mp4') ||
             file.endsWith('.webm') ||
             file.endsWith('.mov') ||
-            file.endsWith('html') ||
-            file.endsWith('glb') ||
-            file.endsWith('gltf') ||
-            file.endsWith('mp3') ||
-            file.endsWith('wav') ||
-            file.endsWith('ogg')) {
+            file.endsWith('.html') ||
+            file.endsWith('.glb') ||
+            file.endsWith('.gltf') ||
+            file.endsWith('.mp3') ||
+            file.endsWith('.wav') ||
+            file.endsWith('.ogg')) {
             animationFiles.push(file)
         }
     }

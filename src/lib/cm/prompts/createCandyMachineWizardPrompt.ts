@@ -36,7 +36,7 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
     }
 
     // Prompt for directory-friendly name
-    let dirName = await input({
+    const dirName = await input({
         message: 'Directory name for your Candy Machine project? (letters, numbers, underscores, hyphens only, or q to quit)',
         validate: (value) => {
             if (value === 'q') return true
@@ -49,7 +49,7 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
 
     // Check if directory exists and is not empty
     const targetDir = path.join(process.cwd(), candyMachineConfig.name)
-    let directoryExists = fs.existsSync(targetDir)
+    const directoryExists = fs.existsSync(targetDir)
     let directoryHasFiles = false
     
     if (directoryExists) {
@@ -150,7 +150,7 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
             })
             checkAbort(existingCollection)
             if (existingCollection.trim().toLowerCase() === 'y') {
-                let collectionAddr = await input({
+                const collectionAddr = await input({
                     message: 'Collection Address? (or q to quit)',
                     validate: (value) => {
                         if (value === 'q') return true
@@ -199,7 +199,7 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
     }
 
     // Prompt for NFT mutability
-    let nftMutable = await input({
+    const nftMutable = await input({
         message: 'Should the NFTs be mutable? (y/n or q to quit)',
         validate: (value) => true
     })

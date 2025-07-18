@@ -8,6 +8,10 @@ export enum ValidateCacheUploadsOptions {
 const validateCacheUploads = async (assetCache: CandyMachineAssetCache, option: ValidateCacheUploadsOptions) => {
     const items = Object.values(assetCache.assetItems)
 
+    if (items.length === 0) {
+        throw new Error('Asset cache is empty - there are no items to validate')
+    }
+
     if (option === ValidateCacheUploadsOptions.STORAGE) {
         // Validate that all items have image and JSON URIs
         for (const item of items) {

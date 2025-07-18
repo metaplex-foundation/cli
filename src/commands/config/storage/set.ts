@@ -13,7 +13,13 @@ export default class ConfigStorageSet extends Command {
         const { flags, args } = await this.parse(ConfigStorageSet)
         const path = flags.config ?? getDefaultConfigPath()
 
-        const config = readConfig(path)
+        let config
+        try {
+            config = readConfig(path)
+        } catch (error) {
+            this.error(`Failed to read config file at ${path}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+            return
+        }
 
         const storageProvidersList = Object.values(storageProviders)
 
@@ -30,10 +36,13 @@ export default class ConfigStorageSet extends Command {
             options: {}
         }
 
-        const dir = dirname(path)
-        ensureDirectoryExists(dir)
-        writeJsonSync(path, config)
-
-        this.log(`Configuration updated: ${path}`)
+        try {
+            const dir = dirname(path)
+            ensureDirectoryExists(dir)
+            writeJsonSync(path, config)
+            this.log(`Configuration updated: ${path}`)
+        } catch (error) {
+            this.error(`Failed to write config file at ${path}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        }
     }
 }

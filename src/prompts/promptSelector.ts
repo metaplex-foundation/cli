@@ -29,11 +29,12 @@ const validateArrayItem = (item: any, itemType: PromptItemType): boolean | strin
             if (typeof item !== 'string') return 'must be a string'
             if (!isPublicKey(item)) return 'must be a valid public key'
             return true
-        case 'date':
+        case 'date': {
             if (typeof item !== 'string') return 'must be a string'
             const dateValue = new Date(item)
             if (isNaN(dateValue.getTime())) return 'must be a valid date'
             return true
+        }
         case 'array':
             if (!Array.isArray(item)) return 'must be an array'
             return true

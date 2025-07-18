@@ -6,7 +6,7 @@ import { ensureDirectoryExists, writeJsonSync } from '../../../lib/file.js'
 import rpcSelector from '../../../prompts/rpcSelectorPrompt.js'
 
 export default class ConfigRpcSetCommand extends Command {
-  static override description = 'Set a new active wallet from a list of wallets'
+  static override description = 'Set a new active RPC configuration from a list of RPCs'
 
   public async run(): Promise<void> {
     const { flags, args } = await this.parse(ConfigRpcSetCommand)

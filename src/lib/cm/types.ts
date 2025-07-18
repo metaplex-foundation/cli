@@ -153,10 +153,8 @@ export type RawVanityMint = {
 
 // Utility type to ensure object has at least one property
 type NonEmptyObject<T> = {
-    [K in keyof T]: T[K]
-} & {
-    [K in keyof T]: T[K] extends undefined ? never : T[K]
-}
+    [K in keyof T]: Pick<T, K> & Partial<T>
+}[keyof T]
 
 // Union type for all raw guards - must have at least one guard property
 export type RawGuardConfig = NonEmptyObject<{

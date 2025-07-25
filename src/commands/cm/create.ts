@@ -26,7 +26,7 @@ import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 import uploadFiles from '../../lib/uploader/uploadFiles.js'
 
 export default class CmCreate extends TransactionCommand<typeof CmCreate> {
-    static override description = `Create an MPL Core Candy Machine using 2 different methods:
+    static override description = `Create an MPL Core Candy Machine using 3 different methods:
 
     1. Interactive Wizard: Create a Candy Machine using the interactive wizard which guides you through the process.
        Example: mplx cm create --wizard
@@ -34,11 +34,8 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
     2. Template Directory Creation: Create a template directory for a candy machine.
        Example: mplx cm create --template
 
-    3. Direct Creation: Create a Candy Machine in current candy machine directory.
-       Example: mplx cm create
-
-    4. Direct Creation with Directory: Create a Candy Machine in a specific candy machine directory.
-       Example: mplx cm create <candy_machine_directory>
+    3. Direct Creation: Create a Candy Machine from an existing cm-config.json file.
+       Example: mplx cm create [directory]
     `
 
     static override examples = [
@@ -162,7 +159,9 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
                 const collectionJsonPath = path.join(process.cwd(), candyMachineConfig.name, 'assets', assets.collectionFiles.json)
                 try {
                     const collectionJson = JSON.parse(fs.readFileSync(collectionJsonPath, 'utf8'))
-                    this.log(`- Collection: ${collectionJson.name}`)
+                    if (collectionJson.name && collectionJson.name.trim() !== '') {
+                        this.log(`- Collection: ${collectionJson.name}`)
+                    }
                 } catch (error) {
                     this.error(`Failed to read collection JSON file: ${error instanceof Error ? error.message : error}`)
                 }

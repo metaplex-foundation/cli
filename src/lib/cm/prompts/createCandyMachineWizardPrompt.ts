@@ -91,8 +91,10 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
             // Actionable suggestions
             if (assets.error.includes('No json files')) {
                 console.log('➡️  Please add at least one asset JSON file (e.g., 0.json) to the assets folder.')
+                console.log('💡  Tip: You can use "mplx cm create --template" to generate sample assets and configuration.')
             } else if (assets.error.includes('No image files')) {
                 console.log('➡️  Please add at least one asset image file (e.g., 0.png) to the assets folder.')
+                console.log('💡  Tip: You can use "mplx cm create --template" to generate sample assets and configuration.')
             } else if (assets.error.includes('not the same')) {
                 // Mismatch in number of files
                 const assetDir = path.join(process.cwd(), candyMachineConfig.name, 'assets')
@@ -200,7 +202,7 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
 
     // Prompt for NFT mutability
     const nftMutable = await input({
-        message: 'Should the NFTs be mutable? (y/n or q to quit)',
+        message: 'Should the NFTs be mutable? (y/n or q to quit) [Recommend: y for flexibility]',
         validate: (value) => true
     })
     checkAbort(nftMutable)
@@ -213,7 +215,7 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
     checkAbort(globalGuardsPrompt)
     const globalGuards = globalGuardsPrompt.trim().toLowerCase() === 'y'
 
-    const guardChoices = Object.entries(candyGuardsSchema).map(([guard, prompts]) => guard)
+    const guardChoices = Object.entries(candyGuardsSchema).map(([guard, prompts]) => guard).sort()
 
     if (globalGuards) {
 

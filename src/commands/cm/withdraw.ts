@@ -10,6 +10,9 @@ import { readCmConfig } from '../../lib/cm/cm-utils.js'
 export default class CmWithdraw extends TransactionCommand<typeof CmWithdraw> {
     static override description = `Withdraw a candy machine and recover funds
 
+    ⚠️  WARNING: This action permanently deletes the candy machine and makes it unusable.
+    All non-redeemed items will be lost and cannot be recovered.
+
     Example:
     $ mplx cm withdraw
     $ mplx cm withdraw <directory>
@@ -35,7 +38,7 @@ export default class CmWithdraw extends TransactionCommand<typeof CmWithdraw> {
             default: false
         }),
         address: Flags.string({
-            description: 'The address to withdraw the candy machine to',
+            description: 'The candy machine address to withdraw (if no cm-config.json available)',
             required: false
         })
     }

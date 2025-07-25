@@ -43,7 +43,7 @@ export const botTaxSchema: PromptItem[] = [
     },
     {
         name: 'lastInstruction',
-        prompt: 'Is last instruction? If true it checks minting is the last instruction in the transaction',
+        prompt: 'Is last instruction? If true it checks minting is the last instruction in the transaction (⚠️  May fail with some wallets that inject a lighthouse instruction to the transaction.)',
         type: 'boolean',
     },
 ]
@@ -51,7 +51,7 @@ export const botTaxSchema: PromptItem[] = [
 export const endDateSchema: PromptItem[] = [
     {
         name: 'date',
-        prompt: 'Enter end date for the candy machine or group',
+        prompt: 'Enter end date for the candy machine or group (Format: YYYY-MM-DD HH:MM:SS, timezone: UTC)',
         type: 'date',
         required: true,
     },
@@ -223,7 +223,7 @@ export const solPaymentSchema: PromptItem[] = [
 export const startDateSchema: PromptItem[] = [
     {
         name: 'date',
-        prompt: 'Enter start date for the candy machine or group',
+        prompt: 'Enter start date for the candy machine or group (Format: YYYY-MM-DD HH:MM:SS, timezone: UTC)',
         type: 'date',
         required: true,
     },

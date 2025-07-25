@@ -15,9 +15,9 @@ const parseArgs = () => {
     const args = process.argv.slice(2)
     return {
         withConfig: args.includes('--with-config'),
-        withAssets: args.includes('--with-assets'),
+        withAssets: !args.includes('--no-assets'),
         name: args.find(arg => arg.startsWith('--name='))?.split('=')[1] || 'candy1',
-        numberOfAssets: Number.parseInt(args.find(arg => arg.startsWith('--assets='))?.split('=')[1] || '100'),
+        numberOfAssets: Number.parseInt(args.find(arg => arg.startsWith('--assets='))?.split('=')[1] || '50'),
         collection: args.find(arg => arg.startsWith('--collection='))?.split('=')[1],
         uploaded: args.includes('--uploaded')
     };
@@ -106,9 +106,9 @@ const createDummyPNG = () => {
 export const createTestCandyMachineAssetDirectory = (options = {}) => {
     const {
         withConfig = false,
-        withAssets = false,
+        withAssets = true,
         name = 'candy1',
-        numberOfAssets = 100,
+        numberOfAssets = 50,
         collection,
         uploaded = false
     } = options

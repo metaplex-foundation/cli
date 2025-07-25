@@ -26,16 +26,11 @@ import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 import uploadFiles from '../../lib/uploader/uploadFiles.js'
 
 export default class CmCreate extends TransactionCommand<typeof CmCreate> {
-    static override description = `Create an MPL Core Candy Machine using 3 different methods:
+    static override description = `Create an MPL Core Candy Machine
 
-    1. Interactive Wizard: Create a Candy Machine using the interactive wizard which guides you through the process.
-       Example: mplx cm create --wizard
-
-    2. Template Directory Creation: Create a template directory for a candy machine.
-       Example: mplx cm create --template
-
-    3. Direct Creation: Create a Candy Machine from an existing cm-config.json file.
-       Example: mplx cm create [directory]
+    Use --wizard for an interactive setup process
+    Use --template to create a template directory
+    Use with a directory path to create from an existing cm-config.json file
     `
 
     static override examples = [

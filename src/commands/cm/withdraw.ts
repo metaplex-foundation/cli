@@ -13,14 +13,20 @@ export default class CmWithdraw extends TransactionCommand<typeof CmWithdraw> {
     ⚠️  WARNING: This action permanently deletes the candy machine and makes it unusable.
     All non-redeemed items will be lost and cannot be recovered.
 
-    Example:
+    Examples:
     $ mplx cm withdraw
     $ mplx cm withdraw <directory>
+    $ mplx cm withdraw --address 7v8WpTjHAHBNdYMrGh1MjYs3Z1J8Ndf7fQ7LwSfgVeT4
+    $ mplx cm withdraw --force
+    $ mplx cm withdraw --address 7v8WpTjHAHBNdYMrGh1MjYs3Z1J8Ndf7fQ7LwSfgVeT4 --force
     `
 
     static override examples = [
         '$ mplx cm withdraw',
         '$ mplx cm withdraw <directory>',
+        '$ mplx cm withdraw --address 7v8WpTjHAHBNdYMrGh1MjYs3Z1J8Ndf7fQ7LwSfgVeT4',
+        '$ mplx cm withdraw --force',
+        '$ mplx cm withdraw --address 7v8WpTjHAHBNdYMrGh1MjYs3Z1J8Ndf7fQ7LwSfgVeT4 --force',
     ]
 
     static override usage = 'cm withdraw [ARGS]'

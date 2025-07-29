@@ -1,4 +1,5 @@
 import { mplCore } from '@metaplex-foundation/mpl-core'
+import { mplBubblegum } from '@metaplex-foundation/mpl-bubblegum'
 import {
   Commitment,
   Signer,
@@ -158,6 +159,7 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
     .use(mplCore())
     .use(mplTokenMetadata())
     .use(mplToolbox())
+    .use(mplBubblegum())
 
   const storageProvider = await initStorageProvider(config)
   storageProvider && umi.use(storageProvider)
@@ -174,3 +176,5 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
     chain,
   }
 }
+
+

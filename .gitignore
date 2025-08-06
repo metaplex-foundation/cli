@@ -18,3 +18,5 @@ oclif.manifest.json
 # Lockfiles (choose one depending on your package manager)
 yarn.lock
 package-lock.json
+
+.claude/

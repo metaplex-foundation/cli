@@ -2,7 +2,7 @@ import { RpcConfirmTransactionResult, Umi } from '@metaplex-foundation/umi'
 import confirmTransaction from './confirmTransaction.js'
 
 import { UmiSendAllOptions } from './sendOptions.js'
-import { UmiTransactionResponce } from './sendTransaction.js'
+import { UmiTransactionResponse } from './sendTransaction.js'
 import { base58 } from '@metaplex-foundation/umi/serializers'
 
 export interface UmiTransactionConfirmationResult {
@@ -12,7 +12,7 @@ export interface UmiTransactionConfirmationResult {
 
 const confirmAllTransactions = async (
   umi: Umi,
-  transactions: (UmiTransactionResponce | undefined)[],
+  transactions: (UmiTransactionResponse | undefined)[],
   sendOptions?: UmiSendAllOptions,
   onProgress?: (index: number, result: UmiTransactionConfirmationResult) => void,
 ): Promise<UmiTransactionConfirmationResult[]> => {

@@ -3,10 +3,10 @@ import cliProgress from 'cli-progress'
 import confirmAllTransactions, { UmiTransactionConfirmationResult } from './confirmAllTransactions.js'
 import umiSendAllTransactions from './sendAllTransactions.js'
 import { UmiSendAllOptions } from './sendOptions.js'
-import { UmiTransactionResponce } from './sendTransaction.js'
+import { UmiTransactionResponse } from './sendTransaction.js'
 
-export interface UmiSendAndConfirmResponce {
-  transaction: UmiTransactionResponce
+export interface UmiSendAndConfirmResponse {
+  transaction: UmiTransactionResponse
   confirmation: UmiTransactionConfirmationResult | null
 }
 
@@ -14,7 +14,7 @@ const umiSendAllTransactionsAndConfirm = async (
   umi: Umi,
   transactions: TransactionBuilder[],
   sendOptions?: UmiSendAllOptions,
-): Promise<Array<UmiSendAndConfirmResponce>> => {
+): Promise<Array<UmiSendAndConfirmResponse>> => {
   // Send all transactions
 
   // const spinner = ora('Sending transactions...').start()

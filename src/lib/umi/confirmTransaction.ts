@@ -1,11 +1,11 @@
 import { Umi } from '@metaplex-foundation/umi'
 import { UmiTransactionConfirmationResult } from './confirmAllTransactions.js'
 import { UmiSendOptions } from './sendOptions.js'
-import { UmiTransactionResponce } from './sendTransaction.js'
+import { UmiTransactionResponse } from './sendTransaction.js'
 
 const umiConfirmTransaction = async (
   umi: Umi,
-  transaction: UmiTransactionResponce,
+  transaction: UmiTransactionResponse,
   sendOptions?: UmiSendOptions,
 ): Promise<UmiTransactionConfirmationResult> => {
   if (!transaction.signature) {

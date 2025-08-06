@@ -1,4 +1,4 @@
-import { UmiSendAndConfirmResponce } from '../../umi/sendAllTransactionsAndConfirm.js'
+import { UmiSendAndConfirmResponse } from '../../umi/sendAllTransactionsAndConfirm.js'
 import { PluginData } from '../pluginData.js'
 import { BaseCache, BaseCacheItem } from './baseCache.js'
 
@@ -9,7 +9,7 @@ export interface CreationCacheItem extends BaseCacheItem {
   imageUri: string
   metadataUri: string
   pluginData?: PluginData[]
-  tx?: UmiSendAndConfirmResponce
+  tx?: UmiSendAndConfirmResponse
 }
 
 export interface CreateCache extends BaseCache {

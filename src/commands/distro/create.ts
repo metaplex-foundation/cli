@@ -1,19 +1,20 @@
-import { Flags } from '@oclif/core'
-import ora from 'ora'
 import { 
-  createDistribution, 
+  AllowedDistributor, 
   DistributionType, 
-  AllowedDistributor,
   computeTreeHeight,
-  findDistributionPda,
-  createMplDistroProgram
+  createDistribution,
+  createMplDistroProgram,
+  findDistributionPda
 } from '@metaplex-foundation/mpl-distro'
 import { generateSigner, publicKey } from '@metaplex-foundation/umi'
 import { base58 } from '@metaplex-foundation/umi/serializers'
+import { Flags } from '@oclif/core'
+import ora from 'ora'
+
 import { TransactionCommand } from '../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../explorers.js'
-import { txSignatureToString } from '../../lib/util.js'
 import { readJsonSync } from '../../lib/file.js'
+import { txSignatureToString } from '../../lib/util.js'
 
 export default class DistroCreate extends TransactionCommand<typeof DistroCreate> {
   static override description = `Create a new token distribution using MPL Distro.
@@ -44,17 +45,30 @@ You can either provide all required flags individually or use a config JSON file
     '$ mplx distro create --name "Reward Distribution" --mint "TokenMint123..." --totalClaimants 500 --startTime "2024-06-01T12:00:00Z" --endTime "2024-06-30T12:00:00Z" --merkleRoot "base58EncodedRoot" --distributionType legacy-nft',
   ]
 
-  static override usage = 'distro create [FLAGS]'
-
   static override flags = {
+    allowedDistributor: Flags.option({
+      default: 'permissionless',
+      description: 'Who is allowed to distribute tokens',
+      options: ['permissionless', 'recipient'],
+      required: false,
+    })(),
     config: Flags.file({
       description: 'Path to config JSON file with distribution parameters',
-      required: false,
       exclusive: ['name', 'mint', 'totalClaimants', 'startTime', 'endTime', 'merkleRoot', 'programId'],
+      required: false,
     }),
-    name: Flags.string({
-      char: 'n',
-      description: 'Name of the distribution',
+    distributionType: Flags.option({
+      default: 'wallet',
+      description: 'Type of distribution',
+      options: ['wallet', 'legacy-nft'],
+      required: false,
+    })(),
+    endTime: Flags.string({
+      description: 'End time for the distribution (ISO date string)',
+      required: false,
+    }),
+    merkleRoot: Flags.string({
+      description: 'Merkle root (32 bytes, base58 encoded)',
       required: false,
     }),
     mint: Flags.string({
@@ -62,41 +76,28 @@ You can either provide all required flags individually or use a config JSON file
       description: 'Mint address for the distribution',
       required: false,
     }),
-    totalClaimants: Flags.integer({
-      char: 't',
-      description: 'Total number of claimants in the distribution',
+    name: Flags.string({
+      char: 'n',
+      description: 'Name of the distribution',
       required: false,
     }),
     startTime: Flags.string({
       description: 'Start time for the distribution (ISO date string)',
       required: false,
     }),
-    endTime: Flags.string({
-      description: 'End time for the distribution (ISO date string)',
-      required: false,
-    }),
-    distributionType: Flags.option({
-      description: 'Type of distribution',
-      options: ['wallet', 'legacy-nft'],
-      default: 'wallet',
-      required: false,
-    })(),
     subsidizeReceipts: Flags.boolean({
-      description: 'Whether to subsidize receipt creation costs',
       default: false,
+      description: 'Whether to subsidize receipt creation costs',
       required: false,
     }),
-    allowedDistributor: Flags.option({
-      description: 'Who is allowed to distribute tokens',
-      options: ['permissionless', 'recipient'],
-      default: 'permissionless',
-      required: false,
-    })(),
-    merkleRoot: Flags.string({
-      description: 'Merkle root (32 bytes, base58 encoded)',
+    totalClaimants: Flags.integer({
+      char: 't',
+      description: 'Total number of claimants in the distribution',
       required: false,
     })
   }
+
+  static override usage = 'distro create [FLAGS]'
 
   public async run(): Promise<void> {
     const { flags } = await this.parse(DistroCreate)
@@ -115,16 +116,17 @@ You can either provide all required flags individually or use a config JSON file
             throw new Error(`Missing required flag: --${flag}`)
           }
         }
+
         config = {
-          name: flags.name,
-          mint: flags.mint,
-          totalClaimants: flags.totalClaimants,
-          startTime: flags.startTime,
+          allowedDistributor: flags.allowedDistributor,
+          distributionType: flags.distributionType,
           endTime: flags.endTime,
           merkleRoot: flags.merkleRoot,
-          distributionType: flags.distributionType,
+          mint: flags.mint,
+          name: flags.name,
+          startTime: flags.startTime,
           subsidizeReceipts: flags.subsidizeReceipts,
-          allowedDistributor: flags.allowedDistributor,
+          totalClaimants: flags.totalClaimants,
         }
       }
 
@@ -159,19 +161,19 @@ You can either provide all required flags individually or use a config JSON file
 
       // Create the distribution
       const result = await createDistribution(this.context.umi, {
-        payer: this.context.payer,
-        authority: this.context.signer,
-        mint,
-        merkleRoot,
-        treeHeight,
-        startTime,
-        endTime,
-        totalClaimants,
-        seed,
-        name: config.name,
-        distributionType,
-        subsidizeReceipts: config.subsidizeReceipts,
         allowedDistributor,
+        authority: this.context.signer,
+        distributionType,
+        endTime,
+        merkleRoot,
+        mint,
+        name: config.name,
+        payer: this.context.payer,
+        seed,
+        startTime,
+        subsidizeReceipts: config.subsidizeReceipts,
+        totalClaimants,
+        treeHeight,
       }).sendAndConfirm(this.context.umi)
 
       spinner.succeed('Distribution created successfully!')

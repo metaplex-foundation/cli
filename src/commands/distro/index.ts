@@ -1,18 +1,25 @@
-import {Args, Command, Flags} from '@oclif/core'
+import { Command } from '@oclif/core'
 
 export default class Distro extends Command {
   static override description = 'MPL Distro Program - Token distribution management'
 
   static override examples = [
-    '<%= config.bin %> <%= command.id %>',
+    '<%= config.bin %> distro create --config ./distribution-config.json',
+    '<%= config.bin %> distro deposit DistroAddress123... --amount 1000000',
+    '<%= config.bin %> distro withdraw DistroAddress123... --amount 500000',
   ]
 
-  static override flags = {
-
-  }
-
   public async run(): Promise<void> {
-    const {args, flags} = await this.parse(Distro)
-
+    await this.parse(Distro)
+    
+    // Display available commands
+    this.log('MPL Distro Program - Token distribution management')
+    this.log('')
+    this.log('Available commands:')
+    this.log('  distro create    Create a new token distribution')
+    this.log('  distro deposit   Deposit tokens into a distribution')
+    this.log('  distro withdraw  Withdraw tokens from a distribution')
+    this.log('')
+    this.log('Run "mplx distro <command> --help" for more information about a command.')
   }
 }

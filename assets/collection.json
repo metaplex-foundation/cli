@@ -1,0 +1,14 @@
+{
+  "name": "Test Collection",
+  "description": "Test collection description",
+  "image": "collection.png",
+  "properties": {
+    "files": [
+      {
+        "uri": "collection.png",
+        "type": "image/png"
+      }
+    ],
+    "category": "image"
+  }
+}

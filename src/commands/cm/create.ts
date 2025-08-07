@@ -1,9 +1,11 @@
 import { createCollection, fetchCollection } from '@metaplex-foundation/mpl-core'
 import {
-    create
+    create,
+    createCandyMachine
 } from '@metaplex-foundation/mpl-core-candy-machine'
 import { generateSigner, publicKey, Umi } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
+import { input, select } from '@inquirer/prompts'
 import fs from 'node:fs'
 import ora from 'ora'
 import path from 'node:path'
@@ -24,6 +26,28 @@ import { validateCacheUploads, ValidateCacheUploadsOptions } from '../../lib/cm/
 import { createUploadProgressHandler } from '../../lib/ui/uploadProgressHandler.js'
 import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 import uploadFiles from '../../lib/uploader/uploadFiles.js'
+
+// Helper function to check if any guards are configured
+function hasGuards(candyMachineConfig: CandyMachineConfig): boolean {
+    const guardConfig = candyMachineConfig.config.guardConfig
+    const groups = candyMachineConfig.config.groups
+
+    // Check if there are any global guards
+    if (guardConfig && Object.keys(guardConfig).length > 0) {
+        return true
+    }
+
+    // Check if there are any groups with guards
+    if (groups && groups.length > 0) {
+        for (const group of groups) {
+            if (group.guards && Object.keys(group.guards).length > 0) {
+                return true
+            }
+        }
+    }
+
+    return false
+}
 
 export default class CmCreate extends TransactionCommand<typeof CmCreate> {
     static override description = `Create an MPL Core Candy Machine
@@ -84,7 +108,68 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
                 
 --------------------------------`
         )
-        const { candyMachineConfig, assets } = await createCandyMachinePrompt()
+
+        // Check for assets folder in current directory
+        const currentDir = process.cwd()
+        const assetsPath = path.join(currentDir, 'assets')
+        const hasAssetsFolder = fs.existsSync(assetsPath)
+
+        let candyMachineDir: string
+        let useCurrentDirectory = false
+
+        if (hasAssetsFolder) {
+            this.log('✅ Found assets folder in current directory.')
+            candyMachineDir = currentDir
+            useCurrentDirectory = true
+        } else {
+            this.log('⚠️  No assets folder found in current directory.')
+            
+            const choice = await select({
+                message: 'How would you like to proceed?',
+                choices: [
+                    { name: 'Create a new candy machine project folder', value: 'create-project' },
+                    { name: 'Exit and create ./assets folder manually', value: 'exit' }
+                ]
+            })
+
+            if (choice === 'exit') {
+                this.log('\n📁 Create an ./assets folder with your NFT files, then run the wizard again.')
+                this.log('💡 Your assets folder should contain:')
+                this.log('   - Numbered JSON metadata files (0.json, 1.json, etc.)')
+                this.log('   - Corresponding image files (0.png, 1.png, etc.)')
+                this.log('   - Optional: collection.json and collection image file')
+                return
+            }
+
+            // Get candy machine name for project folder
+            const projectName = await input({
+                message: 'Enter candy machine project name:',
+                validate: (value) => {
+                    if (!value) return 'Project name is required'
+                    if (!/^[a-zA-Z0-9-_]+$/.test(value)) return 'Project name can only contain letters, numbers, hyphens, and underscores'
+                    return true
+                }
+            })
+
+            candyMachineDir = path.join(currentDir, projectName)
+            if (fs.existsSync(candyMachineDir)) {
+                throw new Error(`Directory ${projectName} already exists. Please choose a different name.`)
+            }
+            fs.mkdirSync(candyMachineDir, { recursive: true })
+            fs.mkdirSync(path.join(candyMachineDir, 'assets'), { recursive: true })
+
+            this.log(`\n📁 Created project directory: ${candyMachineDir}`)
+            this.log('💡 Please add your NFT files to the assets folder, then run the wizard again from inside the project directory.')
+            return
+        }
+
+        // Check for existing config files
+        const candyMachineConfigPath = path.join(candyMachineDir, 'cm-config.json')
+        if (fs.existsSync(candyMachineConfigPath)) {
+            throw new Error(`Candy machine configuration already exists at ${candyMachineConfigPath}. Please remove it or use a different directory.`)
+        }
+
+        const { candyMachineConfig, assets } = await createCandyMachinePrompt(useCurrentDirectory)
 
         // Type guard for assets
         if ('error' in assets) {
@@ -95,13 +180,7 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
             throw new Error('No collection files found, please provide a collection.json and collection.png/jpg')
         }
 
-        const candyMachineDir = path.join(process.cwd(), candyMachineConfig.name)
-        if (!fs.existsSync(candyMachineDir)) {
-            fs.mkdirSync(candyMachineDir, { recursive: true })
-        }
-
         // Save config
-        const candyMachineConfigPath = path.join(candyMachineDir, 'cm-config.json')
         fs.writeFileSync(candyMachineConfigPath, JSON.stringify(candyMachineConfig, null, 2))
         this.log(`\nConfiguration saved to: ${candyMachineConfigPath}`)
 
@@ -147,11 +226,11 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
 
         // Wizard completion message and summary (moved here after all processing is complete)
         this.log('\n🎉 Wizard complete! Here is a summary of your setup:')
-        this.log(`- Directory: ${candyMachineConfig.name}`)
+        this.log(`- Directory: ${useCurrentDirectory ? 'Current directory' : path.basename(candyMachineDir)}`)
         if (!('error' in assets)) {
             this.log(`- Assets: ${assets.jsonFiles?.length ?? 0} JSON, ${assets.imageFiles?.length ?? 0} images, ${assets.animationFiles?.length ?? 0} animations`)
             if (assets.collectionFiles?.json) {
-                const collectionJsonPath = path.join(process.cwd(), candyMachineConfig.name, 'assets', assets.collectionFiles.json)
+                const collectionJsonPath = path.join(candyMachineDir, 'assets', assets.collectionFiles.json)
                 try {
                     const collectionJson = JSON.parse(fs.readFileSync(collectionJsonPath, 'utf8'))
                     if (collectionJson.name && collectionJson.name.trim() !== '') {
@@ -188,26 +267,43 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
             const candyMachineSpinner = ora('Creating candy machine').start()
 
             const candyMachineId = generateSigner(umi)
-            const parsedGuards = jsonGuardParser(candyMachineConfig)
+            
+            // Check if guards are configured
+            if (hasGuards(candyMachineConfig)) {
+                // Create candy machine with candy guard (existing behavior)
+                const parsedGuards = jsonGuardParser(candyMachineConfig)
 
-            const tx = await create(umi, {
-                ...candyMachineConfig.config,
-                candyMachine: candyMachineId,
-                collectionUpdateAuthority: umi.identity,
-                collection: publicKey(candyMachineConfig.config.collection),
-                groups: parsedGuards.groups,
-                guards: parsedGuards.guards,
-                ...getConfigLineSettings(candyMachineConfig),
-            })
+                const tx = await create(umi, {
+                    ...candyMachineConfig.config,
+                    candyMachine: candyMachineId,
+                    collectionUpdateAuthority: umi.identity,
+                    collection: publicKey(candyMachineConfig.config.collection),
+                    groups: parsedGuards.groups,
+                    guards: parsedGuards.guards,
+                    ...getConfigLineSettings(candyMachineConfig),
+                })
 
-            const res = await umiSendAndConfirmTransaction(umi, tx)
-            this.log('Tx confirmed')
+                const res = await umiSendAndConfirmTransaction(umi, tx)
+                this.log('Tx confirmed')
+                candyMachineSpinner.succeed(`Candy machine created with guards - ${candyMachineId.publicKey}`)
+            } else {
+                // Create candy machine without candy guard (authority-only minting)
+                const tx = await createCandyMachine(umi, {
+                    ...candyMachineConfig.config,
+                    candyMachine: candyMachineId,
+                    collectionUpdateAuthority: umi.identity,
+                    collection: publicKey(candyMachineConfig.config.collection),
+                    ...getConfigLineSettings(candyMachineConfig),
+                })
+
+                const res = await umiSendAndConfirmTransaction(umi, tx)
+                this.log('Tx confirmed')
+                candyMachineSpinner.succeed(`Candy machine created (authority-only minting) - ${candyMachineId.publicKey}`)
+            }
 
             // Write candy machine id to config file
             candyMachineConfig.candyMachineId = candyMachineId.publicKey
             writeCmConfig(candyMachineConfig, directory)
-
-            candyMachineSpinner.succeed(`Candy machine created - ${candyMachineId.publicKey}`)
         }
     }
 
@@ -319,21 +415,38 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
     private async createCandyMachine(umi: Umi, candyMachineConfig: CandyMachineConfig, candyMachineDir: string) {
         const candyMachineCreatorSpinner = ora('Creating candy machine').start()
 
-        const parsedGuards = jsonGuardParser(candyMachineConfig)
-
         const candyMachine = generateSigner(umi)
         try {
-            const tx = await create(umi, {
-                candyMachine,
-                collection: publicKey(candyMachineConfig.config.collection),
-                collectionUpdateAuthority: umi.identity,
-                itemsAvailable: candyMachineConfig.config.itemsAvailable,
-                isMutable: candyMachineConfig.config.isMutable,
-                ...getConfigLineSettings(candyMachineConfig),
-                guards: parsedGuards.guards,
-                groups: parsedGuards.groups,
-            });
-            await tx.sendAndConfirm(umi);
+            // Check if guards are configured
+            if (hasGuards(candyMachineConfig)) {
+                // Create candy machine with candy guard (existing behavior)
+                const parsedGuards = jsonGuardParser(candyMachineConfig)
+
+                const tx = await create(umi, {
+                    candyMachine,
+                    collection: publicKey(candyMachineConfig.config.collection),
+                    collectionUpdateAuthority: umi.identity,
+                    itemsAvailable: candyMachineConfig.config.itemsAvailable,
+                    isMutable: candyMachineConfig.config.isMutable,
+                    ...getConfigLineSettings(candyMachineConfig),
+                    guards: parsedGuards.guards,
+                    groups: parsedGuards.groups,
+                });
+                await tx.sendAndConfirm(umi);
+                candyMachineCreatorSpinner.succeed(`Candy machine created with guards - ${candyMachine.publicKey}`)
+            } else {
+                // Create candy machine without candy guard (authority-only minting)
+                const tx = await createCandyMachine(umi, {
+                    candyMachine,
+                    collection: publicKey(candyMachineConfig.config.collection),
+                    collectionUpdateAuthority: umi.identity,
+                    itemsAvailable: candyMachineConfig.config.itemsAvailable,
+                    isMutable: candyMachineConfig.config.isMutable,
+                    ...getConfigLineSettings(candyMachineConfig),
+                });
+                await tx.sendAndConfirm(umi);
+                candyMachineCreatorSpinner.succeed(`Candy machine created (authority-only minting) - ${candyMachine.publicKey}`)
+            }
         } catch (error) {
             candyMachineCreatorSpinner.fail('Candy machine creation failed');
             this.error(`Full error: ${error instanceof Error ? error.message : String(error)}`);
@@ -345,7 +458,5 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
         // Update config with candy machine id
         candyMachineConfig.candyMachineId = candyMachine.publicKey
         fs.writeFileSync(path.join(candyMachineDir, 'cm-config.json'), JSON.stringify(candyMachineConfig, null, 2))
-
-        candyMachineCreatorSpinner.succeed(`Candy machine created - ${candyMachine.publicKey}`)
     }
 }

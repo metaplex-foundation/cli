@@ -9,7 +9,7 @@ import validateAssetsFolder, { ValidateAssetsResult } from '../validateAssetsFol
 import { CandyMachineConfig, RawGuardConfig } from '../types.js'
 import fs from 'node:fs'
 
-const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMachineConfig, assets: ValidateAssetsResult }> => {
+const createCandyMachinePrompt = async (useCurrentDirectory: boolean = false): Promise<{ candyMachineConfig: CandyMachineConfig, assets: ValidateAssetsResult }> => {
     const candyMachineConfig: CandyMachineConfig = {
         name: '',
         directory: undefined,
@@ -35,49 +35,57 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
         }
     }
 
-    // Prompt for directory-friendly name
-    const dirName = await input({
-        message: 'Directory name for your Candy Machine project? (letters, numbers, underscores, hyphens only, or q to quit)',
-        validate: (value) => {
-            if (value === 'q') return true
-            if (/^[a-zA-Z0-9_-]+$/.test(value)) return true
-            return 'Directory name must only contain letters, numbers, underscores, or hyphens. Enter "q" to quit.'
-        }
-    })
-    checkAbort(dirName)
-    candyMachineConfig.name = dirName
-
-    // Check if directory exists and is not empty
-    const targetDir = path.join(process.cwd(), candyMachineConfig.name)
-    const directoryExists = fs.existsSync(targetDir)
-    let directoryHasFiles = false
+    let targetDir: string
     
-    if (directoryExists) {
-        const files = fs.readdirSync(targetDir)
-        directoryHasFiles = files.length > 0
-        if (directoryHasFiles) {
-            const useExisting = await input({
-                message: `Directory "${candyMachineConfig.name}" already exists and contains ${files.length} files. Type 'y' to use, 'n' to abort, or 'q' to quit:`,
-                validate: (value) => true
-            })
-            checkAbort(useExisting)
-            if (useExisting.trim().toLowerCase() !== 'y') {
-                console.log('Aborting wizard. Please prepare a new directory and restart the wizard.')
-                process.exit(0)
+    if (useCurrentDirectory) {
+        // Use current directory when assets folder is already present
+        targetDir = process.cwd()
+        candyMachineConfig.name = path.basename(targetDir)
+    } else {
+        // Prompt for directory-friendly name
+        const dirName = await input({
+            message: 'Directory name for your Candy Machine project? (letters, numbers, underscores, hyphens only, or q to quit)',
+            validate: (value) => {
+                if (value === 'q') return true
+                if (/^[a-zA-Z0-9_-]+$/.test(value)) return true
+                return 'Directory name must only contain letters, numbers, underscores, or hyphens. Enter "q" to quit.'
+            }
+        })
+        checkAbort(dirName)
+        candyMachineConfig.name = dirName
+
+        // Check if directory exists and is not empty
+        targetDir = path.join(process.cwd(), candyMachineConfig.name)
+        const directoryExists = fs.existsSync(targetDir)
+        let directoryHasFiles = false
+        
+        if (directoryExists) {
+            const files = fs.readdirSync(targetDir)
+            directoryHasFiles = files.length > 0
+            if (directoryHasFiles) {
+                const useExisting = await input({
+                    message: `Directory "${candyMachineConfig.name}" already exists and contains ${files.length} files. Type 'y' to use, 'n' to abort, or 'q' to quit:`,
+                    validate: (value) => true
+                })
+                checkAbort(useExisting)
+                if (useExisting.trim().toLowerCase() !== 'y') {
+                    console.log('Aborting wizard. Please prepare a new directory and restart the wizard.')
+                    process.exit(0)
+                }
             }
         }
-    }
 
-    // Only create template folder if directory doesn't exist or is empty
-    if (!directoryExists || !directoryHasFiles) {
-        await createCmTemplateFolder(candyMachineConfig.name)
+        // Only create template folder if directory doesn't exist or is empty
+        if (!directoryExists || !directoryHasFiles) {
+            await createCmTemplateFolder(candyMachineConfig.name)
+        }
     }
 
     let assets: ValidateAssetsResult
 
     while (true) {
         const confirmation = await input({
-            message: 'Move your assets to the assets folder and press enter to continue, or type q to abort',
+            message: useCurrentDirectory ? 'Press enter to continue with asset validation, or type q to abort' : 'Move your assets to the assets folder and press enter to continue, or type q to abort',
             validate: (value) => true
         })
         checkAbort(confirmation)
@@ -85,7 +93,7 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
             console.log('Aborting wizard by user request.')
             process.exit(0)
         }
-        assets = await validateAssetsFolder(path.join(process.cwd(), candyMachineConfig.name, 'assets'))
+        assets = await validateAssetsFolder(path.join(targetDir, 'assets'))
         if ('error' in assets) {
             console.log(`❌ ${assets.error}`)
             // Actionable suggestions
@@ -97,7 +105,7 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
                 console.log('💡  Tip: You can use "mplx cm create --template" to generate sample assets and configuration.')
             } else if (assets.error.includes('not the same')) {
                 // Mismatch in number of files
-                const assetDir = path.join(process.cwd(), candyMachineConfig.name, 'assets')
+                const assetDir = path.join(targetDir, 'assets')
                 const allFiles = fs.readdirSync(assetDir)
                 const jsons = allFiles.filter(f => f.endsWith('.json') && !f.startsWith('collection'))
                 const imgs = allFiles.filter(f => (f.endsWith('.png') || f.endsWith('.jpg') || f.endsWith('.jpeg') || f.endsWith('.gif')) && !f.startsWith('collection'))
@@ -135,7 +143,7 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
     if (!('error' in assets)) {
         // Validate collection.json 'name' field if present
         if (assets.collectionFiles?.json) {
-            const collectionJsonPath = path.join(process.cwd(), candyMachineConfig.name, 'assets', assets.collectionFiles.json)
+            const collectionJsonPath = path.join(targetDir, 'assets', assets.collectionFiles.json)
             try {
                 const collectionJson = JSON.parse(fs.readFileSync(collectionJsonPath, 'utf8'))
                 if (!collectionJson.name || typeof collectionJson.name !== 'string' || collectionJson.name.trim() === '') {
@@ -175,11 +183,11 @@ const createCandyMachinePrompt = async (): Promise<{ candyMachineConfig: CandyMa
                         console.log('Aborting wizard by user request.')
                         process.exit(0)
                     }
-                    const newAssets = await validateAssetsFolder(path.join(process.cwd(), candyMachineConfig.name, 'assets'))
+                    const newAssets = await validateAssetsFolder(path.join(targetDir, 'assets'))
                     if (!('error' in newAssets) && newAssets.collectionFiles?.json && newAssets.collectionFiles?.image) {
                         assets = newAssets
                         // Validate collection.json 'name' field again
-                        const collectionJsonPath = path.join(process.cwd(), candyMachineConfig.name, 'assets', newAssets.collectionFiles.json)
+                        const collectionJsonPath = path.join(targetDir, 'assets', newAssets.collectionFiles.json)
                         try {
                             const collectionJson = JSON.parse(fs.readFileSync(collectionJsonPath, 'utf8'))
                             if (!collectionJson.name || typeof collectionJson.name !== 'string' || collectionJson.name.trim() === '') {

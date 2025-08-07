@@ -80,7 +80,7 @@ const promptSelector = async (promptItem: PromptItem) => {
                 },
             })
         case 'date':
-            return await input({
+            const dateString = await input({
                 message: promptItem.prompt,
                 validate: (value) => {
                     if (promptItem.required && !value) return 'Value is required'
@@ -89,8 +89,11 @@ const promptSelector = async (promptItem: PromptItem) => {
                     return true
                 },
             })
+            // Convert date string to Unix timestamp (seconds since epoch)
+            const dateValue = new Date(dateString)
+            return Math.floor(dateValue.getTime() / 1000)
         case 'array':
-            return await input({
+            const arrayInput = await input({
                 message: promptItem.prompt,
                 validate: (value) => {
                     if (promptItem.required && !value) return 'Value is required'
@@ -128,6 +131,19 @@ const promptSelector = async (promptItem: PromptItem) => {
                     return true
                 },
             })
+            
+            if (!arrayInput) return []
+            
+            // Parse the array and convert date items to timestamps
+            const parsedArray = JSON.parse(arrayInput)
+            if (promptItem.items === 'date') {
+                return parsedArray.map((item: string) => {
+                    const dateValue = new Date(item)
+                    return Math.floor(dateValue.getTime() / 1000)
+                })
+            }
+            
+            return parsedArray
         default: throw new Error(`Invalid prompt item type: ${promptItem.type}`)
     }
 

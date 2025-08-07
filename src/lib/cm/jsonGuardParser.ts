@@ -177,8 +177,8 @@ const validateEndDate = (guardValue: unknown): guardValue is RawEndDate => {
 
 const validateFreezeTokenPayment = (guardValue: unknown): guardValue is RawFreezeTokenPayment => {
     return isValidGuardValue(guardValue) && 
-           typeof guardValue.amount === 'number' && 
-           guardValue.amount > 0 &&
+           (typeof guardValue.amount === 'number' || typeof guardValue.amount === 'string') && 
+           Number(guardValue.amount) > 0 &&
            typeof guardValue.mint === 'string' && 
            guardValue.mint.length > 0 &&
            typeof guardValue.destinationAta === 'string' && 
@@ -261,8 +261,8 @@ const validateThirdPartySigner = (guardValue: unknown): guardValue is RawThirdPa
 
 const validateToken2022Payment = (guardValue: unknown): guardValue is RawToken2022Payment => {
     return isValidGuardValue(guardValue) && 
-           typeof guardValue.amount === 'number' && 
-           guardValue.amount > 0 &&
+           (typeof guardValue.amount === 'number' || typeof guardValue.amount === 'string') && 
+           Number(guardValue.amount) > 0 &&
            typeof guardValue.mint === 'string' && 
            guardValue.mint.length > 0 &&
            typeof guardValue.destinationAta === 'string' && 
@@ -273,22 +273,22 @@ const validateTokenBurn = (guardValue: unknown): guardValue is RawTokenBurn => {
     return isValidGuardValue(guardValue) && 
            typeof guardValue.mint === 'string' && 
            guardValue.mint.length > 0 &&
-           typeof guardValue.amount === 'number' && 
-           guardValue.amount > 0
+           (typeof guardValue.amount === 'number' || typeof guardValue.amount === 'string') && 
+           Number(guardValue.amount) > 0
 }
 
 const validateTokenGate = (guardValue: unknown): guardValue is RawTokenGate => {
     return isValidGuardValue(guardValue) && 
            typeof guardValue.mint === 'string' && 
            guardValue.mint.length > 0 &&
-           typeof guardValue.amount === 'number' && 
-           guardValue.amount > 0
+           (typeof guardValue.amount === 'number' || typeof guardValue.amount === 'string') && 
+           Number(guardValue.amount) > 0
 }
 
 const validateTokenPayment = (guardValue: unknown): guardValue is RawTokenPayment => {
     return isValidGuardValue(guardValue) && 
-           typeof guardValue.amount === 'number' && 
-           guardValue.amount > 0 &&
+           (typeof guardValue.amount === 'number' || typeof guardValue.amount === 'string') && 
+           Number(guardValue.amount) > 0 &&
            typeof guardValue.mint === 'string' && 
            guardValue.mint.length > 0 &&
            typeof guardValue.destinationAta === 'string' && 

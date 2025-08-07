@@ -1,0 +1,11 @@
+{
+  "name": "cli",
+  "config": {
+    "collection": "",
+    "itemsAvailable": 3,
+    "isSequential": false,
+    "isMutable": true,
+    "guardConfig": {},
+    "groups": []
+  }
+}

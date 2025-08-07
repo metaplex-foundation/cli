@@ -3,7 +3,6 @@ import {
   DistributionType, 
   computeTreeHeight,
   createDistribution,
-  createMplDistroProgram,
   findDistributionPda
 } from '@metaplex-foundation/mpl-distro'
 import { generateSigner, publicKey } from '@metaplex-foundation/umi'
@@ -15,6 +14,7 @@ import { TransactionCommand } from '../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../explorers.js'
 import { readJsonSync } from '../../lib/file.js'
 import { txSignatureToString } from '../../lib/util.js'
+import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 
 export default class DistroCreate extends TransactionCommand<typeof DistroCreate> {
   static override description = `Create a new token distribution using MPL Distro.
@@ -35,8 +35,7 @@ You can either provide all required flags individually or use a config JSON file
   "merkleRoot": "base58EncodedRoot",
   "distributionType": "wallet",
   "subsidizeReceipts": false,
-  "allowedDistributor": "permissionless",
-  "programId": "distro11111111111111111111111111111111111111111"
+  "allowedDistributor": "permissionless"
 }`
 
   static override examples = [
@@ -54,7 +53,7 @@ You can either provide all required flags individually or use a config JSON file
     })(),
     config: Flags.file({
       description: 'Path to config JSON file with distribution parameters',
-      exclusive: ['name', 'mint', 'totalClaimants', 'startTime', 'endTime', 'merkleRoot', 'programId'],
+      exclusive: ['name', 'mint', 'totalClaimants', 'startTime', 'endTime', 'merkleRoot'],
       required: false,
     }),
     distributionType: Flags.option({
@@ -160,7 +159,7 @@ You can either provide all required flags individually or use a config JSON file
       spinner.text = 'Creating distribution...'
 
       // Create the distribution
-      const result = await createDistribution(this.context.umi, {
+      const transaction = createDistribution(this.context.umi, {
         allowedDistributor,
         authority: this.context.signer,
         distributionType,
@@ -174,8 +173,9 @@ You can either provide all required flags individually or use a config JSON file
         subsidizeReceipts: config.subsidizeReceipts,
         totalClaimants,
         treeHeight,
-      }).sendAndConfirm(this.context.umi)
+      })
 
+      const result = await umiSendAndConfirmTransaction(this.context.umi, transaction)
       spinner.succeed('Distribution created successfully!')
 
       // Get the distribution PDA
@@ -195,13 +195,13 @@ You can either provide all required flags individually or use a config JSON file
       this.log(`Start Time: ${startTime}`)
       this.log(`End Time: ${endTime}`)
       this.log('')
-      this.log(`Transaction: ${txSignatureToString(result.signature)}`)
+      this.log(`Transaction: ${txSignatureToString(result.transaction.signature as Uint8Array)}`)
       this.log('')
       this.log(
         generateExplorerUrl(
           this.context.explorer,
           this.context.chain,
-          txSignatureToString(result.signature),
+          txSignatureToString(result.transaction.signature as Uint8Array),
           'transaction'
         )
       )

@@ -3,18 +3,18 @@ import {
   withdraw
 } from '@metaplex-foundation/mpl-distro'
 import { 
-  createTokenIfMissing,
   findAssociatedTokenPda,
   fetchMint,
   fetchToken
 } from '@metaplex-foundation/mpl-toolbox'
-import { TransactionBuilder, publicKey } from '@metaplex-foundation/umi'
+import { publicKey } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
 
 import { TransactionCommand } from '../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../explorers.js'
 import { txSignatureToString } from '../../lib/util.js'
+import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 
 export default class DistroWithdraw extends TransactionCommand<typeof DistroWithdraw> {
   static override args = {
@@ -137,10 +137,6 @@ Withdrawals may be restricted during active distribution periods depending on th
 
       spinner.text = 'Creating withdraw transaction...'
 
-      const createTokenIfMissingIx = createTokenIfMissing(this.context.umi, {
-        mint,
-        owner: recipient,
-      })
       const withdrawIx = withdraw(this.context.umi, {
         amount: basisAmount,
         authority: this.context.signer,
@@ -151,12 +147,9 @@ Withdrawals may be restricted during active distribution periods depending on th
         recipient,
         recipientTokenAccount,
       })
-      const transaction = new TransactionBuilder()
-        .add(createTokenIfMissingIx)
-        .add(withdrawIx)
 
       spinner.text = 'Sending transaction...'
-      const result = await transaction.sendAndConfirm(this.context.umi)
+      const result = await umiSendAndConfirmTransaction(this.context.umi, withdrawIx)
 
       spinner.succeed('Tokens withdrawn successfully!')
 
@@ -171,13 +164,13 @@ Withdrawals may be restricted during active distribution periods depending on th
       const remainingFormatted = Number(remainingAvailable) / Math.pow(10, decimals)
       this.log(`Remaining available for withdrawal: ${remainingFormatted} tokens (${remainingAvailable} basis)`)
       this.log('')
-      this.log(`Transaction: ${txSignatureToString(result.signature)}`)
+      this.log(`Transaction: ${txSignatureToString(result.transaction.signature as Uint8Array)}`)
       this.log('')
       this.log(
         generateExplorerUrl(
           this.context.explorer,
           this.context.chain,
-          txSignatureToString(result.signature),
+          txSignatureToString(result.transaction.signature as Uint8Array),
           'transaction'
         )
       )

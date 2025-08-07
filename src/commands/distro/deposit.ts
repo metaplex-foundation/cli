@@ -1,20 +1,20 @@
 import { 
   deposit,
-  fetchDistribution
-} from '@metaplex-foundation/mpl-distro'
+  fetchDistribution,
+} from '@metaplex-foundation/mpl-distro-resize'
 import { 
-  createTokenIfMissing,
   findAssociatedTokenPda,
   fetchMint,
   fetchToken
 } from '@metaplex-foundation/mpl-toolbox'
-import { TransactionBuilder, publicKey } from '@metaplex-foundation/umi'
+import { publicKey } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
 
 import { TransactionCommand } from '../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../explorers.js'
 import { txSignatureToString } from '../../lib/util.js'
+import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 
 export default class DistroDeposit extends TransactionCommand<typeof DistroDeposit> {
   static override args = {
@@ -109,11 +109,7 @@ The distribution must be active and you must have the tokens in your wallet.`
 
       spinner.text = 'Creating deposit transaction...'
 
-      const createTokenIfMissingIx = createTokenIfMissing(this.context.umi, {
-        mint,
-        owner: distributionAddress,
-      })
-      const depositIx = deposit(this.context.umi, {
+      const transaction = deposit(this.context.umi, {
         amount: basisAmount,
         depositor: this.context.signer,
         depositorTokenAccount,
@@ -123,12 +119,9 @@ The distribution must be active and you must have the tokens in your wallet.`
         authority: this.context.signer,
         payer: this.context.payer,
       })
-      const transaction = new TransactionBuilder()
-        .add(createTokenIfMissingIx)
-        .add(depositIx)
 
       spinner.text = 'Sending transaction...'
-      const result = await transaction.sendAndConfirm(this.context.umi)
+      const result = await umiSendAndConfirmTransaction(this.context.umi, transaction)
 
       spinner.succeed('Tokens deposited successfully!')
 
@@ -142,13 +135,13 @@ The distribution must be active and you must have the tokens in your wallet.`
       const newTotalFormatted = Number(newTotal) / Math.pow(10, decimals)
       this.log(`New total deposited: ${newTotalFormatted} tokens (${newTotal} basis)`)
       this.log('')
-      this.log(`Transaction: ${txSignatureToString(result.signature)}`)
+      this.log(`Transaction: ${txSignatureToString(result.transaction.signature as Uint8Array)}`)
       this.log('')
       this.log(
         generateExplorerUrl(
           this.context.explorer,
           this.context.chain,
-          txSignatureToString(result.signature),
+          txSignatureToString(result.transaction.signature as Uint8Array),
           'transaction'
         )
       )

@@ -210,7 +210,7 @@ const createCandyMachinePrompt = async (useCurrentDirectory: boolean = false): P
 
     // Prompt for NFT mutability
     const nftMutable = await input({
-        message: 'Should the NFTs be mutable? (y/n or q to quit) [Recommend: y for flexibility]',
+        message: 'Should the NFTs be mutable? (y/n or q to quit) [Recommended: y for flexibility]',
         validate: (value) => true
     })
     checkAbort(nftMutable)

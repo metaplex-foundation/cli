@@ -255,6 +255,7 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
         if (hasGroups) {
             this.log(`- Guard groups: ${groups.map(g => g.label).join(', ')}`)
         }
+        this.log(`- Candy Machine ID: ${candyMachineConfig.candyMachineId}`)
 
         this.logSuccess(`🎉 Candy machine created successfully!`)
     }

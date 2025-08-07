@@ -228,7 +228,7 @@ const createCandyMachinePrompt = async (useCurrentDirectory: boolean = false): P
     if (globalGuards) {
 
         const selectedGlobalGuards: string[] = await checkbox({
-            message: 'Select the guards to assign to global (press space to select, or select Quit to abort):',
+            message: 'Select the guards to assign to global:',
             choices: [...guardChoices, 'Quit'],
             pageSize: 20,
             loop: false,
@@ -283,7 +283,7 @@ const createCandyMachinePrompt = async (useCurrentDirectory: boolean = false): P
             const groupGuards: RawGuardConfig = {}
 
             const selectedGuards: string[] = await checkbox({
-                message: `Select the guards to assign to group ${groupName} (press space to select, or select Quit to abort):`,
+                message: `Select the guards to assign to group ${groupName}:`,
                 choices: [...guardChoices, 'Quit'],
                 pageSize: 20,
                 loop: false,

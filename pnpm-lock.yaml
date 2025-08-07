@@ -35,6 +35,9 @@ importers:
       '@metaplex-foundation/mpl-distro':
         specifier: ^0.3.2
         version: 0.3.2(@metaplex-foundation/mpl-core@1.4.1(@metaplex-foundation/umi@1.2.0)(@noble/hashes@1.8.0))(@metaplex-foundation/mpl-toolbox@0.10.0(@metaplex-foundation/umi@1.2.0))(@metaplex-foundation/umi@1.2.0)
+      '@metaplex-foundation/mpl-distro-resize':
+        specifier: ^0.3.1
+        version: 0.3.1(@metaplex-foundation/mpl-core@1.4.1(@metaplex-foundation/umi@1.2.0)(@noble/hashes@1.8.0))(@metaplex-foundation/mpl-toolbox@0.10.0(@metaplex-foundation/umi@1.2.0))(@metaplex-foundation/umi@1.2.0)
       '@metaplex-foundation/mpl-token-metadata':
         specifier: ^3.4.0
         version: 3.4.0(@metaplex-foundation/umi@1.2.0)
@@ -834,6 +837,13 @@ packages:
     peerDependencies:
       '@metaplex-foundation/umi': '>=0.8.2 <= 1.0'
       '@noble/hashes': ^1.3.1
+
+  '@metaplex-foundation/mpl-distro-resize@0.3.1':
+    resolution: {integrity: sha512-b2J6ANJ+Ya5QixQLNBndhL11463Q7Hamxii371Can6KZ7mqX1PSkPawT29TdMqP1wgLczbCURxZh5BlQh9IyLA==}
+    peerDependencies:
+      '@metaplex-foundation/mpl-core': '>=1.3.0'
+      '@metaplex-foundation/mpl-toolbox': ^0.10.0
+      '@metaplex-foundation/umi': '>=1.1.1'
 
   '@metaplex-foundation/mpl-distro@0.3.2':
     resolution: {integrity: sha512-64LTwp1ktM2j3CzrumCHr5gtSLWFVKdKslB7M7wcHuHcYrAiF1nt63LeV8T3g90iUa4Eg9pZhf30AgSWG/KCiw==}
@@ -6551,6 +6561,13 @@ snapshots:
     dependencies:
       '@metaplex-foundation/umi': 1.2.0
       '@msgpack/msgpack': 3.1.2
+      '@noble/hashes': 1.8.0
+
+  '@metaplex-foundation/mpl-distro-resize@0.3.1(@metaplex-foundation/mpl-core@1.4.1(@metaplex-foundation/umi@1.2.0)(@noble/hashes@1.8.0))(@metaplex-foundation/mpl-toolbox@0.10.0(@metaplex-foundation/umi@1.2.0))(@metaplex-foundation/umi@1.2.0)':
+    dependencies:
+      '@metaplex-foundation/mpl-core': 1.4.1(@metaplex-foundation/umi@1.2.0)(@noble/hashes@1.8.0)
+      '@metaplex-foundation/mpl-toolbox': 0.10.0(@metaplex-foundation/umi@1.2.0)
+      '@metaplex-foundation/umi': 1.2.0
       '@noble/hashes': 1.8.0
 
   '@metaplex-foundation/mpl-distro@0.3.2(@metaplex-foundation/mpl-core@1.4.1(@metaplex-foundation/umi@1.2.0)(@noble/hashes@1.8.0))(@metaplex-foundation/mpl-toolbox@0.10.0(@metaplex-foundation/umi@1.2.0))(@metaplex-foundation/umi@1.2.0)':

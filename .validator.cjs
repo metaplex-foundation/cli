@@ -12,6 +12,11 @@ module.exports = {
         programId: 'CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d',
         deployPath: './.amman/mpl_core.so',
       },
+      {
+        label: 'MPL Distro',
+        programId: 'D1STRoZTUiEa6r8TLg2aAbG4nSRT5cDBmgG7jDqCZvU8',
+        deployPath: './.amman/mpl_distro.so',
+      },
     ],
     commitment: 'processed',
   },

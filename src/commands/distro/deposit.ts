@@ -1,7 +1,7 @@
 import { 
   deposit,
   fetchDistribution,
-} from '@metaplex-foundation/mpl-distro-resize'
+} from '@metaplex-foundation/mpl-distro'
 import { 
   findAssociatedTokenPda,
   fetchMint,

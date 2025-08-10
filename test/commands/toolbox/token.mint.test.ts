@@ -73,9 +73,7 @@ describe('toolbox token mint command', () => {
                 'toolbox',
                 'token',
                 'mint',
-                '--mint',
                 testMintAddress,
-                '--amount',
                 '500'
             ])
 
@@ -103,9 +101,7 @@ describe('toolbox token mint command', () => {
                 'toolbox',
                 'token',
                 'mint',
-                '--mint',
                 testMintAddress,
-                '--amount',
                 '250',
                 '--recipient',
                 recipientAddress
@@ -122,32 +118,6 @@ describe('toolbox token mint command', () => {
             expect(transactionSignature).to.match(/^[a-zA-Z0-9]+$/)
         })
 
-        it('includes execution time with speed-run flag', async function() {
-            this.timeout(60000)
-            
-            if (!testMintAddress) {
-                this.skip()
-                return
-            }
-
-            const { stdout, stderr, code } = await runCli([
-                'toolbox',
-                'token',
-                'mint',
-                '--mint',
-                testMintAddress,
-                '--amount',
-                '100',
-                '--speed-run'
-            ])
-
-            const cleanStderr = stripAnsi(stderr)
-
-            expect(code).to.equal(0)
-            expect(cleanStderr).to.contain('Tokens minted successfully!')
-            expect(cleanStderr).to.contain('Execution Time:')
-            expect(cleanStderr).to.match(/Execution Time: \d+\.\d+ seconds/)
-        })
     })
 
     describe('error handling', () => {
@@ -157,9 +127,7 @@ describe('toolbox token mint command', () => {
                     'toolbox',
                     'token',
                     'mint',
-                    '--mint',
                     'invalid-mint-address',
-                    '--amount',
                     '100'
                 ])
                 expect.fail('Should have thrown an error')
@@ -178,9 +146,7 @@ describe('toolbox token mint command', () => {
                     'toolbox',
                     'token',
                     'mint',
-                    '--mint',
                     testMintAddress,
-                    '--amount',
                     '0'
                 ])
                 expect.fail('Should have thrown an error')
@@ -199,9 +165,7 @@ describe('toolbox token mint command', () => {
                     'toolbox',
                     'token',
                     'mint',
-                    '--mint',
                     testMintAddress,
-                    '--amount',
                     '-100'
                 ])
                 expect.fail('Should have thrown an error')
@@ -220,9 +184,7 @@ describe('toolbox token mint command', () => {
                     'toolbox',
                     'token',
                     'mint',
-                    '--mint',
                     testMintAddress,
-                    '--amount',
                     '100',
                     '--recipient',
                     'invalid-recipient-address'
@@ -233,7 +195,7 @@ describe('toolbox token mint command', () => {
             }
         })
 
-        it('fails with missing required flags', async () => {
+        it('fails with missing required arguments', async () => {
             try {
                 await runCli([
                     'toolbox',
@@ -242,59 +204,37 @@ describe('toolbox token mint command', () => {
                 ])
                 expect.fail('Should have thrown an error')
             } catch (error: any) {
-                expect(error.message).to.contain('Missing required flag')
+                expect(error.message).to.contain('Missing required arg')
             }
         })
 
-        it('includes execution time in error message with speed-run flag', async () => {
-            try {
-                await runCli([
-                    'toolbox',
-                    'token',
-                    'mint',
-                    '--mint',
-                    'invalid-mint-address',
-                    '--amount',
-                    '100',
-                    '--speed-run'
-                ])
-                expect.fail('Should have thrown an error')
-            } catch (error: any) {
-                expect(error.message).to.match(/Command failed after \d+\.\d+ seconds/)
-            }
-        })
     })
 
-    describe('flag validation', () => {
-        it('requires mint flag', async () => {
+    describe('argument validation', () => {
+        it('requires mint argument', async () => {
             try {
                 await runCli([
                     'toolbox',
                     'token',
-                    'mint',
-                    '--amount',
-                    '100'
+                    'mint'
                 ])
                 expect.fail('Should have thrown an error')
             } catch (error: any) {
-                expect(error.message).to.contain('Missing required flag')
-                expect(error.message).to.contain('mint')
+                expect(error.message).to.contain('Missing required arg')
             }
         })
 
-        it('requires amount flag', async () => {
+        it('requires amount argument', async () => {
             try {
                 await runCli([
                     'toolbox',
                     'token',
                     'mint',
-                    '--mint',
                     'someaddress'
                 ])
                 expect.fail('Should have thrown an error')
             } catch (error: any) {
-                expect(error.message).to.contain('Missing required flag')
-                expect(error.message).to.contain('amount')
+                expect(error.message).to.contain('Missing required arg')
             }
         })
 
@@ -310,9 +250,7 @@ describe('toolbox token mint command', () => {
                 'toolbox',
                 'token',
                 'mint',
-                '--mint',
                 testMintAddress,
-                '--amount',
                 '1'
             ])
 

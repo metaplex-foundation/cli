@@ -1,7 +1,6 @@
-import { Flags } from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 import { createTokenIfMissing, findAssociatedTokenPda, mintTokensTo } from '@metaplex-foundation/mpl-toolbox'
 import { publicKey } from '@metaplex-foundation/umi'
-import { base58 } from '@metaplex-foundation/umi/serializers'
 import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
@@ -14,12 +13,8 @@ const SUCCESS_MESSAGE = async (
     recipient: string,
     amount: number,
     signature: Uint8Array,
-    options: { explorer: ExplorerType; executionTime?: number }
+    options: { explorer: ExplorerType }
 ) => {
-    const timingInfo = options.executionTime
-        ? `\nExecution Time: ${(options.executionTime / 1000).toFixed(4)} seconds`
-        : '';
-
     return `--------------------------------
 Tokens minted successfully!
 
@@ -29,7 +24,7 @@ Recipient: ${recipient}
 Amount Minted: ${amount}
 
 Transaction Signature: ${txSignatureToString(signature)}
-Explorer: ${generateExplorerUrl(options.explorer, chain, txSignatureToString(signature), 'transaction')}${timingInfo}
+Explorer: ${generateExplorerUrl(options.explorer, chain, txSignatureToString(signature), 'transaction')}
 --------------------------------`;
 }
 
@@ -46,110 +41,98 @@ The command requires:
 Note: You must have mint authority for the specified token mint.`
 
     static override examples = [
-        '<%= config.bin %> <%= command.id %> --mint 7EYnhQoR9YM3c7UoaKRoA4q6YQ2Jx4VvQqKjB5x8XqWs --amount 1000',
-        '<%= config.bin %> <%= command.id %> --mint 7EYnhQoR9YM3c7UoaKRoA4q6YQ2Jx4VvQqKjB5x8XqWs --amount 1000 --recipient 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM',
+        '<%= config.bin %> <%= command.id %> 7EYnhQoR9YM3c7UoaKRoA4q6YQ2Jx4VvQqKjB5x8XqWs 1000',
+        '<%= config.bin %> <%= command.id %> 7EYnhQoR9YM3c7UoaKRoA4q6YQ2Jx4VvQqKjB5x8XqWs 1000 --recipient 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM',
     ]
 
-    static override usage = 'toolbox token mint --mint <MINT_ADDRESS> --amount <AMOUNT> [--recipient <RECIPIENT_ADDRESS>]'
+    static override usage = 'toolbox token mint <MINT_ADDRESS> <AMOUNT> [--recipient <RECIPIENT_ADDRESS>]'
 
-    static override flags = {
-        mint: Flags.string({
+    static override args = {
+        mint: Args.string({
             description: 'The mint address of the token to mint additional tokens for',
             required: true,
         }),
-        amount: Flags.integer({
+        amount: Args.integer({
             description: 'The number of tokens to mint (must be greater than 0)',
             required: true,
         }),
+    }
+
+    static override flags = {
         recipient: Flags.string({
             description: 'The wallet address to receive the minted tokens (defaults to current keypair)',
-            required: false,
-        }),
-        'speed-run': Flags.boolean({
-            description: 'Enable speed run mode to measure execution time',
             required: false,
         }),
     }
 
     public async run() {
-        const startTime = Date.now();
-        const { flags } = await this.parse(ToolboxTokenMint)
+        const { args, flags } = await this.parse(ToolboxTokenMint)
         const { umi, explorer } = this.context
 
+        // Validate amount
+        if (args.amount <= 0) {
+            throw new Error('Amount must be greater than 0');
+        }
+
+        // Parse mint address
+        let mintPublicKey;
         try {
-            // Validate amount
-            if (flags.amount <= 0) {
-                throw new Error('Amount must be greater than 0');
-            }
-
-            // Parse mint address
-            let mintPublicKey;
-            try {
-                mintPublicKey = publicKey(flags.mint);
-            } catch (error) {
-                throw new Error(`Invalid mint address: ${flags.mint}`);
-            }
-
-            // Determine recipient - default to current keypair
-            const recipientAddress = flags.recipient || umi.payer.publicKey.toString();
-            let recipientPublicKey;
-            try {
-                recipientPublicKey = publicKey(recipientAddress);
-            } catch (error) {
-                throw new Error(`Invalid recipient address: ${recipientAddress}`);
-            }
-
-            // Find or create the associated token account for the recipient
-            const tokenAccount = findAssociatedTokenPda(umi, { 
-                mint: mintPublicKey, 
-                owner: recipientPublicKey 
-            });
-
-            // Build the transaction to mint tokens
-            const mintIx = createTokenIfMissing(umi, {
-                mint: mintPublicKey,
-                owner: recipientPublicKey,
-            })
-            .add(mintTokensTo(umi, {
-                mint: mintPublicKey,
-                token: tokenAccount,
-                amount: flags.amount,
-            }));
-
-            const mintSpinner = ora('Minting tokens...').start();
-            try {
-                const result = await umiSendAndConfirmTransaction(umi, mintIx);
-                mintSpinner.succeed('Tokens minted successfully');
-
-                if (!result.transaction.signature) {
-                    throw new Error('Transaction signature is missing');
-                }
-
-                const executionTime = Date.now() - startTime;
-
-                this.logSuccess(await SUCCESS_MESSAGE(
-                    this.context.chain,
-                    flags.mint,
-                    recipientAddress,
-                    flags.amount,
-                    result.transaction.signature as Uint8Array,
-                    { explorer, executionTime: flags['speed-run'] ? executionTime : undefined }
-                ));
-
-                return result;
-            } catch (error: unknown) {
-                mintSpinner.fail('Token minting failed');
-                if (error instanceof Error) {
-                    throw new Error(`Token minting failed: ${error.message}`);
-                }
-                throw new Error('An unknown error occurred during token minting');
-            }
+            mintPublicKey = publicKey(args.mint);
         } catch (error) {
-            if (flags['speed-run']) {
-                const executionTime = Date.now() - startTime;
-                this.error(`Command failed after ${(executionTime / 1000).toFixed(4)} seconds: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            throw new Error(`Invalid mint address: ${args.mint}`);
+        }
+
+        // Determine recipient - default to current keypair
+        const recipientAddress = flags.recipient || umi.payer.publicKey.toString();
+        let recipientPublicKey;
+        try {
+            recipientPublicKey = publicKey(recipientAddress);
+        } catch (error) {
+            throw new Error(`Invalid recipient address: ${recipientAddress}`);
+        }
+
+        // Find or create the associated token account for the recipient
+        const tokenAccount = findAssociatedTokenPda(umi, { 
+            mint: mintPublicKey, 
+            owner: recipientPublicKey 
+        });
+
+        // Build the transaction to mint tokens
+        const mintIx = createTokenIfMissing(umi, {
+            mint: mintPublicKey,
+            owner: recipientPublicKey,
+        })
+        .add(mintTokensTo(umi, {
+            mint: mintPublicKey,
+            token: tokenAccount,
+            amount: args.amount,
+        }));
+
+        const mintSpinner = ora('Minting tokens...').start();
+        try {
+            const result = await umiSendAndConfirmTransaction(umi, mintIx);
+            mintSpinner.succeed('Tokens minted successfully');
+
+            if (!result.transaction.signature) {
+                throw new Error('Transaction signature is missing');
             }
-            throw error;
+
+            this.logSuccess(await SUCCESS_MESSAGE(
+                this.context.chain,
+                args.mint,
+                recipientAddress,
+                args.amount,
+                result.transaction.signature as Uint8Array,
+                { explorer }
+            ));
+
+            return result;
+        } catch (error: unknown) {
+            mintSpinner.fail('Token minting failed');
+            if (error instanceof Error) {
+                throw new Error(`Token minting failed: ${error.message}`);
+            }
+            throw new Error('An unknown error occurred during token minting');
         }
     }
 }

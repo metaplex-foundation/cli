@@ -13,7 +13,7 @@ const uploadFile = async (umi: Umi, filePath: string): Promise<UploadFileRessult
     const file = fs.readFileSync(filePath)
     const mimeType = mime.getType(filePath)
     const genericFile = createGenericFile(file, 'file', {
-      tags: mimeType ? [{ name: 'mimeType', value: mimeType }] : [],
+      tags: mimeType ? [{ name: 'content-type', value: mimeType }] : [],
     })
     const [uploadResult] = await umi.uploader.upload([genericFile])
 

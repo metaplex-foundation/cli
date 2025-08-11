@@ -18,7 +18,6 @@ const umiSendAllTransactions = async (
   let index = 0
   for (const tx of transactions) {
     if (!tx) {
-      console.log(`Transaction ${index} is null`)
       onProgress && onProgress(index, {
         signature: null,
         blockhash: null,
@@ -34,7 +33,6 @@ const umiSendAllTransactions = async (
     }
 
     try {
-      console.log(`Sending Transaction ${index} from umiSendAllTransactions`)
       const response = await umiSendTransaction(umi, tx, options)
       onProgress && onProgress(index, response)
       results.push(response)

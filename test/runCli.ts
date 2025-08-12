@@ -6,7 +6,7 @@ const CLI_PATH = join(process.cwd(), 'bin', 'run.js')
 export const runCli = (args: string[], stdin?: string[]): Promise<{ stdout: string; stderr: string; code: number }> => {
     return new Promise((resolve, reject) => {
         // console.log('Spawning CLI process with args:', args)
-        const child = spawn('node', [CLI_PATH, ...args, '-r', 'http://127.0.0.1:8899', '-k', 'test-files/key.json'], {
+        const child = spawn('node', [CLI_PATH, ...args, '-r', 'https://api.devnet.solana.com', '-k', 'test-files/key.json'], {
             stdio: ['pipe', 'pipe', 'pipe']
         })
 

@@ -1,8 +1,6 @@
 import { expect } from 'chai'
 import { runCli } from '../../runCli'
-
-// Helper to strip ANSI color codes
-const stripAnsi = (str: string) => str.replace(/\u001b\[\d+m/g, '')
+import { setupTestAccount, stripAnsi } from '../../utils.js'
 
 // Helper to extract mint address from message
 const extractMintAddress = (str: string) => {
@@ -12,11 +10,7 @@ const extractMintAddress = (str: string) => {
 
 describe('toolbox token commands', () => {
     before(async () => {
-        const { stdout, stderr, code } = await runCli(
-            ["toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"]
-        )
-
-        await new Promise(resolve => setTimeout(resolve, 10000))
+        await setupTestAccount("100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx")
     })
 
 

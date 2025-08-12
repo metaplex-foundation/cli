@@ -1,30 +1,16 @@
 import { expect } from 'chai'
 import { runCli } from '../../runCli'
+import { setupTestAccount, stripAnsi } from '../../utils.js'
 
-// Helper to strip ANSI color codes
-const stripAnsi = (str: string) => str.replace(/\u001b\[\d+m/g, '')
-
-// Helper to extract wrapped amount from success message
-const extractWrappedAmount = (str: string) => {
-    const match = str.match(/Wrapped ([\d.]+) SOL/)
+// Helper function to extract numbers from output
+const extractSOLAmount = (str: string, pattern: RegExp): number | null => {
+    const match = str.match(pattern)
     return match ? parseFloat(match[1]) : null
-}
-
-// Helper to extract signature from success message
-const extractSignature = (str: string) => {
-    const match = str.match(/Signature: (\w+)/)
-    return match ? match[1] : null
 }
 
 describe('toolbox sol wrap command', () => {
     before(async () => {
-        // Ensure we have some SOL for testing
-        const { stdout, stderr, code } = await runCli([
-            "toolbox", "sol", "airdrop", "10", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
-        ])
-
-        // Wait for airdrop to settle
-        await new Promise(resolve => setTimeout(resolve, 5000))
+        await setupTestAccount("10", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx")
     })
 
     it('wraps 0.1 SOL successfully', async () => {
@@ -39,8 +25,8 @@ describe('toolbox sol wrap command', () => {
         const { stdout, stderr, code } = await runCli(cliInput)
         const cleanStdout = stripAnsi(stdout)
 
-        const wrappedAmount = extractWrappedAmount(cleanStdout)
-        const signature = extractSignature(cleanStdout)
+        const wrappedAmount = extractSOLAmount(cleanStdout, /Wrapped ([\d.]+) SOL/)
+        const signature = extractSOLAmount(cleanStdout, /Signature: (\w+)/)
 
         expect(code).to.equal(0)
         expect(cleanStdout).to.contain('Wrapped 0.1 SOL to wSOL')
@@ -63,8 +49,8 @@ describe('toolbox sol wrap command', () => {
         const { stdout, stderr, code } = await runCli(cliInput)
         const cleanStdout = stripAnsi(stdout)
 
-        const wrappedAmount = extractWrappedAmount(cleanStdout)
-        const signature = extractSignature(cleanStdout)
+        const wrappedAmount = extractSOLAmount(cleanStdout, /Wrapped ([\d.]+) SOL/)
+        const signature = extractSOLAmount(cleanStdout, /Signature: (\w+)/)
 
         expect(code).to.equal(0)
         expect(cleanStdout).to.contain('Wrapped 1.5 SOL to wSOL')

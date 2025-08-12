@@ -1,12 +1,10 @@
 import { expect } from 'chai'
 import { runCli } from '../../runCli'
-
-// Helper to strip ANSI color codes
-const stripAnsi = (str: string) => str.replace(/\u001b\[\d+m/g, '')
+import { setupTestAccount, stripAnsi } from '../../utils.js'
 
 // Helper to extract unwrapped amount from success message
 const extractUnwrappedAmount = (str: string) => {
-    const match = str.match(/Unwrapped ([\d.]+) SOL/)
+    const match = str.match(/Unwrapped ([\d.]+) wSOL/)
     return match ? parseFloat(match[1]) : null
 }
 
@@ -18,13 +16,7 @@ const extractSignature = (str: string) => {
 
 describe('toolbox sol unwrap command', () => {
     before(async () => {
-        // Ensure we have some SOL for testing
-        await runCli([
-            "toolbox", "sol", "airdrop", "5", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
-        ])
-        
-        // Wait for airdrop to settle
-        await new Promise(resolve => setTimeout(resolve, 5000))
+        await setupTestAccount("5", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx")
     })
 
     it('unwraps wSOL successfully after wrapping some SOL', async () => {

@@ -1,9 +1,6 @@
 import { expect } from 'chai'
 import { runCli } from '../../runCli'
-import { shortenAddress } from '../../../src/lib/util.js'
-
-// Helper to strip ANSI color codes
-const stripAnsi = (str: string) => str.replace(/\u001b\[\d+m/g, '')
+import { shortenAddress, stripAnsi, setupTestAccount } from '../../utils.js'
 
 // Helper to extract balance from message
 const extractBalance = (str: string) => {
@@ -13,11 +10,7 @@ const extractBalance = (str: string) => {
 
 describe('toolbox sol balance commands', () => {
     before(async () => {
-        const { stdout, stderr, code } = await runCli(
-            ["toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"]
-        )
-
-        await new Promise(resolve => setTimeout(resolve, 10000))
+        await setupTestAccount("1", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx")
     })
 
     it('checks balance of current identity', async () => {

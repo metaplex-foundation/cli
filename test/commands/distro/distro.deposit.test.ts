@@ -141,7 +141,7 @@ describe('distro deposit commands', () => {
       await runCli(cliInput)
       expect.fail('Should have thrown an error for conflicting amount flags')
     } catch (error) {
-      expect((error as Error).message).to.contain('cannot be used together')
+      expect((error as Error).message).to.contain('cannot also be provided')
     }
   })
 
@@ -175,7 +175,7 @@ describe('distro deposit commands', () => {
       await runCli(cliInput)
       expect.fail('Should have thrown an error for invalid distribution address')
     } catch (error) {
-      expect((error as Error).message).to.contain('Invalid public key')
+      expect((error as Error).message).to.contain('public key is invalid')
     }
   })
 })

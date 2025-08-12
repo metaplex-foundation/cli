@@ -85,12 +85,12 @@ Explorer: ${generateExplorerUrl(options.explorer, chain, txSignatureToString(sig
 }
 
 export default class ToolboxTokenCreate extends TransactionCommand<typeof ToolboxTokenCreate> {
-    static override description = `Create a fungible token using 2 different methods:
+    static override description = `Create a fungible token
 
-  1. Simple Creation: Create a token by providing the name, symbol, and mint amount.
+  - Simple Creation: Create a token by providing the name, symbol, and mint amount.
      Example: mplx toolbox token create --name "My Token" --symbol "TOKEN" --mint-amount 1000000
 
-  2. Interactive Wizard: Create a token using the interactive wizard which guides you through the process.
+  - Interactive Wizard: Create a token using the interactive wizard which guides you through the process.
      Example: mplx toolbox token create --wizard
 
   Additional Options:

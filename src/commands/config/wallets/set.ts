@@ -1,4 +1,4 @@
-import {Command} from '@oclif/core'
+import {Command, Args} from '@oclif/core'
 import {getDefaultConfigPath, readConfig} from '../../../lib/Context.js'
 import walletSelectorPrompt from '../../../prompts/walletSelectPrompt.js'
 import {shortenAddress} from './../../../lib/util.js'
@@ -7,7 +7,14 @@ import {dirname} from 'path'
 import {ensureDirectoryExists, writeJsonSync} from '../../../lib/file.js'
 
 export default class ConfigWalletSetCommand extends Command {
-  static override description = 'Set a new active wallet from a list of wallets'
+  static override description = 'Set a new active wallet from a list of wallets. If no name is provided, opens interactive wallet selector.'
+
+  static override args = {
+    name: Args.string({ 
+      description: 'Name of the wallet to set as active',
+      required: false 
+    })
+  }
 
   public async run(): Promise<void> {
 
@@ -22,11 +29,25 @@ export default class ConfigWalletSetCommand extends Command {
       return
     }
 
-    const selectedWallet = await walletSelectorPrompt(config.wallets.map(wallet => ({
+    const availableWallets = config.wallets.map(wallet => ({
       name: wallet.name,
       path: wallet.path,
       publicKey: wallet.address
-    })))
+    }))
+
+    let selectedWallet
+
+    if (args.name) {
+      // Find wallet by name
+      selectedWallet = availableWallets.find(wallet => wallet.name === args.name)
+      
+      if (!selectedWallet) {
+        this.error(`Wallet with name "${args.name}" not found. Available wallets: ${availableWallets.map(w => w.name).join(', ')}`)
+      }
+    } else {
+      // Use interactive selector
+      selectedWallet = await walletSelectorPrompt(availableWallets)
+    }
 
     config.keypair = selectedWallet.path
 

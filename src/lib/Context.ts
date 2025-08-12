@@ -22,6 +22,7 @@ import { readJsonSync } from './file.js'
 import initStorageProvider from './uploader/initStorageProvider.js'
 import { DUMMY_UMI, RpcChain, chain as getChain } from './util.js'
 import { ExplorerType } from '../explorers.js'
+import { mplCandyMachine } from '@metaplex-foundation/mpl-core-candy-machine'
 
 export type ConfigJson = {
   commitment?: Commitment
@@ -29,7 +30,7 @@ export type ConfigJson = {
   payer?: string
   rpcUrl?: string
   storage?: {
-    name: 'irys' | 'arTurbo'
+    name: 'irys' | 'cascade' | 'turbo'
     options: IrysUploaderOptions
   }
   wallets?: {
@@ -160,6 +161,7 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
     .use(mplTokenMetadata())
     .use(mplToolbox())
     .use(mplDistro())
+    .use(mplCandyMachine())
 
   const storageProvider = await initStorageProvider(config)
   storageProvider && umi.use(storageProvider)

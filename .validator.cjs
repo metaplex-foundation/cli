@@ -17,6 +17,16 @@ module.exports = {
         programId: 'D1STRoZTUiEa6r8TLg2aAbG4nSRT5cDBmgG7jDqCZvU8',
         deployPath: './.amman/mpl_distro.so',
       },
+      {
+        label: 'MPL Core Candy Machine',
+        programId: 'CMACYFENjoBMHzapRXyo1JZkVS6EtaDDzkjMrmQLvr4J',
+        deployPath: './.amman/mpl_core_candy_machine.so',
+      },
+      {
+        label: 'MPL Core Candy Guard',
+        programId: 'CMAGAKJ67e9hRZgfC5SFTbZH8MgEmtqazKXjmkaJjWTJ',
+        deployPath: './.amman/mpl_core_candy_guard.so',
+      },
     ],
     commitment: 'processed',
   },

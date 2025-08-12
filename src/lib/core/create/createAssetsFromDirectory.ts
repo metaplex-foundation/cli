@@ -6,18 +6,17 @@ import {
   generateSigner,
   GenericFile,
   PublicKey,
-  Signer,
-  Umi,
+  Umi
 } from '@metaplex-foundation/umi'
 import cliProgress from 'cli-progress'
 import mime from 'mime'
 import fs from 'node:fs'
-import confirmAllTransactions, { UmiTransactionConfirmationResult } from '../../umi/confirmAllTransactions.js'
+import confirmAllTransactions from '../../umi/confirmAllTransactions.js'
+import { UmiTransactionConfirmationResult } from '../../umi/confirmTransaction.js'
 import umiSendAllTransactions from '../../umi/sendAllTransactions.js'
 import { UmiTransactionResponse } from '../../umi/sendTransaction.js'
-import createAssetTx from './createTx.js'
-import { base58 } from '@metaplex-foundation/umi/serializers'
 import { txSignatureToString } from '../../util.js'
+import createAssetTx from './createTx.js'
 
 interface CreateAssetsFromDirectoryOptions {
   collection?: string

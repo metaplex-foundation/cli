@@ -1,9 +1,11 @@
 import { TransactionBuilder, Umi } from '@metaplex-foundation/umi'
-import cliProgress from 'cli-progress'
-import confirmAllTransactions, { UmiTransactionConfirmationResult } from './confirmAllTransactions.js'
+import ora from 'ora'
+import confirmAllTransactions from './confirmAllTransactions.js'
 import umiSendAllTransactions from './sendAllTransactions.js'
 import { UmiSendAllOptions } from './sendOptions.js'
 import { UmiTransactionResponse } from './sendTransaction.js'
+import { UmiTransactionConfirmationResult } from './confirmTransaction.js'
+
 
 export interface UmiSendAndConfirmResponse {
   transaction: UmiTransactionResponse
@@ -14,32 +16,27 @@ const umiSendAllTransactionsAndConfirm = async (
   umi: Umi,
   transactions: TransactionBuilder[],
   sendOptions?: UmiSendAllOptions,
+  message?: string,
 ): Promise<Array<UmiSendAndConfirmResponse>> => {
   // Send all transactions
+  const sendSpinner = ora(message || 'Sending transactions...').start()
+  let sentCount = 0
 
-  // const spinner = ora('Sending transactions...').start()
-
-  console.log('Sending transactions...')
-
-  const progress = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic)
-  progress.start(transactions.length, 0)
-
-  const res = await umiSendAllTransactions(umi, transactions, { ...sendOptions, commitment: 'processed' }, () =>
-    progress.increment(),
-  )
-  progress.stop()
+  const res = await umiSendAllTransactions(umi, transactions, { ...sendOptions, commitment: 'processed' }, () => {
+    sentCount++
+    sendSpinner.text = `${message || 'Sending transactions'}... ${sentCount}/${transactions.length}`
+  })
+  sendSpinner.succeed(`Sent ${transactions.length} transactions`)
 
   // Confirm all transactions
-  console.log('Confirming transactions...')
+  const confirmSpinner = ora('Confirming transactions...').start()
+  let confirmedCount = 0
 
-  const confirmProgress = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic)
-  confirmProgress.start(res.length, 0)
-
-  const confirmations = await confirmAllTransactions(umi, res, sendOptions, () => confirmProgress.increment())
-  confirmProgress.stop()
-
-  // Return summary of all transactions and write failed transactions to file
-  // spinner.succeed('All transactions sent and confirmed')
+  const confirmations = await confirmAllTransactions(umi, res, sendOptions, () => {
+    confirmedCount++
+    confirmSpinner.text = `Confirming transactions... ${confirmedCount}/${res.length}`
+  })
+  confirmSpinner.succeed(`Confirmed ${res.length} transactions`)
 
   return res.map((transaction, index) => {
     return {

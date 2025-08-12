@@ -141,11 +141,11 @@ describe('distro deposit commands', () => {
       await runCli(cliInput)
       expect.fail('Should have thrown an error for conflicting amount flags')
     } catch (error) {
-      expect((error as Error).message).to.contain('cannot be used together')
+      expect((error as Error).message).to.contain('cannot also be provided when using')
     }
   })
 
-  it('fails when trying to deposit more tokens than available in wallet', async () => {
+  it('fails when trying to deposit more tokens than available', async () => {
     const cliInput = [
       'distro',
       'deposit',
@@ -175,7 +175,7 @@ describe('distro deposit commands', () => {
       await runCli(cliInput)
       expect.fail('Should have thrown an error for invalid distribution address')
     } catch (error) {
-      expect((error as Error).message).to.contain('Invalid public key')
+      expect((error as Error).message).to.contain('The provided public key is invalid')
     }
   })
 })

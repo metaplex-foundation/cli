@@ -13,11 +13,14 @@ dist/
 tmp/
 node_modules/
 tsconfig.build.tsbuildinfo
+tsconfig.tsbuildinfo
 oclif.manifest.json
 
 # Lockfiles (choose one depending on your package manager)
 yarn.lock
 package-lock.json
+
+.claude/
 
 # Known created test folders
 candy1
@@ -25,3 +28,4 @@ testCm1
 testCm2
 testcm3
 testCmW
+

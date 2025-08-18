@@ -8,7 +8,7 @@ import burnAssetTx from '../../../lib/core/burn/burnAssetTx.js'
 import confirmAllTransactions from '../../../lib/umi/confirmAllTransactions.js'
 import umiSendAllTransactions from '../../../lib/umi/sendAllTransactions.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
-import { UmiTransactionResponce } from '../../../lib/umi/sendTransaction.js'
+import { UmiTransactionResponse } from '../../../lib/umi/sendTransaction.js'
 
 import fs from 'node:fs'
 import { TransactionCommand } from '../../../TransactionCommand.js'
@@ -18,7 +18,7 @@ import { UmiTransactionConfirmationResult } from '../../../lib/umi/confirmTransa
 interface BurnAssetData {
   asset: string
   tx?: {
-    transaction?: UmiTransactionResponce
+    transaction?: UmiTransactionResponse
     confirmation?: UmiTransactionConfirmationResult
   }
   err?: unknown

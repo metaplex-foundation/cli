@@ -2,7 +2,7 @@ import { setComputeUnitPrice } from '@metaplex-foundation/mpl-toolbox'
 import { BlockhashWithExpiryBlockHeight, Signer, TransactionBuilder, TransactionSignature, Umi } from '@metaplex-foundation/umi'
 import { UmiSendOptions } from './sendOptions.js'
 
-export interface UmiTransactionResponce {
+export interface UmiTransactionResponse {
   signature: TransactionSignature | null | string
   blockhash: BlockhashWithExpiryBlockHeight | null
   err: string | null
@@ -12,7 +12,7 @@ const umiSendTransaction = async (
   umi: Umi,
   tx: TransactionBuilder,
   sendOptions?: UmiSendOptions,
-): Promise<UmiTransactionResponce> => {
+): Promise<UmiTransactionResponse> => {
   const commitment = sendOptions?.commitment || 'confirmed'
 
   const blockhash = await umi.rpc.getLatestBlockhash({

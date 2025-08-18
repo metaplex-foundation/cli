@@ -14,7 +14,7 @@ import fs from 'node:fs'
 import confirmAllTransactions from '../../umi/confirmAllTransactions.js'
 import { UmiTransactionConfirmationResult } from '../../umi/confirmTransaction.js'
 import umiSendAllTransactions from '../../umi/sendAllTransactions.js'
-import { UmiTransactionResponce } from '../../umi/sendTransaction.js'
+import { UmiTransactionResponse } from '../../umi/sendTransaction.js'
 import { txSignatureToString } from '../../util.js'
 import createAssetTx from './createTx.js'
 
@@ -33,7 +33,7 @@ interface AssetData {
   imageUri?: string
   metadataUri?: string
   tx?: {
-    transaction?: UmiTransactionResponce
+    transaction?: UmiTransactionResponse
     confirmation?: UmiTransactionConfirmationResult
   }
 }

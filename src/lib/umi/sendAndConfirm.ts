@@ -1,6 +1,6 @@
 import { TransactionBuilder, Umi } from '@metaplex-foundation/umi'
 import umiConfirmTransaction from './confirmTransaction.js'
-import { UmiSendAndConfirmResponce } from './sendAllTransactionsAndConfirm.js'
+import { UmiSendAndConfirmResponse } from './sendAllTransactionsAndConfirm.js'
 import { UmiSendOptions } from './sendOptions.js'
 import umiSendTransaction from './sendTransaction.js'
 
@@ -8,7 +8,7 @@ const umiSendAndConfirmTransaction = async (
   umi: Umi,
   transaction: TransactionBuilder,
   sendOptions?: UmiSendOptions,
-): Promise<UmiSendAndConfirmResponce> => {
+): Promise<UmiSendAndConfirmResponse> => {
   // TODO - Add Error handling
 
   // Send transaction

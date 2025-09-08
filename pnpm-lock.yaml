@@ -6509,7 +6509,6 @@ snapshots:
   '@metaplex-foundation/cusper@0.0.2': {}
 
   '@metaplex-foundation/mpl-core-candy-machine@0.3.0(@metaplex-foundation/mpl-core@1.4.0)(@metaplex-foundation/umi@1.0.0)':
-
     dependencies:
       '@metaplex-foundation/mpl-core': 1.4.1(@metaplex-foundation/umi@1.0.0)(@noble/hashes@1.8.0)
       '@metaplex-foundation/mpl-token-metadata': 3.0.0-alpha.27(@metaplex-foundation/umi@1.0.0)

@@ -31,16 +31,21 @@ mplx tm create --name "My NFT" --image "./nft.png" --attributes "trait1:value1,t
 ## Key Features
 
 ### NFT Types
+
 - **Regular NFTs**: Traditional non-fungible tokens with marketplace-dependent royalty compliance
 - **Programmable NFTs (pNFTs)**: Advanced NFTs with programmable royalty enforcement and transfer controls
 
 ### Creation Methods
+
+Programmable NFTs (pNFTs) are created by default unless you specify `--pnft false` to create regular NFTs.
+
 1. **Interactive Wizard**: Guided step-by-step creation process
 2. **File-based**: Upload image and JSON metadata files
 3. **URI-based**: Use existing online metadata
 4. **Manual**: Build metadata from command-line flags
 
 ### Metadata Support
+
 - **Basic Info**: Name, description, project URL
 - **Media Files**: Images, videos, audio, 3D models
 - **Attributes**: Trait/value pairs for NFT properties

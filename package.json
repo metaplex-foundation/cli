@@ -52,7 +52,8 @@
     "mime-types": "^2.1.35",
     "node-fetch": "^3.3.2",
     "ora": "8.1.1",
-    "p-map": "^7.0.3"
+    "p-map": "^7.0.3",
+    "untildify": "4.0.0"
   },
   "devDependencies": {
     "@metaplex-foundation/amman": "^0.12.1",

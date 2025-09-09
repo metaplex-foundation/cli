@@ -19,6 +19,7 @@ mplx tm create --wizard
 ```
 
 The wizard guides you through:
+
 - Basic information (name, description, project URL)
 - Media type selection and file paths
 - Attribute creation with trait/value pairs
@@ -34,6 +35,7 @@ mplx tm create --image "./my-nft.png" --json "./metadata.json"
 ```
 
 **Process:**
+
 1. Uploads your image file to storage
 2. Reads your JSON metadata file
 3. Updates JSON with uploaded image URI
@@ -144,12 +146,14 @@ mplx tm create \
 ## Programmable NFTs vs Regular NFTs
 
 ### Programmable NFTs (`--pnft true` - Default)
+
 - ✅ **Royalty Enforcement**: Can programmatically enforce royalty payments
 - ✅ **Transfer Controls**: Support for custom transfer restrictions
 - ✅ **Advanced Features**: Built for evolving NFT standards
 - ✅ **Future-Proof**: Compatible with upcoming marketplace requirements
 
 ### Regular NFTs (`--pnft false`)
+
 - ✅ **Universal Compatibility**: Works with all existing NFT infrastructure
 - ✅ **Lower Complexity**: Traditional NFT behavior
 - ⚠️ **Marketplace Dependent**: Royalty compliance relies on marketplace implementation
@@ -163,6 +167,7 @@ Attributes use comma-separated trait:value pairs:
 ```
 
 **Examples:**
+
 ```bash
 # Single attribute
 --attributes "color:blue"
@@ -183,6 +188,7 @@ Specify royalty percentages as whole numbers (0-100):
 - `--royalties 10` = 10% creator royalties
 
 **Industry Standards:**
+
 - Most NFT projects use 2.5% - 10% royalties
 - Premium/utility projects may use up to 15%
 - Consider your community and utility when setting royalties
@@ -190,11 +196,13 @@ Specify royalty percentages as whole numbers (0-100):
 ## File Support
 
 ### Image Formats
+
 - PNG (`.png`) - Recommended for digital art
 - JPEG (`.jpg`, `.jpeg`) - Good for photographs
 - GIF (`.gif`) - Animated images
 
 ### Animation Formats
+
 - **Video**: MP4 (`.mp4`), WebM (`.webm`)
 - **Audio**: MP3 (`.mp3`), WAV (`.wav`)
 - **3D Models**: GLB (`.glb`), GLTF (`.gltf`)
@@ -248,9 +256,9 @@ Successful creation displays:
 2. **Test on devnet first** before mainnet deployment
 3. **Optimize images** for faster uploads and better user experience
 4. **Use descriptive names** and comprehensive descriptions
-5. **Consider royalty enforcement** - use pNFTs for guaranteed royalty collection
+5. **Consider royalty enforcement** — use pNFTs for guaranteed royalty collection
 6. **Organize with collections** for related NFT series
-7. **Validate metadata URLs** ensure they're accessible and permanent
+7. **Validate metadata URLs** to ensure they're accessible and permanent
 8. **Use consistent attribute naming** across your collection
 
 ## Related Commands

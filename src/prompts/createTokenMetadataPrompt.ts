@@ -69,9 +69,20 @@ const createTokenMetadataPrompt = async (): Promise<CreateTokenMetadataPromptRes
     validate: (value) => {
       if (!value) return 'Image path is required'
       if (!fs.existsSync(value)) return 'Image file does not exist'
+      
+      // Check if path points to a regular file (not a directory)
+      try {
+        const stats = fs.statSync(value)
+        if (!stats.isFile()) {
+          return 'Path must point to a regular file, not a directory'
+        }
+      } catch (error) {
+        return 'Unable to access file'
+      }
+      
       const ext = path.extname(value).toLowerCase()
-      if (!['.png', '.jpg', '.jpeg', '.gif'].includes(ext)) {
-        return 'Image must be a PNG, JPG, or GIF file'
+      if (!['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes(ext)) {
+        return 'Image must be a PNG, JPG/JPEG, GIF, or WEBP file'
       }
       return true
     },
@@ -93,6 +104,17 @@ const createTokenMetadataPrompt = async (): Promise<CreateTokenMetadataPromptRes
       validate: (value) => {
         if (!value) return 'Animation path is required for non-image types'
         if (!fs.existsSync(value)) return 'Animation file does not exist'
+        
+        // Check if path points to a regular file (not a directory)
+        try {
+          const stats = fs.statSync(value)
+          if (!stats.isFile()) {
+            return 'Path must point to a regular file, not a directory'
+          }
+        } catch (error) {
+          return 'Unable to access file'
+        }
+        
         const ext = path.extname(value).toLowerCase()
         const validExts = VALID_EXTENSIONS[result.nftType as Exclude<NftType, 'image'>]
         if (!validExts.includes(ext)) {

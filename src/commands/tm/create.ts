@@ -1,8 +1,10 @@
 import { Flags } from '@oclif/core'
 import { createNft, createProgrammableNft } from '@metaplex-foundation/mpl-token-metadata'
-import { generateSigner, percentAmount, publicKey, some, Umi } from '@metaplex-foundation/umi'
+import { generateSigner, percentAmount, publicKey, some, Signer, Umi } from '@metaplex-foundation/umi'
 import ora from 'ora'
 import fs from 'node:fs'
+import untildify from 'untildify'
+import mime from 'mime'
 import { TransactionCommand } from '../../TransactionCommand.js'
 import { ExplorerType, generateExplorerUrl } from '../../explorers.js'
 import uploadFile from '../../lib/uploader/uploadFile.js'
@@ -11,7 +13,7 @@ import createTokenMetadataPrompt, { CreateTokenMetadataPromptResult, NftType } f
 import { txSignatureToString } from '../../lib/util.js'
 
 interface NftInput {
-    nftSigner?: any;
+    nftSigner?: Signer;
     name: string;
     uri: string;
     sellerFeePercentage?: number;
@@ -111,7 +113,9 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
         royalties: Flags.integer({
             name: 'royalties',
             description: 'royalty percentage for secondary sales (0-100)',
-            exclusive: ['wizard', 'uri', 'json']
+            exclusive: ['wizard', 'uri', 'json'],
+            min: 0,
+            max: 100
         }),
         // Additional flags that can be used with any mode
         collection: Flags.string({ 
@@ -133,7 +137,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
         })
         imageSpinner.succeed(`Image uploaded to ${imageUri.uri}`)
 
-        const jsonFile = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'))
+        const jsonFile = JSON.parse(fs.readFileSync(untildify(jsonPath), 'utf-8'))
         jsonFile.image = imageUri.uri
         jsonFile.properties.files[0] = {
             uri: imageUri.uri,
@@ -169,10 +173,36 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
     private parseAttributes(attributesString?: string) {
         if (!attributesString) return []
 
-        return attributesString.split(',').map(attr => {
-            const [trait_type, value] = attr.split(':').map(s => s.trim())
-            return { trait_type, value }
-        })
+        const attributes = []
+        const segments = attributesString.split(',')
+        
+        for (const segment of segments) {
+            // Skip empty segments
+            const trimmedSegment = segment.trim()
+            if (!trimmedSegment) continue
+            
+            // Check if segment contains at least one colon
+            const colonIndex = trimmedSegment.indexOf(':')
+            if (colonIndex === -1) {
+                throw new Error(`Invalid attribute format: "${trimmedSegment}". Expected format: "trait:value"`)
+            }
+            
+            // Split into trait_type and value (allow colons in value)
+            const trait_type = trimmedSegment.substring(0, colonIndex).trim()
+            const value = trimmedSegment.substring(colonIndex + 1).trim()
+            
+            // Ensure neither trait_type nor value is empty
+            if (!trait_type) {
+                throw new Error(`Invalid attribute: missing trait type in "${trimmedSegment}"`)
+            }
+            if (!value) {
+                throw new Error(`Invalid attribute: missing value for trait "${trait_type}"`)
+            }
+            
+            attributes.push({ trait_type, value })
+        }
+        
+        return attributes
     }
 
     private async createAndUploadMetadata(umi: Umi, wizard: CreateTokenMetadataPromptResult, additionalAttributes?: any[]) {
@@ -186,6 +216,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
 
         // Upload animation file if provided
         let animationUri: string | undefined
+        let animationMimeType: string | undefined
         if (wizard.animation) {
             const animationSpinner = ora('Uploading animation...').start()
             const animationResult = await uploadFile(umi, wizard.animation).catch((err) => {
@@ -194,12 +225,14 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
             })
             animationSpinner.succeed(`Animation uploaded to ${animationResult.uri}`)
             animationUri = animationResult.uri
+            animationMimeType = animationResult.mimeType || mime.getType(wizard.animation) || 'application/octet-stream'
         }
 
         // Combine attributes from wizard and additional attributes
         const allAttributes = [...(wizard.attributes || []), ...(additionalAttributes || [])]
 
         // Create and upload metadata JSON
+        const imageMimeType = imageResult.mimeType || mime.getType(wizard.image) || 'application/octet-stream'
         const metadata = {
             name: wizard.name,
             description: wizard.description,
@@ -211,11 +244,11 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
                 files: [
                     {
                         uri: imageResult.uri,
-                        type: 'image/png' // TODO: Get actual mime type
+                        type: imageMimeType
                     },
                     ...(animationUri ? [{
                         uri: animationUri,
-                        type: {
+                        type: animationMimeType || {
                             image: 'image/png',
                             video: 'video/mp4',
                             audio: 'audio/mpeg',
@@ -239,6 +272,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
 
     private async createMetadataFromFlags(umi: Umi, flags: any) {
         let imageUri = ''
+        let imageMimeType = ''
         if (flags.image) {
             const imageSpinner = ora('Uploading image...').start()
             const imageResult = await uploadFile(umi, flags.image).catch((err) => {
@@ -247,6 +281,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
             })
             imageSpinner.succeed(`Image uploaded to ${imageResult.uri}`)
             imageUri = imageResult.uri
+            imageMimeType = imageResult.mimeType || mime.getType(flags.image) || 'application/octet-stream'
         }
 
         // Parse attributes from command line
@@ -262,7 +297,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
             properties: {
                 files: imageUri ? [{
                     uri: imageUri,
-                    type: 'image/png' // TODO: Get actual mime type
+                    type: imageMimeType
                 }] : []
             }
         }
@@ -394,10 +429,10 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
             return result
 
         } else {
-            this.error('You must provide one of the following combinations:\\n' +
-                      '  --wizard (interactive mode)\\n' +
-                      '  --image and --json (file-based creation)\\n' +
-                      '  --name and --uri (use existing metadata)\\n' +
+            this.error('You must provide one of the following combinations:\n' +
+                      '  --wizard (interactive mode)\n' +
+                      '  --image and --json (file-based creation)\n' +
+                      '  --name and --uri (use existing metadata)\n' +
                       '  --name and --image (create metadata from flags)')
         }
     }

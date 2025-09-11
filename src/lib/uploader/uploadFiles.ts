@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import path from 'node:path'
 import mime from 'mime'
 import { createGenericFile, sol, Umi } from '@metaplex-foundation/umi'
 import { createIrysUploader } from '@metaplex-foundation/umi-uploader-irys'
@@ -15,7 +16,7 @@ const uploadFiles = async (umi: Umi, filePaths: string[], onProgress?: (progress
     const files = filePaths.map(filePath => {
         const file = fs.readFileSync(filePath)
         const mimeType = mime.getType(filePath)
-        return createGenericFile(file, 'file', {
+        return createGenericFile(file, path.basename(filePath), {
             tags: mimeType ? [{ name: 'content-type', value: mimeType }] : [],
         })
     })

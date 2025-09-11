@@ -1,6 +1,7 @@
 import { confirm, input, select } from '@inquirer/prompts'
 import { isPublicKey } from '@metaplex-foundation/umi'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 
 export type NftType = 'image' | 'video' | 'audio' | 'model'
@@ -68,11 +69,18 @@ const createTokenMetadataPrompt = async (): Promise<CreateTokenMetadataPromptRes
     message: result.nftType === 'image' ? 'NFT Image Path?' : 'NFT Preview Image Path? (This will be used as the preview/thumbnail)',
     validate: (value) => {
       if (!value) return 'Image path is required'
-      if (!fs.existsSync(value)) return 'Image file does not exist'
+      
+      // Expand tilde to home directory
+      let expandedPath = value
+      if (value.startsWith('~/') || value === '~') {
+        expandedPath = path.join(os.homedir(), value.slice(1))
+      }
+      
+      if (!fs.existsSync(expandedPath)) return 'Image file does not exist'
       
       // Check if path points to a regular file (not a directory)
       try {
-        const stats = fs.statSync(value)
+        const stats = fs.statSync(expandedPath)
         if (!stats.isFile()) {
           return 'Path must point to a regular file, not a directory'
         }
@@ -80,13 +88,18 @@ const createTokenMetadataPrompt = async (): Promise<CreateTokenMetadataPromptRes
         return 'Unable to access file'
       }
       
-      const ext = path.extname(value).toLowerCase()
+      const ext = path.extname(expandedPath).toLowerCase()
       if (!['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes(ext)) {
         return 'Image must be a PNG, JPG/JPEG, GIF, or WEBP file'
       }
       return true
     },
   })
+  
+  // Expand tilde in the stored result as well
+  if (result.image.startsWith('~/') || result.image === '~') {
+    result.image = path.join(os.homedir(), result.image.slice(1))
+  }
 
   // Get the animation path if applicable (only for non-image assets)
   if (result.nftType !== 'image') {
@@ -103,11 +116,18 @@ const createTokenMetadataPrompt = async (): Promise<CreateTokenMetadataPromptRes
       message,
       validate: (value) => {
         if (!value) return 'Animation path is required for non-image types'
-        if (!fs.existsSync(value)) return 'Animation file does not exist'
+        
+        // Expand tilde to home directory
+        let expandedPath = value
+        if (value.startsWith('~/') || value === '~') {
+          expandedPath = path.join(os.homedir(), value.slice(1))
+        }
+        
+        if (!fs.existsSync(expandedPath)) return 'Animation file does not exist'
         
         // Check if path points to a regular file (not a directory)
         try {
-          const stats = fs.statSync(value)
+          const stats = fs.statSync(expandedPath)
           if (!stats.isFile()) {
             return 'Path must point to a regular file, not a directory'
           }
@@ -115,7 +135,7 @@ const createTokenMetadataPrompt = async (): Promise<CreateTokenMetadataPromptRes
           return 'Unable to access file'
         }
         
-        const ext = path.extname(value).toLowerCase()
+        const ext = path.extname(expandedPath).toLowerCase()
         const validExts = VALID_EXTENSIONS[result.nftType as Exclude<NftType, 'image'>]
         if (!validExts.includes(ext)) {
           return `Animation must be a ${validExts.join(', ')} file for the selected type`
@@ -123,6 +143,11 @@ const createTokenMetadataPrompt = async (): Promise<CreateTokenMetadataPromptRes
         return true
       },
     })
+    
+    // Expand tilde in the stored result as well
+    if (result.animation && (result.animation.startsWith('~/') || result.animation === '~')) {
+      result.animation = path.join(os.homedir(), result.animation.slice(1))
+    }
   }
 
   // Get attributes

@@ -102,7 +102,7 @@ importers:
         specifier: ^7.0.3
         version: 7.0.3
       untildify:
-        specifier: 4.0.0
+        specifier: ^4.0.0
         version: 4.0.0
     devDependencies:
       '@metaplex-foundation/amman':

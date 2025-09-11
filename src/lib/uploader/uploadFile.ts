@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import path from 'node:path'
 import mime from 'mime'
 import untildify from 'untildify'
 import { createGenericFile, Umi } from '@metaplex-foundation/umi'
@@ -15,7 +16,7 @@ const uploadFile = async (umi: Umi, filePath: string): Promise<UploadFileRessult
   try {
     const file = fs.readFileSync(expandedPath)
     const mimeType = mime.getType(expandedPath)
-    const genericFile = createGenericFile(file, 'file', {
+    const genericFile = createGenericFile(file, path.basename(expandedPath), {
       tags: mimeType ? [{ name: 'content-type', value: mimeType }] : [],
     })
     const [uploadResult] = await umi.uploader.upload([genericFile])

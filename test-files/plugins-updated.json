@@ -1,0 +1,18 @@
+[
+  {
+    "type": "Attributes",
+    "authority": {
+      "type": "UpdateAuthority"
+    },
+    "attributeList": [
+      {
+        "key": "Background",
+        "value": "Red"
+      },
+      {
+        "key": "Rarity",
+        "value": "Legendary"
+      }
+    ]
+  }
+]

@@ -1,12 +1,12 @@
 import { Args, Flags } from '@oclif/core'
 
-import { updateCollectionPlugin, updatePlugin, fetchAsset, fetchCollection } from '@metaplex-foundation/mpl-core'
+import { updateCollectionPlugin, updatePlugin, UpdatePluginArgsPlugin, UpdateCollectionPluginArgsPlugin, fetchAsset, fetchCollection } from '@metaplex-foundation/mpl-core'
 import { publicKey } from '@metaplex-foundation/umi'
-import fs from 'fs'
+import { readFileSync } from 'fs'
 import ora from 'ora'
 import { BaseCommand } from '../../../BaseCommand.js'
-import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
-import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
+import { generateExplorerUrl } from '../../../explorers.js'
+import { Plugin } from '../../../lib/types/pluginData.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
 import pluginConfigurator from '../../../prompts/pluginInquirer.js'
@@ -32,7 +32,7 @@ export default class CorePluginsUpdate extends BaseCommand<typeof CorePluginsUpd
 
     public async run() {
         const { args, flags } = await this.parse(CorePluginsUpdate)
-        let pluginData: PluginData | undefined
+        let plugin: UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin | undefined
         let selectedPlugin: Plugin | undefined
 
         // Fetch current asset or collection to validate it exists
@@ -61,23 +61,47 @@ export default class CorePluginsUpdate extends BaseCommand<typeof CorePluginsUpd
             }
 
             console.log(selectedPlugins)
-            pluginData = await pluginConfigurator(selectedPlugins)
-            console.log(pluginData)
+            const wizardPluginData = await pluginConfigurator(selectedPlugins)
+            console.log(wizardPluginData)
+
+            plugin = Object.values(wizardPluginData)[0] as UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin
         }
 
         if (args.json) {
-            pluginData = JSON.parse(fs.readFileSync(args.json, 'utf-8'))
+            const jsonData = JSON.parse(readFileSync(args.json, 'utf-8'))
+
+            if (jsonData.length === 0) {
+                throw new Error('Plugin data array is empty')
+            }
+
+            plugin = jsonData[0] as UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin
         }
 
-        if (!pluginData) {
+        if (!plugin) {
             throw new Error('Plugin data is required')
         }
 
-        const plugin = Object.values(pluginData)[0]
-        await this.updatePlugin(args.id, plugin, { isCollection: flags.collection })
+        // Auto-detect collection ID if this is an asset operation
+        let collectionId: string | undefined
+        if (!flags.collection) {
+            try {
+                const asset = await fetchAsset(this.context.umi, publicKey(args.id))
+
+                if (asset.updateAuthority.type === 'Collection') {
+                    collectionId = asset.updateAuthority.address
+                }
+            } catch (error) {
+                throw new Error('Unable to fetch asset')
+            }
+        }
+
+        await this.updatePlugin(args.id, plugin, {
+            isCollection: flags.collection,
+            collectionId
+        })
     }
 
-    private async updatePlugin(assetOrCollection: string, pluginData: any, options: { isCollection: boolean, collectionId?: string }) {
+    private async updatePlugin(assetOrCollection: string, pluginData: UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin, options: { isCollection: boolean, collectionId?: string }) {
         const { umi, explorer } = this.context
         const { isCollection, collectionId } = options
 
@@ -87,12 +111,12 @@ export default class CorePluginsUpdate extends BaseCommand<typeof CorePluginsUpd
         let updatePluginIx = isCollection
             ? updateCollectionPlugin(umi, {
                 collection: publicKey(assetOrCollection),
-                plugin: pluginData
+                plugin: pluginData as UpdateCollectionPluginArgsPlugin
             })
             : updatePlugin(umi, {
                 asset: publicKey(assetOrCollection),
                 collection: collectionId ? publicKey(collectionId) : undefined,
-                plugin: pluginData
+                plugin: pluginData as UpdatePluginArgsPlugin
             })
 
         const transactionSpinner = ora('Updating plugin...').start()

@@ -1,12 +1,12 @@
 import { Args, Flags } from '@oclif/core'
 
-import { addCollectionPlugin, AddCollectionPluginArgsPlugin, addPlugin, AddPluginArgsPlugin } from '@metaplex-foundation/mpl-core'
+import { addCollectionPlugin, AddCollectionPluginArgsPlugin, addPlugin, AddPluginArgsPlugin, fetchAsset } from '@metaplex-foundation/mpl-core'
 import { publicKey } from '@metaplex-foundation/umi'
-import fs from 'fs'
+import { readFileSync } from 'fs'
 import ora from 'ora'
 import { BaseCommand } from '../../../BaseCommand.js'
-import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
-import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
+import { generateExplorerUrl } from '../../../explorers.js'
+import { Plugin } from '../../../lib/types/pluginData.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
 import pluginConfigurator from '../../../prompts/pluginInquirer.js'
@@ -34,7 +34,7 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
 
     public async run() {
         const { args, flags } = await this.parse(CorePluginsAdd)
-        let pluginData: PluginData | undefined
+        let plugin: AddPluginArgsPlugin | AddCollectionPluginArgsPlugin | undefined
         let selectedPlugin: Plugin | undefined
 
         if (flags.wizard) {
@@ -49,23 +49,47 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
             }
 
             console.log(selectedPlugins)
-            pluginData = await pluginConfigurator(selectedPlugins)
-            console.log(pluginData)
+            const wizardPluginData = await pluginConfigurator(selectedPlugins)
+            console.log(wizardPluginData)
+
+            plugin = Object.values(wizardPluginData)[0] as AddPluginArgsPlugin | AddCollectionPluginArgsPlugin
 
             // For validation, we'll use the first selected plugin
             selectedPlugin = selectedPlugins[0]
         }
 
         if (args.json) {
-            pluginData = JSON.parse(fs.readFileSync(args.json, 'utf-8'))
+            const jsonData = JSON.parse(readFileSync(args.json, 'utf-8'))
+
+            if (jsonData.length === 0) {
+                throw new Error('Plugin data array is empty')
+            }
+
+            plugin = jsonData[0] as AddPluginArgsPlugin | AddCollectionPluginArgsPlugin
         }
 
-        if (!pluginData || !selectedPlugin) {
+        if (!plugin) {
             throw new Error('Plugin data is required')
         }
 
-        const plugin = Object.values(pluginData)[0] as AddPluginArgsPlugin | AddCollectionPluginArgsPlugin
-        await this.addPlugin(args.id, plugin, { isCollection: flags.collection })
+        // Auto-detect collection ID if this is an asset operation
+        let collectionId: string | undefined
+        if (!flags.collection) {
+            try {
+                const asset = await fetchAsset(this.context.umi, publicKey(args.id))
+
+                if (asset.updateAuthority.type === 'Collection') {
+                    collectionId = asset.updateAuthority.address
+                }
+            } catch (error) {
+                throw new Error('Unable to fetch asset')
+            }
+        }
+
+        await this.addPlugin(args.id, plugin, {
+            isCollection: flags.collection,
+            collectionId
+        })
     }
 
     private async addPlugin(asset: string, pluginData: AddPluginArgsPlugin | AddCollectionPluginArgsPlugin, options: { isCollection: boolean, collectionId?: string }) {
@@ -89,7 +113,7 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
         const transactionSpinner = ora('Adding plugin...').start()
         try {
             const res = await umiSendAndConfirmTransaction(umi, addPluginIx)
-            transactionSpinner.succeed("Plugin added successfully")
+            transactionSpinner.succeed(`Plugin added: ${asset}`)
 
             console.log(
                 `--------------------------------\n

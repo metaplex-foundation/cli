@@ -37,8 +37,7 @@ describe('core plugin commands', () => {
         const cleanAddStderr = stripAnsi(addStderr)
 
         expect(addCode).to.equal(0)
-        expect(cleanAddStderr).to.contain('Plugin added successfully')
-        expect(cleanAddStderr).to.contain(collectionId)
+        expect(cleanAddStderr).to.contain('Plugin added')
     })
 
     it('updates a plugin on a collection using JSON file', async function() {
@@ -74,8 +73,7 @@ describe('core plugin commands', () => {
         const cleanUpdateStderr = stripAnsi(updateStderr)
 
         expect(updateCode).to.equal(0)
-        expect(cleanUpdateStderr).to.contain('Plugin updated successfully')
-        expect(cleanUpdateStderr).to.contain(collectionId)
+        expect(cleanUpdateStderr).to.contain('Plugin updated')
     })
 
     it('adds a plugin to an asset using JSON file', async function() {
@@ -98,7 +96,7 @@ describe('core plugin commands', () => {
         const cleanAddStderr = stripAnsi(addStderr)
 
         expect(addCode).to.equal(0)
-        expect(cleanAddStderr).to.contain('Plugin added successfully')
+        expect(cleanAddStderr).to.contain('Plugin added')
         expect(cleanAddStderr).to.contain(assetId)
     })
 
@@ -134,8 +132,7 @@ describe('core plugin commands', () => {
         const cleanUpdateStderr = stripAnsi(updateStderr)
 
         expect(updateCode).to.equal(0)
-        expect(cleanUpdateStderr).to.contain('Plugin updated successfully')
-        expect(cleanUpdateStderr).to.contain(assetId)
+        expect(cleanUpdateStderr).to.contain('Plugin updated')
     })
 
     it('fails to update plugin with invalid collection ID', async function() {

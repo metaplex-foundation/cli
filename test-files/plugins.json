@@ -2,8 +2,7 @@
   {
     "type": "Attributes",
     "authority": {
-      "type": "Address",
-      "address": "4xbJp9sjeTEhheUDg8M1nJUomZcGmFZsjt9Gg3RQZAWp"
+      "type": "UpdateAuthority"
     },
     "attributeList": [
       {
@@ -27,7 +26,7 @@
     "basisPoints": 500,
     "creators": [
       {
-        "address": "4xbJp9sjeTEhheUDg8M1nJUomZcGmFZsjt9Gg3RQZAWp",
+        "address": "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx",
         "percentage": 100
       }
     ],

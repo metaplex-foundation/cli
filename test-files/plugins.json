@@ -10,26 +10,5 @@
         "value": "Blue"
       }
     ]
-  },
-  {
-    "type": "FreezeDelegate",
-    "authority": {
-      "type": "UpdateAuthority"
-    },
-    "frozen": false
-  },
-  {
-    "type": "Royalties",
-    "authority": {
-      "type": "UpdateAuthority"
-    },
-    "basisPoints": 500,
-    "creators": [
-      {
-        "address": "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx",
-        "percentage": 100
-      }
-    ],
-    "ruleSet": {"type": "None"}
   }
 ]

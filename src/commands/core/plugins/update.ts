@@ -1,13 +1,12 @@
 import { Args, Flags } from '@oclif/core'
 
 import { updateCollectionPlugin, updatePlugin, UpdatePluginArgsPlugin, UpdateCollectionPluginArgsPlugin, fetchAsset, fetchCollection } from '@metaplex-foundation/mpl-core'
-import { publicKey } from '@metaplex-foundation/umi'
+import { publicKey, TransactionBuilder } from '@metaplex-foundation/umi'
 import { readFileSync } from 'fs'
 import ora from 'ora'
 import { BaseCommand } from '../../../BaseCommand.js'
-import { generateExplorerUrl } from '../../../explorers.js'
 import { Plugin } from '../../../lib/types/pluginData.js'
-import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
+import umiSendAllTransactionsAndConfirm from '../../../lib/umi/sendAllTransactionsAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
 import pluginConfigurator from '../../../prompts/pluginInquirer.js'
 import { PluginFilterType, pluginSelector } from '../../../prompts/pluginSelector.js'
@@ -32,8 +31,6 @@ export default class CorePluginsUpdate extends BaseCommand<typeof CorePluginsUpd
 
     public async run() {
         const { args, flags } = await this.parse(CorePluginsUpdate)
-        let plugin: UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin | undefined
-        let selectedPlugin: Plugin | undefined
 
         // Fetch current asset or collection to validate it exists
         const fetchSpinner = ora('Fetching current state...').start()
@@ -47,6 +44,20 @@ export default class CorePluginsUpdate extends BaseCommand<typeof CorePluginsUpd
         } catch (error) {
             fetchSpinner.fail(`Failed to fetch ${flags.collection ? 'collection' : 'asset'}: ${error instanceof Error ? error.message : 'Unknown error'}`)
             throw error
+        }
+
+        // Auto-detect collection ID if this is an asset operation
+        let collectionId: string | undefined
+        if (!flags.collection) {
+            try {
+                const asset = await fetchAsset(this.context.umi, publicKey(args.id))
+
+                if (asset.updateAuthority.type === 'Collection') {
+                    collectionId = asset.updateAuthority.address
+                }
+            } catch (error) {
+                throw new Error('Unable to fetch asset')
+            }
         }
 
         if (flags.wizard) {
@@ -64,7 +75,12 @@ export default class CorePluginsUpdate extends BaseCommand<typeof CorePluginsUpd
             const wizardPluginData = await pluginConfigurator(selectedPlugins)
             console.log(wizardPluginData)
 
-            plugin = Object.values(wizardPluginData)[0] as UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin
+            const pluginsArray = Object.values(wizardPluginData) as (UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin)[]
+            await this.updatePluginsBatch(args.id, pluginsArray, {
+                isCollection: flags.collection,
+                collectionId
+            })
+            return
         }
 
         if (args.json) {
@@ -74,68 +90,69 @@ export default class CorePluginsUpdate extends BaseCommand<typeof CorePluginsUpd
                 throw new Error('Plugin data array is empty')
             }
 
-            plugin = jsonData[0] as UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin
+            await this.updatePluginsBatch(args.id, jsonData as (UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin)[], {
+                isCollection: flags.collection,
+                collectionId
+            })
+            return
         }
 
-        if (!plugin) {
-            throw new Error('Plugin data is required')
-        }
-
-        // Auto-detect collection ID if this is an asset operation
-        let collectionId: string | undefined
-        if (!flags.collection) {
-            try {
-                const asset = await fetchAsset(this.context.umi, publicKey(args.id))
-
-                if (asset.updateAuthority.type === 'Collection') {
-                    collectionId = asset.updateAuthority.address
-                }
-            } catch (error) {
-                throw new Error('Unable to fetch asset')
-            }
-        }
-
-        await this.updatePlugin(args.id, plugin, {
-            isCollection: flags.collection,
-            collectionId
-        })
+        throw new Error('Either --wizard flag or JSON file argument is required')
     }
 
-    private async updatePlugin(assetOrCollection: string, pluginData: UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin, options: { isCollection: boolean, collectionId?: string }) {
+
+    private async updatePluginsBatch(assetOrCollection: string, pluginsData: (UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin)[], options: { isCollection: boolean, collectionId?: string }) {
         const { umi, explorer } = this.context
         const { isCollection, collectionId } = options
 
-        console.log("generating transaction")
-        console.log({ pluginData })
+        console.log("generating batch transaction")
+        console.log(`Updating ${pluginsData.length} plugins`)
 
-        let updatePluginIx = isCollection
-            ? updateCollectionPlugin(umi, {
-                collection: publicKey(assetOrCollection),
-                plugin: pluginData as UpdateCollectionPluginArgsPlugin
-            })
-            : updatePlugin(umi, {
-                asset: publicKey(assetOrCollection),
-                collection: collectionId ? publicKey(collectionId) : undefined,
-                plugin: pluginData as UpdatePluginArgsPlugin
-            })
+        // Build a single transaction with all plugin instructions
+        let transaction = new TransactionBuilder()
 
-        const transactionSpinner = ora('Updating plugin...').start()
+        for (const pluginData of pluginsData) {
+            const updatePluginIx = isCollection
+                ? updateCollectionPlugin(umi, {
+                    collection: publicKey(assetOrCollection),
+                    plugin: pluginData as UpdateCollectionPluginArgsPlugin
+                })
+                : updatePlugin(umi, {
+                    asset: publicKey(assetOrCollection),
+                    collection: collectionId ? publicKey(collectionId) : undefined,
+                    plugin: pluginData as UpdatePluginArgsPlugin
+                })
+
+            transaction = transaction.add(updatePluginIx)
+        }
+
+        // Split the transaction if it's too large
+        const transactions = transaction.unsafeSplitByTransactionSize(umi)
+
+        const transactionSpinner = ora(`Updating ${pluginsData.length} plugins${transactions.length > 1 ? ` in ${transactions.length} transactions` : ''}...`).start()
         try {
-            const res = await umiSendAndConfirmTransaction(umi, updatePluginIx)
-            transactionSpinner.succeed("Plugin updated successfully")
+            const results = await umiSendAllTransactionsAndConfirm(umi, transactions, undefined, `Updating ${pluginsData.length} plugins${transactions.length > 1 ? ` in ${transactions.length} transactions` : ''}...`)
+
+            transactionSpinner.succeed(`Successfully updated ${pluginsData.length} plugins on ${isCollection ? 'collection' : 'asset'}: ${assetOrCollection}${transactions.length > 1 ? ` in ${transactions.length} transactions` : ''}`)
+
+            const signatures = results
+                .filter(r => r.transaction.signature !== null && typeof r.transaction.signature !== 'string')
+                .map(r => txSignatureToString(r.transaction.signature as Uint8Array))
+                .join(', ')
 
             console.log(
-                `--------------------------------\n
-                ${isCollection ? 'Collection' : 'Asset'}: ${assetOrCollection}\n
-                Signature: ${txSignatureToString(res.transaction.signature as Uint8Array)}\n
-                Explorer: ${generateExplorerUrl(explorer, this.context.chain, txSignatureToString(res.transaction.signature as Uint8Array), 'transaction')}\n
-                Core Explorer: https://core.metaplex.com/explorer/${assetOrCollection}\n
-                --------------------------------`
+                `--------------------------------
+${isCollection ? 'Collection' : 'Asset'}: ${assetOrCollection}
+Plugins Updated: ${pluginsData.length}
+Transactions: ${transactions.length}
+Signatures: ${signatures}
+Core Explorer: https://core.metaplex.com/explorer/${assetOrCollection}
+--------------------------------`
             )
 
-            return res
+            return results[0]
         } catch (error: unknown) {
-            transactionSpinner.fail(`Failed to update plugin: ${error instanceof Error ? error.message : 'Unknown error'}`)
+            transactionSpinner.fail(`Failed to update plugins: ${error instanceof Error ? error.message : 'Unknown error'}`)
             throw error
         }
     }

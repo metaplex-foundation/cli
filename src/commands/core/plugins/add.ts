@@ -1,13 +1,12 @@
 import { Args, Flags } from '@oclif/core'
 
 import { addCollectionPlugin, AddCollectionPluginArgsPlugin, addPlugin, AddPluginArgsPlugin, fetchAsset } from '@metaplex-foundation/mpl-core'
-import { publicKey } from '@metaplex-foundation/umi'
+import { publicKey, TransactionBuilder } from '@metaplex-foundation/umi'
 import { readFileSync } from 'fs'
 import ora from 'ora'
 import { BaseCommand } from '../../../BaseCommand.js'
-import { generateExplorerUrl } from '../../../explorers.js'
 import { Plugin } from '../../../lib/types/pluginData.js'
-import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
+import umiSendAllTransactionsAndConfirm from '../../../lib/umi/sendAllTransactionsAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
 import pluginConfigurator from '../../../prompts/pluginInquirer.js'
 import { PluginFilterType, pluginSelector } from '../../../prompts/pluginSelector.js'
@@ -34,8 +33,20 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
 
     public async run() {
         const { args, flags } = await this.parse(CorePluginsAdd)
-        let plugin: AddPluginArgsPlugin | AddCollectionPluginArgsPlugin | undefined
-        let selectedPlugin: Plugin | undefined
+
+        // Auto-detect collection ID if this is an asset operation
+        let collectionId: string | undefined
+        if (!flags.collection) {
+            try {
+                const asset = await fetchAsset(this.context.umi, publicKey(args.id))
+
+                if (asset.updateAuthority.type === 'Collection') {
+                    collectionId = asset.updateAuthority.address
+                }
+            } catch (error) {
+                throw new Error('Unable to fetch asset')
+            }
+        }
 
         if (flags.wizard) {
             const selectedPlugins = await pluginSelector({
@@ -52,10 +63,12 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
             const wizardPluginData = await pluginConfigurator(selectedPlugins)
             console.log(wizardPluginData)
 
-            plugin = Object.values(wizardPluginData)[0] as AddPluginArgsPlugin | AddCollectionPluginArgsPlugin
-
-            // For validation, we'll use the first selected plugin
-            selectedPlugin = selectedPlugins[0]
+            const pluginsArray = Object.values(wizardPluginData) as (AddPluginArgsPlugin | AddCollectionPluginArgsPlugin)[]
+            await this.addPluginsBatch(args.id, pluginsArray, {
+                isCollection: flags.collection,
+                collectionId
+            })
+            return
         }
 
         if (args.json) {
@@ -65,68 +78,67 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
                 throw new Error('Plugin data array is empty')
             }
 
-            plugin = jsonData[0] as AddPluginArgsPlugin | AddCollectionPluginArgsPlugin
+            await this.addPluginsBatch(args.id, jsonData as (AddPluginArgsPlugin | AddCollectionPluginArgsPlugin)[], {
+                isCollection: flags.collection,
+                collectionId
+            })
+            return
         }
 
-        if (!plugin) {
-            throw new Error('Plugin data is required')
-        }
-
-        // Auto-detect collection ID if this is an asset operation
-        let collectionId: string | undefined
-        if (!flags.collection) {
-            try {
-                const asset = await fetchAsset(this.context.umi, publicKey(args.id))
-
-                if (asset.updateAuthority.type === 'Collection') {
-                    collectionId = asset.updateAuthority.address
-                }
-            } catch (error) {
-                throw new Error('Unable to fetch asset')
-            }
-        }
-
-        await this.addPlugin(args.id, plugin, {
-            isCollection: flags.collection,
-            collectionId
-        })
+        throw new Error('Either --wizard flag or JSON file argument is required')
     }
 
-    private async addPlugin(asset: string, pluginData: AddPluginArgsPlugin | AddCollectionPluginArgsPlugin, options: { isCollection: boolean, collectionId?: string }) {
+
+    private async addPluginsBatch(asset: string, pluginsData: (AddPluginArgsPlugin | AddCollectionPluginArgsPlugin)[], options: { isCollection: boolean, collectionId?: string }) {
         const { umi, explorer } = this.context
         const { isCollection, collectionId } = options
 
-        console.log("generating transaction")
-        console.log({ pluginData })
+        console.log("generating batch transaction")
+        console.log(`Adding ${pluginsData.length} plugins`)
 
-        let addPluginIx = isCollection
-            ? addCollectionPlugin(umi, {
-                collection: publicKey(asset),
-                plugin: pluginData as AddCollectionPluginArgsPlugin
-            })
-            : addPlugin(umi, {
-                asset: publicKey(asset),
-                collection: collectionId ? publicKey(collectionId) : undefined,
-                plugin: pluginData as AddPluginArgsPlugin
-            })
+        let transaction = new TransactionBuilder()
 
-        const transactionSpinner = ora('Adding plugin...').start()
+        for (const pluginData of pluginsData) {
+            const addPluginIx = isCollection
+                ? addCollectionPlugin(umi, {
+                    collection: publicKey(asset),
+                    plugin: pluginData as AddCollectionPluginArgsPlugin
+                })
+                : addPlugin(umi, {
+                    asset: publicKey(asset),
+                    collection: collectionId ? publicKey(collectionId) : undefined,
+                    plugin: pluginData as AddPluginArgsPlugin
+                })
+
+            transaction = transaction.add(addPluginIx)
+        }
+
+        const transactions = transaction.unsafeSplitByTransactionSize(umi)
+
+        const transactionSpinner = ora(`Adding ${pluginsData.length} plugins${transactions.length > 1 ? ` in ${transactions.length} transactions` : ''}...`).start()
         try {
-            const res = await umiSendAndConfirmTransaction(umi, addPluginIx)
-            transactionSpinner.succeed(`Plugin added: ${asset}`)
+            const results = await umiSendAllTransactionsAndConfirm(umi, transactions, undefined, `Adding ${pluginsData.length} plugins${transactions.length > 1 ? ` in ${transactions.length} transactions` : ''}...`)
+
+            transactionSpinner.succeed(`Successfully added ${pluginsData.length} plugins to ${isCollection ? 'collection' : 'asset'}: ${asset}${transactions.length > 1 ? ` in ${transactions.length} transactions` : ''}`)
+
+            const signatures = results
+                .filter(r => r.transaction.signature !== null && typeof r.transaction.signature !== 'string')
+                .map(r => txSignatureToString(r.transaction.signature as Uint8Array))
+                .join(', ')
 
             console.log(
-                `--------------------------------\n
-                Asset: ${asset}\n
-                Signature: ${txSignatureToString(res.transaction.signature as Uint8Array)}\n
-                Explorer: ${generateExplorerUrl(explorer, this.context.chain, txSignatureToString(res.transaction.signature as Uint8Array), 'transaction')}\n
-                Core Explorer: https://core.metaplex.com/explorer/${asset}\n
-                --------------------------------`
+                `--------------------------------
+${isCollection ? 'Collection' : 'Asset'}: ${asset}
+Plugins Added: ${pluginsData.length}
+Transactions: ${transactions.length}
+Signatures: ${signatures}
+Core Explorer: https://core.metaplex.com/explorer/${asset}
+--------------------------------`
             )
 
-            return res
+            return results[0]
         } catch (error: unknown) {
-            transactionSpinner.fail(`Failed to add plugin: ${error instanceof Error ? error.message : 'Unknown error'}`)
+            transactionSpinner.fail(`Failed to add plugins: ${error instanceof Error ? error.message : 'Unknown error'}`)
             throw error
         }
     }

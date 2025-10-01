@@ -1,7 +1,7 @@
 import { Args, Flags } from '@oclif/core'
 
 import { addCollectionPlugin, AddCollectionPluginArgsPlugin, addPlugin, AddPluginArgsPlugin, fetchAsset } from '@metaplex-foundation/mpl-core'
-import { publicKey, TransactionBuilder } from '@metaplex-foundation/umi'
+import { publicKey, transactionBuilder } from '@metaplex-foundation/umi'
 import { readFileSync } from 'fs'
 import ora from 'ora'
 import { BaseCommand } from '../../../BaseCommand.js'
@@ -74,6 +74,10 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
         if (args.json) {
             const jsonData = JSON.parse(readFileSync(args.json, 'utf-8'))
 
+            if (!Array.isArray(jsonData)) {
+                throw new Error('Plugin JSON must be an array')
+            }
+
             if (jsonData.length === 0) {
                 throw new Error('Plugin data array is empty')
             }
@@ -96,7 +100,7 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
         console.log("generating batch transaction")
         console.log(`Adding ${pluginsData.length} plugins`)
 
-        let transaction = new TransactionBuilder()
+        let transaction = transactionBuilder()
 
         for (const pluginData of pluginsData) {
             const addPluginIx = isCollection

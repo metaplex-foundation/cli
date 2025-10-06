@@ -45,8 +45,8 @@ importers:
         specifier: 1.0.0
         version: 1.0.0(@metaplex-foundation/umi@1.4.1)(@solana/web3.js@1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))
       '@metaplex-foundation/umi-signer-wallet-adapters':
-        specifier: 1.0.0
-        version: 1.0.0(@metaplex-foundation/umi@1.4.1)(@solana/web3.js@1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))
+        specifier: 1.4.1
+        version: 1.4.1(@metaplex-foundation/umi@1.4.1)(@solana/web3.js@1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))
       '@metaplex-foundation/umi-uploader-irys':
         specifier: 1.0.1
         version: 1.0.1(@metaplex-foundation/umi@1.4.1)(@solana/web3.js@1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))(arweave@1.15.7)(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.8.3)(utf-8-validate@5.0.10)
@@ -378,6 +378,7 @@ packages:
 
   '@cosmjs/crypto@0.32.4':
     resolution: {integrity: sha512-zicjGU051LF1V9v7bp8p7ovq+VyC91xlaHdsFOTo2oVry3KQikp8L/81RkXmUIT8FxMwdx1T7DmFwVQikcSDIw==}
+    deprecated: This uses elliptic for cryptographic operations, which contains several security-relevant bugs. To what degree this affects your application is something you need to carefully investigate. See https://github.com/cosmos/cosmjs/issues/1708 for further pointers. Starting with version 0.34.0 the cryptographic library has been replaced. However, private keys might still be at risk.
 
   '@cosmjs/encoding@0.32.4':
     resolution: {integrity: sha512-tjvaEy6ZGxJchiizzTn7HVRiyTg1i4CObRRaTRPknm5EalE13SV+TCHq38gIDfyUeden4fCuaBVEdBR5+ti7Hw==}
@@ -913,10 +914,10 @@ packages:
   '@metaplex-foundation/umi-serializers@1.4.1':
     resolution: {integrity: sha512-DnuTBS+6Ycjaz1BsOKmUZCJcdyJooIpiJ5gy/snhmh8YKDAZuxezBqRzKSR/pKPXieURbL/UPCdJ6a9OFCjcYQ==}
 
-  '@metaplex-foundation/umi-signer-wallet-adapters@1.0.0':
-    resolution: {integrity: sha512-MlfG5jE8z9jDOqlpFAlVYEOJi7PdmzSUZ+ZmwAfqxxx1m48TxgnIckK2sk9zz4/P3raoRLF25IUaVsXu95dL3A==}
+  '@metaplex-foundation/umi-signer-wallet-adapters@1.4.1':
+    resolution: {integrity: sha512-Y2qUFxtpbO4qnot+H99f7mvH2+IAJwOdq4kXKRTlwKX9yBznE43wvsF968lnzUNiuyY86E8MQqoemK6xGifMJw==}
     peerDependencies:
-      '@metaplex-foundation/umi': ^1.0.0
+      '@metaplex-foundation/umi': ^1.4.1
       '@solana/web3.js': ^1.72.0
 
   '@metaplex-foundation/umi-transaction-factory-web3js@1.2.0':
@@ -941,6 +942,12 @@ packages:
     resolution: {integrity: sha512-kKfsva8aoHTZXHbet6U/dV/va+hSFoVpqLiKFoUg3HV2Cp5IgdLXo2PH4/iN6AlE+S+a0S3+jt/7gat2rsskuw==}
     peerDependencies:
       '@metaplex-foundation/umi': ^1.2.0
+      '@solana/web3.js': ^1.72.0
+
+  '@metaplex-foundation/umi-web3js-adapters@1.4.1':
+    resolution: {integrity: sha512-9LkueHDVVljRY83HcaRxGh011zMwrFpvlgb2VrkYlhC7afTM7VrDw4oxdR1zwC80bXyf0D1gyKqi+ANO8QQqtw==}
+    peerDependencies:
+      '@metaplex-foundation/umi': ^1.4.1
       '@solana/web3.js': ^1.72.0
 
   '@metaplex-foundation/umi@1.4.1':
@@ -6637,10 +6644,10 @@ snapshots:
       '@metaplex-foundation/umi-serializers-encodings': 1.4.1
       '@metaplex-foundation/umi-serializers-numbers': 1.4.1
 
-  '@metaplex-foundation/umi-signer-wallet-adapters@1.0.0(@metaplex-foundation/umi@1.4.1)(@solana/web3.js@1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))':
+  '@metaplex-foundation/umi-signer-wallet-adapters@1.4.1(@metaplex-foundation/umi@1.4.1)(@solana/web3.js@1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))':
     dependencies:
       '@metaplex-foundation/umi': 1.4.1
-      '@metaplex-foundation/umi-web3js-adapters': 1.2.0(@metaplex-foundation/umi@1.4.1)(@solana/web3.js@1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))
+      '@metaplex-foundation/umi-web3js-adapters': 1.4.1(@metaplex-foundation/umi@1.4.1)(@solana/web3.js@1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))
       '@solana/web3.js': 1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)
 
   '@metaplex-foundation/umi-transaction-factory-web3js@1.2.0(@metaplex-foundation/umi@1.4.1)(@solana/web3.js@1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))':
@@ -6677,6 +6684,12 @@ snapshots:
       buffer: 6.0.3
 
   '@metaplex-foundation/umi-web3js-adapters@1.2.0(@metaplex-foundation/umi@1.4.1)(@solana/web3.js@1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))':
+    dependencies:
+      '@metaplex-foundation/umi': 1.4.1
+      '@solana/web3.js': 1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)
+      buffer: 6.0.3
+
+  '@metaplex-foundation/umi-web3js-adapters@1.4.1(@metaplex-foundation/umi@1.4.1)(@solana/web3.js@1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))':
     dependencies:
       '@metaplex-foundation/umi': 1.4.1
       '@solana/web3.js': 1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10)

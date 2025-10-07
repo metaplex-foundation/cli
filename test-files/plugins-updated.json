@@ -7,7 +7,11 @@
     "attributeList": [
       {
         "key": "Background",
-        "value": "Blue"
+        "value": "Red"
+      },
+      {
+        "key": "Rarity",
+        "value": "Legendary"
       }
     ]
   }

@@ -57,8 +57,8 @@ const insertItems = async (umi: Umi, candyMachineConfig: CandyMachineConfig, ass
     let maxNameLength = 0
 
     for (const item of Object.values(assetCache.assetItems)) {
-        if (item.imageUri?.length && item.imageUri.length > maxUriLength) {
-            maxUriLength = item.imageUri.length
+        if (item.jsonUri?.length && item.jsonUri.length > maxUriLength) {
+            maxUriLength = item.jsonUri.length
         }
         if (item.name && item.name.length > maxNameLength) {
             maxNameLength = item.name.length
@@ -108,7 +108,7 @@ const insertItems = async (umi: Umi, candyMachineConfig: CandyMachineConfig, ass
         // else we need to add the config lines to the transaction
         const configLines = configLineGroup.assetItems.map(item => ({
             name: item.name,
-            uri: item.imageUri!,
+            uri: item.jsonUri!,
         }))
 
         const transaction = addConfigLines(umi, {

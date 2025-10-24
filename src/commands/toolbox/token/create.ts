@@ -1,17 +1,16 @@
-import { Flags } from '@oclif/core'
 import { createFungible } from '@metaplex-foundation/mpl-token-metadata'
 import { createTokenIfMissing, findAssociatedTokenPda, mintTokensTo } from '@metaplex-foundation/mpl-toolbox'
 import { generateSigner, percentAmount, Umi } from '@metaplex-foundation/umi'
-import { base58 } from '@metaplex-foundation/umi/serializers'
+import { Flags } from '@oclif/core'
 import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import imageUploader from '../../../lib/uploader/imageUploader.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
+import { RpcChain, txSignatureToString } from '../../../lib/util.js'
 import { validateMintAmount, validateTokenName, validateTokenSymbol } from '../../../lib/validations.js'
 import createTokenPrompt from '../../../prompts/createTokenPrompt.js'
-import { RpcChain, txSignatureToString } from '../../../lib/util.js'
 
 /* 
   Create Possibilities:

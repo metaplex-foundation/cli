@@ -126,10 +126,10 @@ const insertItems = async (umi: Umi, candyMachineConfig: CandyMachineConfig, ass
             }
         }
 
-        // Build configLines with validated values
+        // Build configLines with validated values (type assertion safe after validation)
         const configLines = configLineGroup.assetItems.map(item => ({
             name: item.name,
-            uri: item.jsonUri,
+            uri: item.jsonUri as string,
         }))
 
         const transaction = addConfigLines(umi, {

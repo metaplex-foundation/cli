@@ -106,9 +106,30 @@ const insertItems = async (umi: Umi, candyMachineConfig: CandyMachineConfig, ass
         }
 
         // else we need to add the config lines to the transaction
+        // Validate all items have required fields before building configLines
+        for (let i = 0; i < configLineGroup.assetItems.length; i++) {
+            const item = configLineGroup.assetItems[i];
+            const itemIndex = configLineGroup.startingIndex + i;
+
+            if (!item.name || item.name.trim() === '') {
+                throw new Error(
+                    `Item at index ${itemIndex} is missing required field 'name'. ` +
+                    `Item details: ${JSON.stringify({ jsonUri: item.jsonUri, imageUri: item.imageUri })}`
+                );
+            }
+
+            if (!item.jsonUri || item.jsonUri.trim() === '') {
+                throw new Error(
+                    `Item at index ${itemIndex} is missing required field 'jsonUri'. ` +
+                    `Item details: ${JSON.stringify({ name: item.name, imageUri: item.imageUri })}`
+                );
+            }
+        }
+
+        // Build configLines with validated values
         const configLines = configLineGroup.assetItems.map(item => ({
             name: item.name,
-            uri: item.jsonUri!,
+            uri: item.jsonUri,
         }))
 
         const transaction = addConfigLines(umi, {

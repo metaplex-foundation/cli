@@ -57,8 +57,8 @@ const insertItems = async (umi: Umi, candyMachineConfig: CandyMachineConfig, ass
     let maxNameLength = 0
 
     for (const item of Object.values(assetCache.assetItems)) {
-        if (item.imageUri?.length && item.imageUri.length > maxUriLength) {
-            maxUriLength = item.imageUri.length
+        if (item.jsonUri?.length && item.jsonUri.length > maxUriLength) {
+            maxUriLength = item.jsonUri.length
         }
         if (item.name && item.name.length > maxNameLength) {
             maxNameLength = item.name.length
@@ -106,9 +106,30 @@ const insertItems = async (umi: Umi, candyMachineConfig: CandyMachineConfig, ass
         }
 
         // else we need to add the config lines to the transaction
+        // Validate all items have required fields before building configLines
+        for (let i = 0; i < configLineGroup.assetItems.length; i++) {
+            const item = configLineGroup.assetItems[i];
+            const itemIndex = configLineGroup.startingIndex + i;
+
+            if (!item.name || item.name.trim() === '') {
+                throw new Error(
+                    `Item at index ${itemIndex} is missing required field 'name'. ` +
+                    `Item details: ${JSON.stringify({ jsonUri: item.jsonUri, imageUri: item.imageUri })}`
+                );
+            }
+
+            if (!item.jsonUri || item.jsonUri.trim() === '') {
+                throw new Error(
+                    `Item at index ${itemIndex} is missing required field 'jsonUri'. ` +
+                    `Item details: ${JSON.stringify({ name: item.name, imageUri: item.imageUri })}`
+                );
+            }
+        }
+
+        // Build configLines with validated values (type assertion safe after validation)
         const configLines = configLineGroup.assetItems.map(item => ({
             name: item.name,
-            uri: item.imageUri!,
+            uri: item.jsonUri as string,
         }))
 
         const transaction = addConfigLines(umi, {

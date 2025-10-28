@@ -10,9 +10,11 @@ export default class Tm extends Command {
 
   public async run(): Promise<void> {
     // This command acts as a namespace for subcommands
-    // Users should use specific subcommands like 'create'
+    // Users should use specific subcommands like 'create', 'transfer', 'update'
     this.log('Available token metadata commands:')
     this.log('  create    - Create a new NFT using MPL Token Metadata')
+    this.log('  transfer  - Transfer an NFT to a new owner')
+    this.log('  update    - Update NFT metadata')
     this.log('')
     this.log('Use --help with any command for more details')
     this.log('Example: mplx tm create --help')

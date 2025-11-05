@@ -47,7 +47,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
 
   Additional Options:
   - Use --collection to specify a collection ID for the NFT
-  - Use --pnft to create a Programmable NFT (default: true)
+  - Use --type to specify NFT type: "pnft" (default) or "nft"
   - Use --attributes to specify NFT attributes in format "trait1:value1,trait2:value2"
   `
 
@@ -56,7 +56,8 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
         '$ mplx tm create --image "./my-nft.png" --json "./metadata.json"',
         '$ mplx tm create --name "My NFT" --uri "https://example.com/metadata.json"',
         '$ mplx tm create --name "My NFT" --image "./my-nft.png" --attributes "trait1:value1,trait2:value2" --royalties 5',
-        '$ mplx tm create --name "My NFT" --image "./my-nft.png" --project-url "https://myproject.com" --royalties 10 --pnft false',
+        '$ mplx tm create --name "My NFT" --image "./my-nft.png" --project-url "https://myproject.com" --royalties 10',
+        '$ mplx tm create --name "My NFT" --uri "https://example.com/metadata.json" --type nft',
     ]
 
     static override usage = 'tm create [FLAGS]'
@@ -118,14 +119,14 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
             max: 100
         }),
         // Additional flags that can be used with any mode
-        collection: Flags.string({ 
-            name: 'collection', 
-            description: 'Collection ID' 
+        collection: Flags.string({
+            name: 'collection',
+            description: 'Collection ID'
         }),
-        pnft: Flags.boolean({
-            description: 'Create a Programmable NFT (default: true)',
-            required: false,
-            default: true,
+        type: Flags.string({
+            description: 'Type of NFT to create',
+            options: ['nft', 'pnft'],
+            default: 'pnft',
         }),
     }
 
@@ -313,6 +314,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
     }
 
     private async createNftFromArgs(umi: Umi, input: NftInput) {
+        this.log(`[DEBUG] createNftFromArgs called with isProgrammable: ${input.isProgrammable}`)
         const mint = input.nftSigner || generateSigner(umi)
         const createNftIx = input.isProgrammable
             ? createProgrammableNft(umi, {
@@ -381,12 +383,13 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
                 this.error('You must provide --image when using --json')
             }
 
-            const result = await this.handleFileBasedCreation(umi, flags.image, flags.json, flags.collection, flags.pnft)
+            const result = await this.handleFileBasedCreation(umi, flags.image, flags.json, flags.collection, flags.type === 'pnft')
             return result
 
         } else if (flags.name && flags.uri) {
             // URI flow: Use existing metadata URI (simplest case)
-            const spinner = ora('Creating NFT...').start()
+            this.log(`Creating ${flags.type === 'pnft' ? 'Programmable NFT (pNFT)' : 'NFT'}...`)
+            const spinner = ora('Minting NFT...').start()
             const nftSigner = generateSigner(umi)
 
             const result = await this.createNftFromArgs(umi, {
@@ -394,7 +397,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
                 name: flags.name,
                 uri: flags.uri,
                 collection: flags.collection,
-                isProgrammable: flags.pnft,
+                isProgrammable: flags.type === 'pnft',
                 sellerFeePercentage: flags.royalties,
             }).catch((err) => {
                 spinner.fail(`Failed to create NFT. ${err}`)
@@ -417,7 +420,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
                 name: flags.name,
                 uri: metadataUri,
                 collection: flags.collection,
-                isProgrammable: flags.pnft,
+                isProgrammable: flags.type === 'pnft',
                 sellerFeePercentage: flags.royalties,
             }).catch((err) => {
                 spinner.fail(`Failed to create NFT. ${err}`)

@@ -54,10 +54,6 @@ export default class TmTransfer extends TransactionCommand<typeof TmTransfer> {
         const isPnft = unwrapOptionRecursively(asset.metadata.tokenStandard) === TokenStandard.ProgrammableNonFungible
         const destinationOwner = publicKey(args.destination)
 
-        if (isPnft) {
-            this.log('Detected Programmable NFT (pNFT)')
-        }
-
         // Build transfer instruction
         const transferSpinner = ora('Transferring NFT...').start()
 

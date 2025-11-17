@@ -1,17 +1,16 @@
-import { Flags } from '@oclif/core'
 import { createFungible } from '@metaplex-foundation/mpl-token-metadata'
 import { createTokenIfMissing, findAssociatedTokenPda, mintTokensTo } from '@metaplex-foundation/mpl-toolbox'
 import { generateSigner, percentAmount, Umi } from '@metaplex-foundation/umi'
-import { base58 } from '@metaplex-foundation/umi/serializers'
+import { Flags } from '@oclif/core'
 import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import imageUploader from '../../../lib/uploader/imageUploader.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
+import { RpcChain, txSignatureToString } from '../../../lib/util.js'
 import { validateMintAmount, validateTokenName, validateTokenSymbol } from '../../../lib/validations.js'
 import createTokenPrompt from '../../../prompts/createTokenPrompt.js'
-import { RpcChain, txSignatureToString } from '../../../lib/util.js'
 
 /* 
   Create Possibilities:
@@ -85,12 +84,12 @@ Explorer: ${generateExplorerUrl(options.explorer, chain, txSignatureToString(sig
 }
 
 export default class ToolboxTokenCreate extends TransactionCommand<typeof ToolboxTokenCreate> {
-    static override description = `Create a fungible token using 2 different methods:
+    static override description = `Create a fungible token
 
-  1. Simple Creation: Create a token by providing the name, symbol, and mint amount.
+  - Simple Creation: Create a token by providing the name, symbol, and mint amount.
      Example: mplx toolbox token create --name "My Token" --symbol "TOKEN" --mint-amount 1000000
 
-  2. Interactive Wizard: Create a token using the interactive wizard which guides you through the process.
+  - Interactive Wizard: Create a token using the interactive wizard which guides you through the process.
      Example: mplx toolbox token create --wizard
 
   Additional Options:

@@ -2,8 +2,7 @@
   {
     "type": "Attributes",
     "authority": {
-      "type": "Address",
-      "address": "4xbJp9sjeTEhheUDg8M1nJUomZcGmFZsjt9Gg3RQZAWp"
+      "type": "UpdateAuthority"
     },
     "attributeList": [
       {
@@ -11,26 +10,5 @@
         "value": "Blue"
       }
     ]
-  },
-  {
-    "type": "FreezeDelegate",
-    "authority": {
-      "type": "UpdateAuthority"
-    },
-    "frozen": false
-  },
-  {
-    "type": "Royalties",
-    "authority": {
-      "type": "UpdateAuthority"
-    },
-    "basisPoints": 500,
-    "creators": [
-      {
-        "address": "4xbJp9sjeTEhheUDg8M1nJUomZcGmFZsjt9Gg3RQZAWp",
-        "percentage": 100
-      }
-    ],
-    "ruleSet": {"type": "None"}
   }
 ]

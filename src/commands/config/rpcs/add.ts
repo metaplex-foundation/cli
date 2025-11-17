@@ -10,7 +10,7 @@ export default class ConfigRPCAddCommand extends Command {
 
   static override args = {
     name: Args.string({
-      description: 'Name of wallet (max 6 characters and no spaces)',
+      description: 'Name of RPC (no spaces allowed)',
       required: true,
     }),
     endpoint: Args.string({description: 'Path to keypair json file', required: true}),
@@ -25,11 +25,7 @@ export default class ConfigRPCAddCommand extends Command {
   public async run(): Promise<void> {
     const {flags, args} = await this.parse(ConfigRPCAddCommand)
 
-    // Validate name
-
-    if (args.name.length > 15) {
-      this.error('Name must be 20 characters or less')
-    }
+    // Validate name (removed character limit for MCP compatibility)
 
     if (args.name.includes(' ')) {
       this.error('Name must not contain spaces')

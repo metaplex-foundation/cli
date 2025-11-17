@@ -5,45 +5,42 @@ import { createSignerFromPath, getDefaultConfigPath, readConfig } from '../../..
 import { ensureDirectoryExists, writeJsonSync } from '../../../lib/file.js'
 import { shortenAddress } from '../../../lib/util.js'
 
-export default class ConfigWalletAddsCommand extends Command {
-  static override description = 'Set a config value from a key'
+export default class ConfigWalletAddCommand extends Command {
+  static override description = 'Add a new wallet to your configuration'
 
   static override args = {
     name: Args.string({
-      description: 'Name of wallet (max 6 characters, alphanumeric, hyphens and underscores only)',
+      description: 'Name of wallet (alphanumeric, hyphens and underscores only)',
       required: true,
     }),
     path: Args.string({ description: 'Path to keypair json file', required: true }),
   }
 
   static override examples = [
-    '<%= config.bin %> <%= command.id %> add dev1 /path/to/keypair.json',
-    '<%= config.bin %> <%= command.id %> set dev1',
-    '<%= config.bin %> <%= command.id %> remove dev1',
+    '<%= config.bin %> <%= command.id %> my-wallet ~/.config/solana/id.json',
+    '<%= config.bin %> <%= command.id %> mainnet-wallet ./wallets/mainnet.json',
+    '<%= config.bin %> <%= command.id %> dev-wallet /Users/dev/.solana/devnet.json',
   ]
 
   public async run(): Promise<void> {
-    const { flags, args } = await this.parse(ConfigWalletAddsCommand)
+    const { flags, args } = await this.parse(ConfigWalletAddCommand)
 
-    // Validate name
-    if (args.name.length > 6) {
-      this.error('Name must be 6 characters or less')
-    }
+    // Validate name (removed character limit for MCP compatibility)
 
     // Validate name contains only safe characters for all platforms
     // TODO: Move validation to validations file that is in other PR
     if (!/^[a-zA-Z0-9-_]+$/.test(args.name)) {
-      this.error('Name must contain only alphanumeric characters, hyphens and underscores')
+      this.error(`Invalid wallet name '${args.name}'. Name must contain only letters, numbers, hyphens (-), and underscores (_). Example: 'my-wallet' or 'dev_wallet_1'`)
     }
 
     // Validate path
     if (!args.path.endsWith('.json')) {
-      this.error('Path must be a json file')
+      this.error(`Invalid file type. Wallet file must be a .json keypair file. Received: ${args.path}`)
     }
 
-    // check if the file exists on intial add
+    // Check if the file exists
     if (!fs.existsSync(args.path)) {
-      this.error('File does not exist')
+      this.error(`Wallet file not found at: ${args.path}\nPlease check the path and ensure the keypair file exists.`)
     }
 
     const path = flags.config ?? getDefaultConfigPath()
@@ -57,17 +54,17 @@ export default class ConfigWalletAddsCommand extends Command {
     } else {
       const existingName = config.wallets.find((wallet) => wallet.name === args.name)
       if (existingName) {
-        this.error(`Wallet with name ${args.name} already exists`)
+        this.error(`A wallet named '${args.name}' already exists.\nUse a different name or run 'mplx config wallets remove ${args.name}' to remove the existing wallet first.`)
       }
 
       const existingPath = config.wallets.find((wallet) => wallet.path === args.path)
       if (existingPath) {
-        this.error(`Wallet with path ${args.path} already exists`)
+        this.error(`This wallet file is already configured as '${existingPath.name}'.\nUse 'mplx config wallets set ${existingPath.name}' to switch to it.`)
       }
 
       const existingAddress = config.wallets.find((wallet) => wallet.address === signer.publicKey.toString())
       if (existingAddress) {
-        this.error(`Wallet with address ${shortenAddress(signer.publicKey)} already exists`)
+        this.error(`This wallet address (${shortenAddress(signer.publicKey)}) is already configured as '${existingAddress.name}'.\nUse 'mplx config wallets set ${existingAddress.name}' to switch to it.`)
       }
     }
 
@@ -81,6 +78,6 @@ export default class ConfigWalletAddsCommand extends Command {
     ensureDirectoryExists(dir)
     writeJsonSync(path, config)
 
-    this.log(`Wallet ${shortenAddress(signer.publicKey)} added to config.`)
+    this.log(`✅ Wallet '${args.name}' successfully added to configuration!\n   Address: ${signer.publicKey}\n   Path: ${args.path}\n\nUse 'mplx config wallets set ${args.name}' to make this your active wallet.`)
   }
 }

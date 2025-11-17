@@ -5,7 +5,7 @@ import { base58 } from '@metaplex-foundation/umi/serializers'
 import { readFileSync } from 'node:fs'
 import ora from 'ora'
 import burnAssetTx from '../../../lib/core/burn/burnAssetTx.js'
-import confirmAllTransactions, { UmiTransactionConfirmationResult } from '../../../lib/umi/confirmAllTransactions.js'
+import confirmAllTransactions from '../../../lib/umi/confirmAllTransactions.js'
 import umiSendAllTransactions from '../../../lib/umi/sendAllTransactions.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { UmiTransactionResponce } from '../../../lib/umi/sendTransaction.js'
@@ -13,6 +13,7 @@ import { UmiTransactionResponce } from '../../../lib/umi/sendTransaction.js'
 import fs from 'node:fs'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { txSignatureToString } from '../../../lib/util.js'
+import { UmiTransactionConfirmationResult } from '../../../lib/umi/confirmTransaction.js'
 
 interface BurnAssetData {
   asset: string

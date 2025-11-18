@@ -26,6 +26,12 @@ importers:
       '@ledgerhq/hw-transport-node-hid-singleton':
         specifier: ^6.31.5
         version: 6.31.6
+      '@metaplex-foundation/digital-asset-standard-api':
+        specifier: ^2.0.0
+        version: 2.0.0(@metaplex-foundation/umi@1.4.1)
+      '@metaplex-foundation/mpl-bubblegum':
+        specifier: ^5.0.2
+        version: 5.0.2(@metaplex-foundation/umi@1.4.1)
       '@metaplex-foundation/mpl-core':
         specifier: ^1.4.0
         version: 1.7.0(@metaplex-foundation/umi@1.4.1)(@noble/hashes@1.8.0)
@@ -6558,6 +6564,32 @@ snapshots:
 
   '@metaplex-foundation/cusper@0.0.2': {}
 
+  '@metaplex-foundation/digital-asset-standard-api@1.0.6(@metaplex-foundation/umi@1.4.1)':
+    dependencies:
+      '@metaplex-foundation/umi': 1.4.1
+
+  '@metaplex-foundation/digital-asset-standard-api@2.0.0(@metaplex-foundation/umi@1.4.1)':
+    dependencies:
+      '@metaplex-foundation/umi': 1.4.1
+
+  '@metaplex-foundation/mpl-account-compression@0.0.1(@metaplex-foundation/umi@1.4.1)':
+    dependencies:
+      '@metaplex-foundation/digital-asset-standard-api': 1.0.6(@metaplex-foundation/umi@1.4.1)
+      '@metaplex-foundation/umi': 1.4.1
+      '@noble/hashes': 1.8.0
+      merkletreejs: 0.3.11
+
+  '@metaplex-foundation/mpl-bubblegum@5.0.2(@metaplex-foundation/umi@1.4.1)':
+    dependencies:
+      '@metaplex-foundation/digital-asset-standard-api': 2.0.0(@metaplex-foundation/umi@1.4.1)
+      '@metaplex-foundation/mpl-account-compression': 0.0.1(@metaplex-foundation/umi@1.4.1)
+      '@metaplex-foundation/mpl-token-metadata': 3.2.1(@metaplex-foundation/umi@1.4.1)
+      '@metaplex-foundation/mpl-toolbox': 0.10.0(@metaplex-foundation/umi@1.4.1)
+      '@metaplex-foundation/spl-account-compression': 0.0.1(@metaplex-foundation/umi@1.4.1)
+      '@metaplex-foundation/umi': 1.4.1
+      '@noble/hashes': 1.8.0
+      merkletreejs: 0.3.11
+
   '@metaplex-foundation/mpl-core-candy-machine@0.3.0(@metaplex-foundation/mpl-core@1.7.0(@metaplex-foundation/umi@1.4.1)(@noble/hashes@1.8.0))(@metaplex-foundation/umi@1.4.1)':
     dependencies:
       '@metaplex-foundation/mpl-core': 1.7.0(@metaplex-foundation/umi@1.4.1)(@noble/hashes@1.8.0)
@@ -6578,6 +6610,11 @@ snapshots:
       '@metaplex-foundation/mpl-toolbox': 0.9.4(@metaplex-foundation/umi@1.4.1)
       '@metaplex-foundation/umi': 1.4.1
 
+  '@metaplex-foundation/mpl-token-metadata@3.2.1(@metaplex-foundation/umi@1.4.1)':
+    dependencies:
+      '@metaplex-foundation/mpl-toolbox': 0.9.4(@metaplex-foundation/umi@1.4.1)
+      '@metaplex-foundation/umi': 1.4.1
+
   '@metaplex-foundation/mpl-token-metadata@3.4.0(@metaplex-foundation/umi@1.4.1)':
     dependencies:
       '@metaplex-foundation/mpl-toolbox': 0.10.0(@metaplex-foundation/umi@1.4.1)
@@ -6590,6 +6627,13 @@ snapshots:
   '@metaplex-foundation/mpl-toolbox@0.9.4(@metaplex-foundation/umi@1.4.1)':
     dependencies:
       '@metaplex-foundation/umi': 1.4.1
+
+  '@metaplex-foundation/spl-account-compression@0.0.1(@metaplex-foundation/umi@1.4.1)':
+    dependencies:
+      '@metaplex-foundation/digital-asset-standard-api': 1.0.6(@metaplex-foundation/umi@1.4.1)
+      '@metaplex-foundation/umi': 1.4.1
+      '@noble/hashes': 1.8.0
+      merkletreejs: 0.3.11
 
   '@metaplex-foundation/umi-bundle-defaults@1.0.0(@metaplex-foundation/umi@1.4.1)(@solana/web3.js@1.98.2(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@5.0.10))':
     dependencies:

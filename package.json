@@ -28,6 +28,7 @@
     "@ledgerhq/hw-app-solana": "^7.2.4",
     "@ledgerhq/hw-transport": "^6.31.4",
     "@ledgerhq/hw-transport-node-hid-singleton": "^6.31.5",
+    "@metaplex-foundation/digital-asset-standard-api": "^2.0.0",
     "@metaplex-foundation/mpl-bubblegum": "^5.0.2",
     "@metaplex-foundation/mpl-core": "^1.4.0",
     "@metaplex-foundation/mpl-core-candy-machine": "^0.3.0",

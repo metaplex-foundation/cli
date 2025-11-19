@@ -1,7 +1,7 @@
 {
   "name": "@metaplex-foundation/cli",
   "description": "Metaplex CLI",
-  "version": "0.0.6",
+  "version": "0.0.8",
   "author": "Metaplex <contact@metaplex.com>",
   "bin": {
     "mplx": "./bin/run.js"
@@ -33,10 +33,10 @@
     "@metaplex-foundation/mpl-distro": "^0.3.2",
     "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
     "@metaplex-foundation/mpl-toolbox": "0.10.0",
-    "@metaplex-foundation/umi": "1.2.0",
-    "@metaplex-foundation/umi-bundle-defaults": "1.2.0",
-    "@metaplex-foundation/umi-signer-wallet-adapters": "1.2.0",
-    "@metaplex-foundation/umi-uploader-irys": "1.2.0",
+    "@metaplex-foundation/umi": "1.4.1",
+    "@metaplex-foundation/umi-bundle-defaults": "1.0.0",
+    "@metaplex-foundation/umi-signer-wallet-adapters": "1.0.0",
+    "@metaplex-foundation/umi-uploader-irys": "1.0.1",
     "@metaplex-foundation/umi-web3js-adapters": "1.2.0",
     "@oclif/plugin-autocomplete": "^3.2.29",
     "@oclif/plugin-commands": "^4.1.25",
@@ -53,7 +53,8 @@
     "mime-types": "^2.1.35",
     "node-fetch": "^3.3.2",
     "ora": "8.1.1",
-    "p-map": "^7.0.3"
+    "p-map": "^7.0.3",
+    "untildify": "^4.0.0"
   },
   "devDependencies": {
     "@metaplex-foundation/amman": "^0.12.1",

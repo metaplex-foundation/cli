@@ -60,7 +60,7 @@ mplx config rpcs set
 #### Wallet Configuration
 ```sh
 # Add a new wallet
-mplx config wallets set wallet1 ./path/to/keypair.json
+mplx config wallets add wallet1 ./path/to/keypair.json
 
 # List all wallets
 mplx config wallets list

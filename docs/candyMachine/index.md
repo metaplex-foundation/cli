@@ -598,6 +598,6 @@ Common issues and solutions:
 ## Additional Resources
 
 - [Metaplex Documentation](https://developers.metaplex.com)
-- [MPL Core Candy Machine](https://docs.metaplex.com/programs/candy-machine/)
+- [MPL Core Candy Machine](https://developers.metaplex.com/core-candy-machine)
 - [Solana Documentation](https://docs.solana.com)
 - [Discord Support](https://discord.gg/metaplex)

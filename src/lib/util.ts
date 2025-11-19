@@ -113,8 +113,9 @@ export enum RpcChain {
 }
 
 const GENESIS_HASH_MAP = new Map<string, RpcChain>([
-  ['5eykt4UsFv8P8NJdTREpY1vzqKqZKvLmE7zcjTnrnY5', RpcChain.Mainnet], // Solana Mainnet
-  ['GH7ome3EiwEr7tu9JuTh2dpYWBJK3z69Xm1ZE3MEE6JC', RpcChain.Devnet], // Solana Devnet
+  ['5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d', RpcChain.Mainnet], // Solana Mainnet (current)
+  ['EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG', RpcChain.Devnet], // Solana Devnet (current)
+  ['4uhcVJyU9pJkvQyS88uRDiswHXSCkY3zQawwpjk2NsNY', RpcChain.Localnet], // Solana Testnet (maps to Localnet for now)
 ])
 
 

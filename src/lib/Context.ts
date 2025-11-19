@@ -1,4 +1,5 @@
 import { mplCore } from '@metaplex-foundation/mpl-core'
+import { mplBubblegum } from '@metaplex-foundation/mpl-bubblegum'
 import {
   Commitment,
   Signer,
@@ -22,6 +23,7 @@ import initStorageProvider from './uploader/initStorageProvider.js'
 import { DUMMY_UMI, RpcChain, chain as getChain } from './util.js'
 import { ExplorerType } from '../explorers.js'
 import { mplCandyMachine } from '@metaplex-foundation/mpl-core-candy-machine'
+import { dasApi, type DasApiInterface } from '@metaplex-foundation/digital-asset-standard-api'
 
 export type ConfigJson = {
   commitment?: Commitment
@@ -49,7 +51,7 @@ export type Context = {
   payer?: Signer
   rpcUrl: string
   signer: Signer
-  umi: Umi
+  umi: Umi & { rpc: DasApiInterface }
   explorer: ExplorerType
   chain: RpcChain
 }
@@ -159,7 +161,9 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
     .use(mplCore())
     .use(mplTokenMetadata())
     .use(mplToolbox())
+    .use(mplBubblegum())
     .use(mplCandyMachine())
+    .use(dasApi())
 
   const storageProvider = await initStorageProvider(config)
   storageProvider && umi.use(storageProvider)
@@ -171,8 +175,10 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
     payer,
     rpcUrl: config.rpcUrl!,
     signer,
-    umi,
+    umi: umi as Umi & { rpc: DasApiInterface },
     explorer: config.explorer || DEFAULT_CONFIG.explorer,
     chain,
   }
 }
+
+

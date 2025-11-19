@@ -77,6 +77,23 @@ collection update authority (if part of a collection).`
     }),
   }
 
+  private findAvailableEditor(editors: string[]): string | null {
+    const whichCommand = process.platform === 'win32' ? 'where' : 'which'
+
+    for (const editor of editors) {
+      const result = spawnSync(whichCommand, [editor], {
+        stdio: 'ignore',
+        shell: true,
+      })
+
+      if (result.status === 0) {
+        return editor
+      }
+    }
+
+    return null
+  }
+
   private openInEditor(filePath: string): boolean {
     // Get editor from environment or use platform-specific fallbacks
     let editor = process.env.EDITOR || process.env.VISUAL
@@ -88,7 +105,7 @@ collection update authority (if part of a collection).`
         editor = 'notepad'
       } else if (platform === 'darwin' || platform === 'linux') {
         // Try nano first, fallback to vi
-        editor = 'nano'
+        editor = this.findAvailableEditor(['nano', 'vi']) || 'vi'
       } else {
         editor = 'vi'
       }

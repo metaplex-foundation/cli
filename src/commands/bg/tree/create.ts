@@ -8,7 +8,7 @@ import { generateExplorerUrl } from '../../../explorers.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
-import { saveTree, getNetworkInfo, isValidTreeName } from '../../../lib/treeStorage.js'
+import { saveTree, getNetworkInfo, isValidTreeName, loadTrees } from '../../../lib/treeStorage.js'
 
 interface TreeConfig {
   maxDepth: number
@@ -124,13 +124,27 @@ Only proceed if you understand the implications.
 
     const treeName = await input({
       message: 'Enter a short name for this tree (for easy reference):',
-      validate: (value) => {
+      validate: async (value) => {
         if (!value.trim()) {
           return 'Tree name cannot be empty'
         }
         if (!isValidTreeName(value.trim())) {
           return 'Tree name can only contain letters, numbers, hyphens, underscores, and spaces (1-50 characters)'
         }
+
+        // Check for duplicates before starting the transaction
+        try {
+          const { network } = await getNetworkInfo(this.context.umi)
+          const existingTrees = loadTrees()
+          const duplicate = existingTrees.find(t => t.name === value.trim() && t.network === network)
+
+          if (duplicate) {
+            return `Tree with name "${value.trim()}" already exists on ${network}. Please choose a different name.`
+          }
+        } catch (error) {
+          // If we can't check for duplicates, allow it (saveTree will catch it later)
+        }
+
         return true
       }
     })
@@ -225,7 +239,7 @@ Max NFTs: ${Math.pow(2, maxDepth).toLocaleString()}
 
 Transaction: ${signature}
 Explorer: ${generateExplorerUrl(explorer, this.context.chain, signature, 'transaction')}
-Tree Explorer: https://explorer.solana.com/address/${treeAddress}
+Tree Explorer: ${generateExplorerUrl(explorer, this.context.chain, treeAddress, 'account')}
 --------------------------------`)
 
       return { treeAddress: treeAddress.toString(), maxDepth, maxBufferSize, canopyDepth, signature }
@@ -253,7 +267,35 @@ Tree Explorer: https://explorer.solana.com/address/${treeAddress}
         this.warn('This configuration is not in our recommended list. Use --wizard to see recommended configurations.')
       }
 
-      return await this.createTree(flags.maxDepth, flags.maxBufferSize, flags.canopyDepth, flags.public, flags.name)
+      // Validate and normalize tree name if provided
+      let normalizedName: string | undefined
+      if (flags.name) {
+        normalizedName = flags.name.trim()
+
+        if (!normalizedName) {
+          this.error('Tree name cannot be empty')
+        }
+
+        if (!isValidTreeName(normalizedName)) {
+          this.error('Tree name can only contain letters, numbers, hyphens, underscores, and spaces (1-50 characters)')
+        }
+
+        // Check for duplicate names early to avoid wasting the transaction
+        try {
+          const { network } = await getNetworkInfo(this.context.umi)
+          const existingTrees = loadTrees()
+          const duplicate = existingTrees.find(t => t.name === normalizedName && t.network === network)
+
+          if (duplicate) {
+            this.error(`Tree with name "${normalizedName}" already exists on ${network}. Please choose a different name.`)
+          }
+        } catch (error) {
+          // If we can't check for duplicates, proceed anyway (saveTree will catch it later)
+          this.warn(`Warning: Could not check for duplicate tree names: ${error}`)
+        }
+      }
+
+      return await this.createTree(flags.maxDepth, flags.maxBufferSize, flags.canopyDepth, flags.public, normalizedName)
     } else {
       this.error('You must either use --wizard or provide all required flags: --maxDepth, --maxBufferSize, --canopyDepth')
     }

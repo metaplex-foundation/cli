@@ -23,7 +23,7 @@ import selectTreePrompt from '../../../prompts/selectTreePrompt.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { getTreeByNameOrAddress } from '../../../lib/treeStorage.js'
 import { RpcChain, txSignatureToString } from '../../../lib/util.js'
-import { TransactionSignature } from '@metaplex-foundation/umi'
+import type { TransactionSignature } from '@metaplex-foundation/umi'
 
 type NetworkLabel = 'mainnet' | 'devnet' | 'testnet' | 'localnet'
 
@@ -74,6 +74,9 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
     '',
     '# Create with local files',
     '$ mplx bg nft create dev-tree --image ./nft.png --json ./metadata.json',
+    '',
+    '# Create with image and animation',
+    '$ mplx bg nft create my-tree --name "My NFT" --image ./nft.png --animation ./video.mp4 --description "NFT with video"',
   ]
 
   static override args = {
@@ -149,7 +152,7 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
         // In wizard mode, prompt for tree selection
         const network = this.getNetworkLabel(this.context.chain)
         const treeSelection = await selectTreePrompt(network as NetworkLabel)
-        treeInput = treeSelection.tree
+        treeInput = treeSelection.treeAddress
       } else {
         // Not in wizard mode, tree is required
         this.error(
@@ -165,19 +168,28 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
 
     const metadata = await this.resolveMetadata(flags)
     const royaltyPercentage = metadata.sellerFeePercentage ?? flags.royalties ?? 0
+    const collectionAddress = flags.collection ?? metadata.collection
     const metadataArgs = this.buildMetadataArgs({
       name: metadata.name,
       uri: metadata.uri,
       symbol: flags.symbol,
-      collection: flags.collection ?? metadata.collection,
+      collection: collectionAddress,
       sellerFeePercentage: royaltyPercentage,
     })
 
-    const mintBuilder = mintV2(umi, {
+    // Build mint instruction, including coreCollection account if collection is specified
+    const mintAccounts: any = {
       merkleTree: resolvedTree.publicKey,
       leafOwner,
       metadata: metadataArgs,
-    })
+    }
+
+    // Add collection account if collection is specified
+    if (collectionAddress && typeof collectionAddress === 'string' && collectionAddress.trim()) {
+      mintAccounts.coreCollection = publicKey(collectionAddress)
+    }
+
+    const mintBuilder = mintV2(umi, mintAccounts)
 
     const spinner = ora('Creating compressed NFT...').start()
     try {
@@ -296,7 +308,7 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
     collection?: string
   }) {
     const sellerFeeBasisPoints = Math.round((input.sellerFeePercentage ?? 0) * 100)
-    const collectionPubkey = input.collection
+    const collectionPubkey = input.collection && typeof input.collection === 'string' && input.collection.trim()
       ? some(this.parsePublicKey('collection', input.collection))
       : none<PublicKey>()
 
@@ -351,14 +363,14 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
 
       const colonIndex = trimmedSegment.indexOf(':')
       if (colonIndex === -1) {
-        throw new Error(`Invalid attribute format: "${trimmedSegment}". Expected "trait:value"`)
+        this.error(`Invalid attribute format: "${trimmedSegment}". Expected "trait:value"`)
       }
 
       const trait_type = trimmedSegment.substring(0, colonIndex).trim()
       const value = trimmedSegment.substring(colonIndex + 1).trim()
 
       if (!trait_type || !value) {
-        throw new Error(`Invalid attribute pair: "${trimmedSegment}"`)
+        this.error(`Invalid attribute pair: "${trimmedSegment}"`)
       }
 
       attributes.push({ trait_type, value })
@@ -372,14 +384,29 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
     let imageMimeType = ''
 
     if (flags.image) {
+      const imagePath = untildify(flags.image)
       const imageSpinner = ora('Uploading image...').start()
-      const imageResult = await uploadFile(umi, flags.image).catch((err) => {
+      const imageResult = await uploadFile(umi, imagePath).catch((err) => {
         imageSpinner.fail(`Failed to upload image. ${err}`)
         throw err
       })
       imageSpinner.succeed(`Image uploaded to ${imageResult.uri}`)
       imageUri = imageResult.uri
-      imageMimeType = imageResult.mimeType || mime.getType(flags.image) || 'application/octet-stream'
+      imageMimeType = imageResult.mimeType || mime.getType(imagePath) || 'application/octet-stream'
+    }
+
+    let animationUri: string | undefined
+    let animationMimeType: string | undefined
+    if (flags.animation) {
+      const animationPath = untildify(flags.animation)
+      const animationSpinner = ora('Uploading animation...').start()
+      const animationResult = await uploadFile(umi, animationPath).catch((err) => {
+        animationSpinner.fail(`Failed to upload animation. ${err}`)
+        throw err
+      })
+      animationSpinner.succeed(`Animation uploaded to ${animationResult.uri}`)
+      animationUri = animationResult.uri
+      animationMimeType = animationResult.mimeType || mime.getType(animationPath) || 'application/octet-stream'
     }
 
     const attributes = this.parseAttributes(flags.attributes)
@@ -390,15 +417,26 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
       external_url: flags['project-url'] || '',
       attributes,
       image: imageUri,
+      animation_url: animationUri,
       properties: {
-        files: imageUri
-          ? [
-              {
-                uri: imageUri,
-                type: imageMimeType,
-              },
-            ]
-          : [],
+        files: [
+          ...(imageUri
+            ? [
+                {
+                  uri: imageUri,
+                  type: imageMimeType,
+                },
+              ]
+            : []),
+          ...(animationUri
+            ? [
+                {
+                  uri: animationUri,
+                  type: animationMimeType || 'application/octet-stream',
+                },
+              ]
+            : []),
+        ],
       },
     }
 
@@ -423,7 +461,13 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
     })
     imageSpinner.succeed(`Image uploaded to ${imageUri.uri}`)
 
-    const jsonFile = JSON.parse(fs.readFileSync(expandedJsonPath, 'utf-8'))
+    let jsonFile
+    try {
+      jsonFile = JSON.parse(fs.readFileSync(expandedJsonPath, 'utf-8'))
+    } catch (err) {
+      this.error(`Invalid JSON in ${expandedJsonPath}: ${err instanceof Error ? err.message : String(err)}`)
+    }
+
     jsonFile.image = imageUri.uri
     if (jsonFile.properties?.files?.length) {
       jsonFile.properties.files[0] = {
@@ -442,11 +486,16 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
     const jsonRoyaltyBps =
       typeof jsonFile.seller_fee_basis_points === 'number' ? jsonFile.seller_fee_basis_points / 100 : undefined
 
+    // Only use jsonFile.collection if it's a non-empty string (valid public key format)
+    const jsonCollection = typeof jsonFile.collection === 'string' && jsonFile.collection.trim()
+      ? jsonFile.collection
+      : undefined
+
     return {
       name: jsonFile.name,
       uri: jsonUri,
       sellerFeePercentage: jsonRoyaltyBps,
-      collection: collection ?? jsonFile.collection,
+      collection: collection ?? jsonCollection,
     }
   }
 

@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { Umi } from '@metaplex-foundation/umi'
 
@@ -43,11 +44,7 @@ export const getNetworkInfo = async (umi: Umi): Promise<{ network: 'mainnet' | '
 }
 
 export const getTreesFilePath = (): string => {
-  const homeDir = process.env.HOME || process.env.USERPROFILE
-  if (!homeDir) {
-    throw new Error('Could not determine home directory')
-  }
-  return join(homeDir, '.config', 'mplx', 'trees.json')
+  return join(homedir(), '.config', 'mplx', 'trees.json')
 }
 
 export const ensureTreesFileExists = (): void => {

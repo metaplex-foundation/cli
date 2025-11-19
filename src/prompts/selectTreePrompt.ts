@@ -2,7 +2,8 @@ import { input, select } from '@inquirer/prompts'
 import { listTrees } from '../lib/treeStorage.js'
 
 export interface SelectTreePromptResult {
-  tree: string
+  treeAddress: string
+  treeName?: string
 }
 
 const selectTreePrompt = async (network: 'mainnet' | 'devnet' | 'testnet' | 'localnet'): Promise<SelectTreePromptResult> => {
@@ -10,14 +11,15 @@ const selectTreePrompt = async (network: 'mainnet' | 'devnet' | 'testnet' | 'loc
   const allTrees = listTrees()
   const currentNetworkTrees = listTrees(network)
 
-  let selectedTree: string
+  let treeAddress: string
+  let treeName: string | undefined
 
   if (allTrees.length === 0) {
     // No saved trees at all
     console.log('\nNo saved trees found.')
     console.log('Create one with: mplx bg tree create --wizard\n')
 
-    selectedTree = await input({
+    treeAddress = await input({
       message: 'Enter Merkle tree address:',
       validate: (value) => {
         if (!value) return 'Tree address is required'
@@ -44,7 +46,7 @@ const selectTreePrompt = async (network: 'mainnet' | 'devnet' | 'testnet' | 'loc
 
         return {
           name: `${tree.name}${networkLabel} (${tree.address.slice(0, 8)}...${tree.address.slice(-8)}) - ${tree.maxNfts.toLocaleString()} NFTs`,
-          value: tree.name,
+          value: tree.address,
           description: `Network: ${tree.network}${networkMismatch ? ' (WARNING: Different from current RPC!)' : ''}, Max NFTs: ${tree.maxNfts.toLocaleString()}, Depth: ${tree.maxDepth}`,
         }
       }),
@@ -61,7 +63,7 @@ const selectTreePrompt = async (network: 'mainnet' | 'devnet' | 'testnet' | 'loc
     })
 
     if (selection === 'manual') {
-      selectedTree = await input({
+      treeAddress = await input({
         message: 'Enter Merkle tree address:',
         validate: (value) => {
           if (!value) return 'Tree address is required'
@@ -73,12 +75,17 @@ const selectTreePrompt = async (network: 'mainnet' | 'devnet' | 'testnet' | 'loc
         },
       })
     } else {
-      selectedTree = selection
+      // selection is the tree address
+      treeAddress = selection
+      // Find the tree name from the saved trees
+      const selectedTreeData = allTrees.find(t => t.address === selection)
+      treeName = selectedTreeData?.name
     }
   }
 
   return {
-    tree: selectedTree,
+    treeAddress,
+    treeName,
   }
 }
 

@@ -72,12 +72,13 @@ Note: The current owner (or their delegate) must be the signer.`
 
       const signerKey = this.context.signer.publicKey.toString()
       const ownerKey = leafOwner.toString()
-      const delegateKey = leafDelegate.toString()
+      const delegateKey = leafDelegate ? leafDelegate.toString() : null
 
       if (signerKey !== ownerKey && signerKey !== delegateKey) {
         transferSpinner.fail('Transfer failed')
+        const delegateInfo = delegateKey ? ` or delegate (${delegateKey})` : ''
         this.error(
-          `Signer (${signerKey}) is not the owner (${ownerKey}) or delegate (${delegateKey}) of this asset.`
+          `Signer (${signerKey}) is not the owner (${ownerKey})${delegateInfo} of this asset.`
         )
       }
 

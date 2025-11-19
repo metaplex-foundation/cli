@@ -64,7 +64,7 @@ describe('bg collection create command', () => {
         expect(combined).to.contain('Collection created with Bubblegum V2 plugin')
         expect(combined).to.contain('Output Test Collection')
         expect(combined).to.contain('Royalties: 5%')
-        expect(combined).to.contain('Plugins: Royalties, Bubblegum V2')
+        expect(combined).to.contain('Plugins: BubblegumV2, Royalties')
         expect(combined).to.match(/Collection: [a-zA-Z0-9]+/)
         expect(combined).to.match(/Explorer:.*http/)
     })

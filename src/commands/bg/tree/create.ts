@@ -42,8 +42,8 @@ Use the interactive wizard to select from recommended tree configurations based 
 The wizard will guide you through selecting the optimal tree size based on your collection requirements.`
 
   static override examples = [
-    '$ mplx bg create --wizard',
-    '$ mplx bg create --maxDepth 14 --maxBufferSize 64 --canopyDepth 8',
+    '$ mplx bg tree create --wizard',
+    '$ mplx bg tree create --maxDepth 14 --maxBufferSize 64 --canopyDepth 8',
   ]
 
   static override flags = {

@@ -64,28 +64,23 @@ The Bubblegum V2 plugin is required for collections that will contain compressed
       if (flags.royalties > 0) {
         plugins.push({
           type: 'Royalties',
-          basisPoints: flags.royalties,
+          basisPoints: Math.round(flags.royalties * 100),
           creators: [
             {
               address: this.context.signer.publicKey,
-              percentage: flags.royalties,
+              percentage: 100,
             },
           ],
           ruleSet: ruleSet('None'),
         })
       }
 
-      // Create the collection with Bubblegum V2 plugin
-      // For now, just adding BubblegumV2 plugin (royalties can be added via --plugins flag later)
+      // Create the collection with Bubblegum V2 plugin and optional royalties
       const createTx = createCollection(umi, {
         collection,
         name: flags.name,
         uri: flags.uri,
-        plugins: [
-          {
-            type: 'BubblegumV2',
-          },
-        ],
+        plugins,
       })
 
       const result = await umiSendAndConfirmTransaction(umi, createTx)
@@ -99,6 +94,8 @@ The Bubblegum V2 plugin is required for collections that will contain compressed
 
       spinner.succeed('Collection created with Bubblegum V2 plugin!')
 
+      const pluginsList = plugins.map(p => p.type).join(', ')
+
       this.log(`
 --------------------------------
 Core Collection Created!
@@ -108,7 +105,7 @@ Name: ${flags.name}
 URI: ${flags.uri}
 Royalties: ${flags.royalties}%
 Update Authority: ${this.context.signer.publicKey}
-Plugins: Royalties, Bubblegum V2
+Plugins: ${pluginsList}
 
 Transaction: ${signature}
 Explorer: ${generateExplorerUrl(explorer, this.context.chain, signature, 'transaction')}

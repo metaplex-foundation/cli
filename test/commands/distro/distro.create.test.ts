@@ -12,7 +12,7 @@ const extractDistributionId = (str: string) => {
     /Distribution created: ([a-zA-Z0-9]+)/,
     /Distribution ID: ([a-zA-Z0-9]+)/
   ]
-  
+
   for (const pattern of patterns) {
     const match = str.match(pattern)
     if (match) return match[1]
@@ -22,13 +22,13 @@ const extractDistributionId = (str: string) => {
 
 describe('distro create commands', () => {
   const testConfigPath = path.join(process.cwd(), 'test-distro-config.json')
-  
+
   before(async () => {
     // Airdrop SOL for testing
     const { stdout, stderr, code } = await runCli([
       "toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
     ])
-    
+
     // Wait for airdrop to settle
     await new Promise(resolve => setTimeout(resolve, 10000))
   })
@@ -63,7 +63,7 @@ describe('distro create commands', () => {
     ]
 
     const { stdout, stderr, code } = await runCli(cliInput)
-    
+
     const cleanStderr = stripAnsi(stderr)
     const cleanStdout = stripAnsi(stdout)
     const distributionId = extractDistributionId(cleanStdout) || extractDistributionId(cleanStderr)
@@ -100,7 +100,7 @@ describe('distro create commands', () => {
     ]
 
     const { stdout, stderr, code } = await runCli(cliInput)
-    
+
     const cleanStderr = stripAnsi(stderr)
     const cleanStdout = stripAnsi(stdout)
     const distributionId = extractDistributionId(cleanStdout) || extractDistributionId(cleanStderr)
@@ -137,7 +137,7 @@ describe('distro create commands', () => {
     ]
 
     const { stdout, stderr, code } = await runCli(cliInput)
-    
+
     const cleanStderr = stripAnsi(stderr)
     const cleanStdout = stripAnsi(stdout)
     const distributionId = extractDistributionId(cleanStdout) || extractDistributionId(cleanStderr)
@@ -173,7 +173,7 @@ describe('distro create commands', () => {
     // This test would require simulating interactive prompts
     // which is complex with the current test setup
     const cliInput = ['distro', 'create', '--wizard']
-    
+
     const wizardInputs = [
       'Wizard Distribution\n',           // name
       'So11111111111111111111111111111111111111112\n', // mint
@@ -187,7 +187,7 @@ describe('distro create commands', () => {
     ]
 
     const { stdout, stderr, code } = await runCli(cliInput, wizardInputs)
-    
+
     const cleanStderr = stripAnsi(stderr)
     const cleanStdout = stripAnsi(stdout)
     const distributionId = extractDistributionId(cleanStdout) || extractDistributionId(cleanStderr)

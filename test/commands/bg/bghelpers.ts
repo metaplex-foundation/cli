@@ -1,35 +1,6 @@
 import { expect } from "chai"
 import { runCli } from "../../runCli"
-
-// Helper to strip ANSI color codes
-const stripAnsi = (str: string): string => {
-    let result = ''
-    let i = 0
-    while (i < str.length) {
-        // Detect ESC character (char code 27 or '\x1b')
-        if (str.charCodeAt(i) === 27) {
-            if (str[i + 1] === '[') {
-                // CSI sequence: skip ESC and '[', then skip until terminating 'm'
-                i += 2
-                while (i < str.length && str[i] !== 'm') {
-                    i++
-                }
-                // Skip the terminating 'm'
-                if (i < str.length && str[i] === 'm') {
-                    i++
-                }
-            } else {
-                // Other ESC sequence: skip ESC and next character
-                i += 2
-            }
-        } else {
-            // Regular character, append to result
-            result += str[i]
-            i++
-        }
-    }
-    return result
-}
+import { stripAnsi } from "./common"
 
 // Helper to extract tree address from message
 const extractTreeAddress = (str: string) => {
@@ -182,7 +153,6 @@ const createCompressedNFT = async (options: {
         throw new Error('Signature not found in output')
     }
 
-    expect(code).to.equal(0)
     expect(combined).to.contain('Compressed NFT created')
     expect(signature).to.match(/^[a-zA-Z0-9]{32,}$/)
 

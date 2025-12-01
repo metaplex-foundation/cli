@@ -239,7 +239,7 @@ Max NFTs: ${Math.pow(2, maxDepth).toLocaleString()}
 
 Transaction: ${signature}
 Explorer: ${generateExplorerUrl(explorer, this.context.chain, signature, 'transaction')}
-Tree Explorer: ${generateExplorerUrl(explorer, this.context.chain, treeAddress, 'account')}
+Tree Explorer: ${generateExplorerUrl(explorer, this.context.chain, treeAddress.toString(), 'account')}
 --------------------------------`)
 
       return { treeAddress: treeAddress.toString(), maxDepth, maxBufferSize, canopyDepth, signature }
@@ -269,7 +269,7 @@ Tree Explorer: ${generateExplorerUrl(explorer, this.context.chain, treeAddress, 
 
       // Validate and normalize tree name if provided
       let normalizedName: string | undefined
-      if (flags.name) {
+      if (flags.name !== undefined) {
         normalizedName = flags.name.trim()
 
         if (!normalizedName) {

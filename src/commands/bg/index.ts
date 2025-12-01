@@ -2,7 +2,7 @@ import {Command} from '@oclif/core'
 
 export default class Bg extends Command {
   static override description =
-    'Manage Bubblegum compressed NFTs. Create and inspect Merkle trees used for minting compressed assets.'
+    'Manage Bubblegum compressed NFTs.'
 
   static override summary = 'MPL Bubblegum program for compressed NFTs.'
 

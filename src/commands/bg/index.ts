@@ -4,7 +4,7 @@ export default class Bg extends Command {
   static override description =
     'Manage Bubblegum compressed NFTs. Create and inspect Merkle trees used for minting compressed assets.'
 
-  static override summary = 'Namespace for Bubblegum (compressed NFT) utilities.'
+  static override summary = 'MPL Bubblegum program for compressed NFTs.'
 
   static override examples = [
     '<%= config.bin %> <%= command.id %> tree create --wizard',
@@ -14,10 +14,7 @@ export default class Bg extends Command {
 
   public async run(): Promise<void> {
     this.log(`
-Bubblegum (Compressed NFTs)
-
-Use the bg namespace to work with Bubblegum-compatible Merkle trees that
-back compressed NFT collections on Solana.
+MPL Bubblegum (Compressed NFTs)
 
 Available commands:
   tree create    Create a Merkle tree for compressed NFTs
@@ -37,9 +34,6 @@ Complete Workflow:
 
   3. Create compressed NFTs into your tree:
      $ mplx bg nft create --wizard
-
-Note: Bubblegum V2 uses Metaplex Core collections. Create them with:
-  $ mplx core collection create --wizard
 
 See subcommand help for complete options:
   $ mplx bg tree --help

@@ -1,6 +1,6 @@
 import { RpcConfirmTransactionResult, TransactionError, Umi } from '@metaplex-foundation/umi'
 import { UmiSendOptions } from './sendOptions.js'
-import { UmiTransactionResponce } from './sendTransaction.js'
+import { UmiTransactionResponse } from './sendTransaction.js'
 
 export interface UmiTransactionConfirmationResult {
   confirmed: boolean
@@ -9,7 +9,7 @@ export interface UmiTransactionConfirmationResult {
 
 const umiConfirmTransaction = async (
   umi: Umi,
-  transaction: UmiTransactionResponce,
+  transaction: UmiTransactionResponse,
   sendOptions?: UmiSendOptions,
 ): Promise<UmiTransactionConfirmationResult> => {
 

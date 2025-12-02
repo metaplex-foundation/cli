@@ -3,11 +3,12 @@ import ora from 'ora'
 import confirmAllTransactions from './confirmAllTransactions.js'
 import umiSendAllTransactions from './sendAllTransactions.js'
 import { UmiSendAllOptions } from './sendOptions.js'
-import { UmiTransactionResponce } from './sendTransaction.js'
+import { UmiTransactionResponse } from './sendTransaction.js'
 import { UmiTransactionConfirmationResult } from './confirmTransaction.js'
 
-export interface UmiSendAndConfirmResponce {
-  transaction: UmiTransactionResponce
+
+export interface UmiSendAndConfirmResponse {
+  transaction: UmiTransactionResponse
   confirmation: UmiTransactionConfirmationResult | null
 }
 
@@ -16,7 +17,7 @@ const umiSendAllTransactionsAndConfirm = async (
   transactions: TransactionBuilder[],
   sendOptions?: UmiSendAllOptions,
   message?: string,
-): Promise<Array<UmiSendAndConfirmResponce>> => {
+): Promise<Array<UmiSendAndConfirmResponse>> => {
   // Send all transactions
   const sendSpinner = ora(message || 'Sending transactions...').start()
   let sentCount = 0

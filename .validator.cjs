@@ -13,6 +13,11 @@ module.exports = {
         deployPath: './.amman/mpl_core.so',
       },
       {
+        label: 'MPL Distro',
+        programId: 'D1STRoZTUiEa6r8TLg2aAbG4nSRT5cDBmgG7jDqCZvU8',
+        deployPath: './.amman/mpl_distro.so',
+      },
+      {
         label: 'MPL Core Candy Machine',
         programId: 'CMACYFENjoBMHzapRXyo1JZkVS6EtaDDzkjMrmQLvr4J',
         deployPath: './.amman/mpl_core_candy_machine.so',

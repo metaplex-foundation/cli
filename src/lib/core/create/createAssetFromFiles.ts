@@ -2,7 +2,7 @@ import { fetchCollection } from '@metaplex-foundation/mpl-core'
 import { PublicKey, Umi } from '@metaplex-foundation/umi'
 import fs from 'node:fs'
 import { PluginData } from '../../types/pluginData.js'
-import { UmiSendAndConfirmResponce } from '../../umi/sendAllTransactionsAndConfirm.js'
+import { UmiSendAndConfirmResponse } from '../../umi/sendAllTransactionsAndConfirm.js'
 import umiSendAndConfirmTransaction from '../../umi/sendAndConfirm.js'
 import uploadFile from '../../uploader/uploadFile.js'
 import uploadJson from '../../uploader/uploadJson.js'
@@ -18,7 +18,7 @@ interface CreateAssetWithFilesOptions {
 
 interface CreateAssetFromFilesResult {
   asset: PublicKey
-  tx: UmiSendAndConfirmResponce
+  tx: UmiSendAndConfirmResponse
 }
 
 const createAssetFromFiles = async (umi: Umi, options: CreateAssetWithFilesOptions)=> {

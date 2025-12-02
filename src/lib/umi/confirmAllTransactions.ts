@@ -3,11 +3,11 @@ import confirmTransaction, { UmiTransactionConfirmationResult } from './confirmT
 
 import { base58 } from '@metaplex-foundation/umi/serializers'
 import { UmiSendAllOptions } from './sendOptions.js'
-import { UmiTransactionResponce } from './sendTransaction.js'
+import { UmiTransactionResponse } from './sendTransaction.js'
 
 const confirmAllTransactions = async (
   umi: Umi,
-  transactions: (UmiTransactionResponce | undefined)[],
+  transactions: (UmiTransactionResponse | undefined)[],
   sendOptions?: UmiSendAllOptions,
   onProgress?: (index: number, result: UmiTransactionConfirmationResult) => void,
 ): Promise<UmiTransactionConfirmationResult[]> => {

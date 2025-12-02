@@ -1,6 +1,6 @@
 import { TransactionBuilder, Umi } from '@metaplex-foundation/umi'
 import { UmiSendAllOptions } from './sendOptions.js'
-import umiSendTransaction, { UmiTransactionResponce } from './sendTransaction.js'
+import umiSendTransaction, { UmiTransactionResponse } from './sendTransaction.js'
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -8,11 +8,11 @@ const umiSendAllTransactions = async (
   umi: Umi,
   transactions: (TransactionBuilder | null)[],
   options?: UmiSendAllOptions,
-  onProgress?: (index: number, response: UmiTransactionResponce) => void,
-): Promise<UmiTransactionResponce[]> => {
+  onProgress?: (index: number, response: UmiTransactionResponse) => void,
+): Promise<UmiTransactionResponse[]> => {
   const transactionsPerSecond = 3 // Set default to 1 TPS
   const txInterval = 1000 / transactionsPerSecond // Time between sending transactions (in ms)
-  let results: UmiTransactionResponce[] = []
+  let results: UmiTransactionResponse[] = []
 
   // Process transactions sequentially
   let index = 0

@@ -140,9 +140,11 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
 
         const jsonFile = JSON.parse(fs.readFileSync(untildify(jsonPath), 'utf-8'))
         jsonFile.image = imageUri.uri
-        jsonFile.properties.files[0] = {
-            uri: imageUri.uri,
-            type: imageUri.mimeType,
+        if (jsonFile.properties?.files?.length) {
+            jsonFile.properties.files[0] = {
+                uri: imageUri.uri,
+                type: imageUri.mimeType,
+            }
         }
 
         const jsonSpinner = ora('Uploading JSON...').start()

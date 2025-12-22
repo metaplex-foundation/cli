@@ -1,6 +1,6 @@
-import { Command } from '@oclif/core'
+import { TransactionCommand } from '../../../TransactionCommand.js'
 
-export default class ToolboxToken extends Command {
+export default class ToolboxToken extends TransactionCommand<typeof ToolboxToken> {
     static override description = 'SPL Token tools for creating, minting, transferring, and managing fungible tokens with metadata.'
 
     static override examples = [

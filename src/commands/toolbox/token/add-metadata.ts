@@ -5,7 +5,8 @@ import {
     findMetadataPda,
     safeFetchMetadata,
 } from '@metaplex-foundation/mpl-token-metadata'
-import { publicKey, Umi } from '@metaplex-foundation/umi'
+import { fetchMint } from '@metaplex-foundation/mpl-toolbox'
+import { isSome, publicKey } from '@metaplex-foundation/umi'
 import ora from 'ora'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import imageUploader from '../../../lib/uploader/imageUploader.js'
@@ -42,7 +43,9 @@ export default class ToolboxTokenAddMetadata extends TransactionCommand<typeof T
 
 This command checks if a token already has a metadata account (via PDA), and if not, creates one using CreateMetadataAccountV3.
 
-Use this for tokens that were created without metadata (e.g., via spl-token CLI).`
+Use this for tokens that were created without metadata (e.g., via spl-token CLI).
+
+IMPORTANT: You must be the mint authority of the token to add metadata.`
 
     static override examples = [
         '<%= config.bin %> <%= command.id %> <mintAddress> --name "My Token" --symbol "MTK"',
@@ -119,6 +122,29 @@ Use this for tokens that were created without metadata (e.g., via spl-token CLI)
         }
 
         checkSpinner.succeed('No existing metadata found')
+
+        // Verify mint authority
+        const authoritySpinner = ora('Verifying mint authority...').start()
+
+        const mintAccount = await fetchMint(umi, mintPubkey)
+
+        if (!isSome(mintAccount.mintAuthority)) {
+            authoritySpinner.fail('Mint authority has been revoked')
+            this.log(`\nThis token's mint authority has been revoked. Metadata cannot be added.`)
+            return
+        }
+
+        const mintAuthority = mintAccount.mintAuthority.value
+        if (mintAuthority !== umi.identity.publicKey) {
+            authoritySpinner.fail('You are not the mint authority')
+            this.log(`\nMint authority mismatch:`)
+            this.log(`  Required: ${mintAuthority}`)
+            this.log(`  Your wallet: ${umi.identity.publicKey}`)
+            this.log(`\nYou must be the mint authority to add metadata to this token.`)
+            return
+        }
+
+        authoritySpinner.succeed('Mint authority verified')
 
         // Determine the URI
         let metadataUri = flags.uri

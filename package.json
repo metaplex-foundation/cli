@@ -33,6 +33,7 @@
     "@metaplex-foundation/mpl-core": "^1.4.0",
     "@metaplex-foundation/mpl-core-candy-machine": "^0.3.0",
     "@metaplex-foundation/mpl-distro": "^0.3.2",
+    "@metaplex-foundation/genesis": "^0.14.0",
     "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
     "@metaplex-foundation/mpl-toolbox": "0.10.0",
     "@metaplex-foundation/umi": "1.4.1",

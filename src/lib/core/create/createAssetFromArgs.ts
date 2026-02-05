@@ -1,8 +1,9 @@
-import { Signer, Umi } from '@metaplex-foundation/umi'
+import { Signer, TransactionSignature, Umi } from '@metaplex-foundation/umi'
 import createAssetTx from './createTx.js'
 import { fetchCollection } from '@metaplex-foundation/mpl-core'
 import { PluginData } from '../../types/pluginData.js'
 import umiSendAndConfirmTransaction from '../../umi/sendAndConfirm.js'
+import { txSignatureToString } from '../../util.js'
 
 interface CreateAssetFromArgsOptions {
   assetSigner?: Signer,
@@ -28,7 +29,7 @@ const createAssetFromArgs = async (umi: Umi, options: CreateAssetFromArgsOptions
 
   return {
     asset: transaction.asset,
-    signature: res.transaction.signature,
+    signature: txSignatureToString(res.transaction.signature as TransactionSignature),
   }
 }
 

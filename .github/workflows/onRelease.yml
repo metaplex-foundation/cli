@@ -4,6 +4,10 @@ on:
   release:
     types: [released]
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -18,10 +22,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: latest
+          registry-url: https://registry.npmjs.org
+      - name: Install npm >= 11.5.1
+        run: npm install -g "npm@>=11.5.1"
       - run: pnpm install
       - run: pnpm build
       - run: pnpm prepack
-      - uses: JS-DevTools/npm-publish@19c28f1ef146469e409470805ea4279d47c3d35c
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
+      - run: npm publish --provenance --access public
       - run: pnpm postpack

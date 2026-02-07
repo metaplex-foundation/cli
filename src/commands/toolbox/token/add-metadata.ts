@@ -80,11 +80,11 @@ IMPORTANT: You must be the mint authority of the token to add metadata.`
             description: 'Path to the token image file (used when uploading metadata)',
             exclusive: ['uri'],
         }),
-        'is-mutable': Flags.boolean({
-            description: 'Whether the metadata can be updated later (default: true)',
-            default: true,
-            allowNo: true,
-        }),
+        'is-mutable': Flags.option({
+            description: 'Whether the metadata can be updated later (true/false, y/n)',
+            default: 'true',
+            options: ['true', 'false', 'y', 'n'] as const,
+        })(),
     }
 
     public async run() {
@@ -198,7 +198,7 @@ IMPORTANT: You must be the mint authority of the token to add metadata.`
                     collection: null,
                     uses: null,
                 },
-                isMutable: flags['is-mutable'],
+                isMutable: flags['is-mutable'] === 'true' || flags['is-mutable'] === 'y',
                 collectionDetails: null,
             })
 

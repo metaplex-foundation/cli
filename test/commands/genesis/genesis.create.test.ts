@@ -5,7 +5,8 @@ import { createGenesisAccount, stripAnsi, extractGenesisAddress, extractBaseMint
 describe('genesis create and fetch commands', () => {
 
     before(async () => {
-        const { stdout, stderr, code } = await runCli(
+        // runCli rejects on non-zero exit, so failures propagate automatically
+        await runCli(
             ["toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"]
         )
 

@@ -84,7 +84,7 @@ Requirements:
       }
 
       // Verify the deposit exists
-      const depositPda = findLaunchPoolDepositV2Pda(this.context.umi, {
+      const [depositPda] = findLaunchPoolDepositV2Pda(this.context.umi, {
         bucket: bucketPda,
         recipient: this.context.signer.publicKey,
       })
@@ -97,8 +97,17 @@ Requirements:
         this.error(`No deposit found for signer ${this.context.signer.publicKey}. Make sure you have deposited into this launch pool.`)
       }
 
-      // Parse amount
-      const amount = BigInt(flags.amount)
+      // Parse and validate amount
+      let amount: bigint
+      try {
+        amount = BigInt(flags.amount)
+      } catch {
+        this.error(`Invalid amount "${flags.amount}". Must be a non-negative integer.`)
+      }
+
+      if (amount <= 0n) {
+        this.error('Withdrawal amount must be greater than 0.')
+      }
 
       // Build the withdraw transaction
       spinner.text = 'Withdrawing from launch pool...'

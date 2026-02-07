@@ -65,15 +65,15 @@ Use Unix timestamps for absolute times.`
     }),
     bucketIndex: Flags.integer({
       char: 'b',
-      description: 'Bucket index (default: auto-increment based on genesis bucket count)',
-      required: false,
+      description: 'Bucket index for this presale bucket',
+      required: true,
     }),
     minimumDeposit: Flags.string({
-      description: 'Minimum deposit amount (in base units)',
+      description: 'Minimum deposit amount per transaction (in quote token base units)',
       required: false,
     }),
     depositLimit: Flags.string({
-      description: 'Maximum deposit limit per user (in base units)',
+      description: 'Maximum deposit limit per user (in quote token base units)',
       required: false,
     }),
   }

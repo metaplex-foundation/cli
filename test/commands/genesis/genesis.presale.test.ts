@@ -4,7 +4,6 @@ import { createGenesisAccount, addPresaleBucket, stripAnsi } from './genesishelp
 
 describe('genesis presale workflow', () => {
     let genesisAddress: string
-    let baseMint: string
     let bucketAddress: string
 
     const now = Math.floor(Date.now() / 1000)
@@ -14,6 +13,7 @@ describe('genesis presale workflow', () => {
     const claimEnd = (now + 86400 * 365).toString()     // 1 year from now
 
     before(async () => {
+        // runCli rejects on non-zero exit, so failures propagate automatically
         await runCli([
             "toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
         ])
@@ -37,10 +37,8 @@ describe('genesis presale workflow', () => {
         })
 
         genesisAddress = result.genesisAddress
-        baseMint = result.baseMint
 
         expect(genesisAddress).to.match(/^[a-zA-Z0-9]+$/)
-        expect(baseMint).to.match(/^[a-zA-Z0-9]+$/)
     })
 
     it('adds a presale bucket to the genesis account', async () => {

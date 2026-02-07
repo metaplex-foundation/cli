@@ -24,7 +24,7 @@ pass() { echo "  PASS: $1"; }
 fail() { echo "  FAIL: $1"; exit 1; }
 
 extract_address() {
-  echo "$1" | grep -oP "$2: \K[A-Za-z0-9]+" | head -1
+  echo "$1" | grep -E -o "$2: [A-Za-z0-9]+" | sed "s/^$2: //" | head -1
 }
 
 echo "=== Genesis CLI Manual Test ==="
@@ -88,8 +88,7 @@ echo "[5] Depositing below minimum (should fail)..."
 if $CLI genesis deposit "$GENESIS" --amount 50000000 --bucketIndex 0 2>&1 | grep -q "below the minimum"; then
   pass "Minimum deposit enforced"
 else
-  # Check stderr too
-  pass "Minimum deposit enforced (error thrown)"
+  fail "Minimum deposit NOT enforced"
 fi
 
 # Step 6: Test depositLimit enforcement
@@ -97,7 +96,7 @@ echo "[6] Depositing above limit (should fail)..."
 if $CLI genesis deposit "$GENESIS" --amount 10000000001 --bucketIndex 0 2>&1 | grep -q "exceeds the deposit limit"; then
   pass "Deposit limit enforced"
 else
-  pass "Deposit limit enforced (error thrown)"
+  fail "Deposit limit NOT enforced"
 fi
 
 # Step 7: Valid deposit

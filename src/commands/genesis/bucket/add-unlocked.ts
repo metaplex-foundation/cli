@@ -56,7 +56,7 @@ Instead, they allocate base tokens directly to a recipient.`
     }),
     bucketIndex: Flags.integer({
       char: 'b',
-      description: 'Bucket index (default: auto-increment based on genesis bucket count)',
+      description: 'Bucket index (default: 0)',
       required: false,
     }),
   }

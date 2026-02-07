@@ -11,40 +11,9 @@ import { publicKey } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
 
-import { TransactionCommand } from '../../../TransactionCommand.js'
+import { BaseCommand } from '../../../BaseCommand.js'
 import { generateExplorerUrl } from '../../../explorers.js'
-
-// Key types from Genesis (enum values)
-const KEY_TYPES: Record<number, string> = {
-  0: 'Uninitialized',
-  1: 'GenesisAccount',
-  2: 'LaunchPoolBucket',
-  3: 'LaunchPoolDeposit',
-  4: 'StreamflowBucket',
-  5: 'UnlockedBucket',
-  6: 'MeteoraBucket',
-  7: 'PumpBucket',
-  8: 'DistributionBucket',
-  9: 'PresaleBucket',
-  10: 'PresaleDeposit',
-  11: 'VaultBucket',
-  12: 'VaultDeposit',
-  13: 'BondingCurveBucket',
-  14: 'AuctionBucket',
-  15: 'AuctionBid',
-  16: 'AuctionTree',
-  17: 'RaydiumCpmmBucket',
-  18: 'GenesisAccountV2',
-  19: 'PresaleBucketV2',
-  20: 'PresaleDepositV2',
-  21: 'UnlockedBucketV2',
-  22: 'RaydiumCpmmBucketV2',
-  23: 'VaultBucketV2',
-  24: 'VaultDepositV2',
-  25: 'BondingCurveBucketV2',
-  26: 'LaunchPoolBucketV2',
-  27: 'LaunchPoolDepositV2',
-}
+import { KEY_TYPES } from '../../../lib/genesis.js'
 
 function formatCondition(condition: { __kind: string; time?: bigint }): string {
   if (condition.__kind === 'TimeAbsolute' && condition.time) {
@@ -55,7 +24,7 @@ function formatCondition(condition: { __kind: string; time?: bigint }): string {
   return `${condition.__kind}`
 }
 
-export default class BucketFetch extends TransactionCommand<typeof BucketFetch> {
+export default class BucketFetch extends BaseCommand<typeof BucketFetch> {
   static override description = `Fetch a Genesis bucket by genesis address and bucket index.
 
 This command retrieves and displays information about a bucket in a Genesis account.

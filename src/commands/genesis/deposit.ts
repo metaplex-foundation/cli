@@ -84,8 +84,17 @@ Launch pools use a pro-rata allocation model where:
         this.error(`Launch pool bucket not found at index ${flags.bucketIndex}. Make sure the bucket has been created.`)
       }
 
-      // Parse amount
-      const amount = BigInt(flags.amount)
+      // Parse and validate amount
+      let amount: bigint
+      try {
+        amount = BigInt(flags.amount)
+      } catch {
+        this.error(`Invalid amount "${flags.amount}". Must be a non-negative integer.`)
+      }
+
+      if (amount <= 0n) {
+        this.error('Deposit amount must be greater than 0.')
+      }
 
       // Build the deposit transaction
       spinner.text = 'Depositing into launch pool...'

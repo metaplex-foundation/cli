@@ -62,29 +62,36 @@ Requirements:
 
       // Discover all bucket PDAs to pass as remaining accounts
       spinner.text = 'Discovering bucket accounts...'
-      const bucketAccounts: AccountMeta[] = []
       const pdaFinders = [
         findLaunchPoolBucketV2Pda,
         findPresaleBucketV2Pda,
         findUnlockedBucketV2Pda,
       ]
 
+      // Build all PDA lookups and fetch in parallel
+      const pdaLookups: { pda: ReturnType<typeof publicKey> }[] = []
       for (let i = 0; i < genesisAccount.bucketCount; i++) {
         for (const finder of pdaFinders) {
           const [pda] = finder(this.context.umi, {
             genesisAccount: genesisAddress,
             bucketIndex: i,
           })
-          const account = await this.context.umi.rpc.getAccount(pda)
-          if (account.exists) {
-            bucketAccounts.push({
-              pubkey: pda,
-              isSigner: false,
-              isWritable: true,
-            })
-          }
+          pdaLookups.push({ pda })
         }
       }
+
+      const accounts = await Promise.all(
+        pdaLookups.map(({ pda }) => this.context.umi.rpc.getAccount(pda))
+      )
+
+      const bucketAccounts: AccountMeta[] = accounts
+        .map((account, idx) => ({ account, pda: pdaLookups[idx].pda }))
+        .filter(({ account }) => account.exists)
+        .map(({ pda }) => ({
+          pubkey: pda,
+          isSigner: false,
+          isWritable: true,
+        }))
 
       // Build the finalize transaction
       spinner.text = 'Finalizing Genesis launch...'

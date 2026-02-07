@@ -157,6 +157,7 @@ const addPresaleBucket = async (
         depositEnd?: string
         claimStart?: string
         claimEnd?: string
+        bucketIndex?: number
     }
 ): Promise<{ bucketAddress: string }> => {
     const now = Math.floor(Date.now() / 1000)
@@ -166,6 +167,7 @@ const addPresaleBucket = async (
     const depositEnd = options?.depositEnd ?? (now + 86400).toString()
     const claimStart = options?.claimStart ?? (now + 86400).toString()
     const claimEnd = options?.claimEnd ?? (now + 86400 * 365).toString()
+    const bucketIndex = (options?.bucketIndex ?? 0).toString()
 
     const cliInput = [
         'genesis',
@@ -184,6 +186,8 @@ const addPresaleBucket = async (
         claimStart,
         '--claimEnd',
         claimEnd,
+        '--bucketIndex',
+        bucketIndex,
     ]
 
     const { stdout, stderr, code } = await runCli(cliInput)

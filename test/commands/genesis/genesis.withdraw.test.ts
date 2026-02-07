@@ -4,7 +4,6 @@ import { createGenesisAccount, addLaunchPoolBucket, addUnlockedBucket, stripAnsi
 
 describe('genesis withdraw workflow', () => {
     let genesisAddress: string
-    let baseMint: string
     let bucketAddress: string
     let unlockedBucketAddress: string
 
@@ -38,7 +37,6 @@ describe('genesis withdraw workflow', () => {
         })
 
         genesisAddress = result.genesisAddress
-        baseMint = result.baseMint
 
         expect(genesisAddress).to.match(/^[a-zA-Z0-9]+$/)
     })

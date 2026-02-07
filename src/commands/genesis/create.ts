@@ -114,7 +114,10 @@ Funding Modes:
         ? publicKey(flags.quoteMint)
         : WRAPPED_SOL_MINT
 
-      // Parse total supply
+      // Parse and validate total supply
+      if (!/^\d+$/.test(flags.totalSupply)) {
+        this.error(`Invalid totalSupply "${flags.totalSupply}". Must be a non-negative integer string (e.g., "1000000000").`)
+      }
       const totalSupply = BigInt(flags.totalSupply)
 
       // Build the initialize transaction

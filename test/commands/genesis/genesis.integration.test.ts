@@ -1,10 +1,9 @@
 import { expect } from 'chai'
 import { runCli } from '../../runCli'
-import { createGenesisAccount, addLaunchPoolBucket, addUnlockedBucket, stripAnsi, extractGenesisAddress, extractBucketAddress } from './genesishelpers'
+import { createGenesisAccount, addLaunchPoolBucket, addUnlockedBucket, stripAnsi } from './genesishelpers'
 
 describe('genesis integration workflow', () => {
     let genesisAddress: string
-    let baseMint: string
     let bucketAddress: string
     let unlockedBucketAddress: string
 
@@ -41,10 +40,8 @@ describe('genesis integration workflow', () => {
         })
 
         genesisAddress = result.genesisAddress
-        baseMint = result.baseMint
 
         expect(genesisAddress).to.match(/^[a-zA-Z0-9]+$/)
-        expect(baseMint).to.match(/^[a-zA-Z0-9]+$/)
     })
 
     it('adds an unlocked bucket as graduation destination', async () => {
@@ -277,7 +274,6 @@ describe('genesis integration workflow', () => {
 
 describe('genesis unlocked bucket workflow', () => {
     let genesisAddress: string
-    let baseMint: string
 
     const now = Math.floor(Date.now() / 1000)
     const claimStart = (now - 3600).toString()          // 1 hour ago (so claim is active)
@@ -300,7 +296,6 @@ describe('genesis unlocked bucket workflow', () => {
         })
 
         genesisAddress = result.genesisAddress
-        baseMint = result.baseMint
 
         expect(genesisAddress).to.match(/^[a-zA-Z0-9]+$/)
     })

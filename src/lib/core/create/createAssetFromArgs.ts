@@ -5,6 +5,11 @@ import { PluginData } from '../../types/pluginData.js'
 import umiSendAndConfirmTransaction from '../../umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../util.js'
 
+export interface AssetCreationResult {
+  asset: string
+  signature: string
+}
+
 interface CreateAssetFromArgsOptions {
   assetSigner?: Signer,
   name: string

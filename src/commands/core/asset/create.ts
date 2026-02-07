@@ -3,7 +3,7 @@ import { Flags } from '@oclif/core'
 import fs from 'node:fs'
 import ora from 'ora'
 
-import { generateSigner, Umi } from '@metaplex-foundation/umi'
+import { generateSigner, PublicKey, Umi } from '@metaplex-foundation/umi'
 import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
 import createAssetFromArgs from '../../../lib/core/create/createAssetFromArgs.js'
 import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
@@ -70,13 +70,13 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       hidden: true,
     }),
     // Plugin configuration flags
-    plugins: Flags.boolean({ 
+    plugins: Flags.boolean({
       name: 'plugins',
       required: false,
       summary: 'Use interactive plugin selection',
     }),
-    pluginsFile: Flags.directory({ 
-      name: 'pluginsFile', 
+    pluginsFile: Flags.directory({
+      name: 'pluginsFile',
       required: false,
       exclusive: ['plugins'],
       summary: 'Path to a json file with plugin data',
@@ -85,7 +85,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
   private async getPluginData(): Promise<PluginData | undefined> {
     const { flags } = await this.parse(AssetCreate)
-    
+
     if (flags.plugins) {
       const selectedPlugins = await pluginSelector({ filter: PluginFilterType.Asset })
       if (selectedPlugins) {
@@ -206,7 +206,10 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
   }
 
   // TODO: Fix any typings
-  private formatAssetResult(result: any, explorer: ExplorerType): string {
+  private formatAssetResult(result: {
+    asset: PublicKey | undefined;
+    signature: string;
+  }, explorer: ExplorerType): string {
     return `--------------------------------
   Asset: ${result.asset}
   Signature: ${result.signature}

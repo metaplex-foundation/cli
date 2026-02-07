@@ -3,8 +3,7 @@ import { Flags } from '@oclif/core'
 import fs from 'node:fs'
 import ora from 'ora'
 
-import { generateSigner, Umi } from '@metaplex-foundation/umi'
-import { base58 } from '@metaplex-foundation/umi/serializers'
+import { generateSigner, PublicKey, Umi } from '@metaplex-foundation/umi'
 import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
 import createAssetFromArgs from '../../../lib/core/create/createAssetFromArgs.js'
 import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
@@ -14,7 +13,6 @@ import pluginConfigurator from '../../../prompts/pluginInquirer.js'
 import { PluginFilterType, pluginSelector } from '../../../prompts/pluginSelector.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import createAssetPrompt, { NftType } from '../../../prompts/createAssetPrompt.js'
-import { txSignatureToString } from '../../../lib/util.js'
 
 
 export default class AssetCreate extends TransactionCommand<typeof AssetCreate> {
@@ -72,13 +70,13 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       hidden: true,
     }),
     // Plugin configuration flags
-    plugins: Flags.boolean({ 
+    plugins: Flags.boolean({
       name: 'plugins',
       required: false,
       summary: 'Use interactive plugin selection',
     }),
-    pluginsFile: Flags.directory({ 
-      name: 'pluginsFile', 
+    pluginsFile: Flags.directory({
+      name: 'pluginsFile',
       required: false,
       exclusive: ['plugins'],
       summary: 'Path to a json file with plugin data',
@@ -87,7 +85,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
   private async getPluginData(): Promise<PluginData | undefined> {
     const { flags } = await this.parse(AssetCreate)
-    
+
     if (flags.plugins) {
       const selectedPlugins = await pluginSelector({ filter: PluginFilterType.Asset })
       if (selectedPlugins) {
@@ -144,7 +142,6 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     })
 
     assetSpinner.succeed('Asset created successfully')
-    this.log(this.formatAssetResult(result, this.context.explorer))
     return result
   }
 
@@ -209,17 +206,19 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
   }
 
   // TODO: Fix any typings
-  private formatAssetResult(result: any, explorer: ExplorerType): string {
-    const signature = txSignatureToString(result.signature as Uint8Array)
+  private formatAssetResult(result: {
+    asset: PublicKey | undefined;
+    signature: string;
+  }, explorer: ExplorerType): string {
     return `--------------------------------
   Asset: ${result.asset}
-  Signature: ${signature}
-  Explorer: ${generateExplorerUrl(explorer, this.context.chain, signature, 'transaction')}
+  Signature: ${result.signature}
+  Explorer: ${generateExplorerUrl(explorer, this.context.chain, result.signature, 'transaction')}
   Core Explorer: https://core.metaplex.com/explorer/${result.asset}
 --------------------------------`
   }
 
-  public async run(): Promise<unknown> {
+  public async run(): Promise<void> {
     const { flags } = await this.parse(AssetCreate)
     const { umi, explorer } = this.context
 
@@ -254,16 +253,14 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       })
 
       spinner.succeed('Asset created successfully')
-      this.log(this.formatAssetResult(result, explorer))
-      return result
+      console.log(this.formatAssetResult(result, explorer))
     } else if (flags.files) {
       if (!flags.image || !flags.json) {
         this.error('You must provide an image --image and JSON --json file')
       }
 
       const result = await this.handleFileBasedCreation(umi, flags.image, flags.json, flags.collection)
-      this.log(this.formatAssetResult(result, explorer))
-      return result
+      console.log(this.formatAssetResult(result, explorer))
     } else {
       // Create asset from name and uri flags
       if (!flags.name) {
@@ -289,8 +286,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       })
 
       spinner.succeed('Asset created successfully')
-      this.log(this.formatAssetResult(result, explorer))
-      return result
+      console.log(this.formatAssetResult(result, explorer))
     }
   }
 }

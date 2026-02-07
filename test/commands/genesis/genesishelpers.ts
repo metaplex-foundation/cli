@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { runCli } from '../../runCli'
 
 // Helper to strip ANSI color codes
-const stripAnsi = (str: string) => str.replace(/\u001b\[\d+m/g, '')
+const stripAnsi = (str: string) => str.replace(/\u001b\[[\d;]*m/g, '')
 
 // Helper to extract Genesis Account address from output
 const extractGenesisAddress = (str: string) => {

@@ -1,9 +1,10 @@
 import {
-  depositLaunchPoolV2,
+  withdrawLaunchPoolV2,
   safeFetchGenesisAccountV2,
   findLaunchPoolBucketV2Pda,
   findLaunchPoolDepositV2Pda,
   safeFetchLaunchPoolBucketV2,
+  safeFetchLaunchPoolDepositV2,
 } from '@metaplex-foundation/genesis'
 import { publicKey } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
@@ -14,24 +15,22 @@ import { generateExplorerUrl } from '../../explorers.js'
 import { txSignatureToString } from '../../lib/util.js'
 import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 
-export default class GenesisDeposit extends TransactionCommand<typeof GenesisDeposit> {
-  static override description = `Deposit into a Genesis launch pool.
+export default class GenesisWithdraw extends TransactionCommand<typeof GenesisWithdraw> {
+  static override description = `Withdraw from a Genesis launch pool.
 
-This command deposits quote tokens (e.g., SOL, USDC) into a launch pool bucket.
-You will receive a proportional allocation of tokens based on your share of contributions.
+This command withdraws quote tokens from a launch pool bucket.
+You can only withdraw tokens you have previously deposited.
 
-Launch pools use a pro-rata allocation model where:
-- Everyone gets the same price
-- Allocation is based on your contribution relative to total contributions
-- No frontrunning or sniping possible`
+Requirements:
+- The deposit period must still be active
+- You must have an existing deposit in the launch pool`
 
   static override examples = [
-    '$ mplx genesis deposit GenesisAddress123... --amount 1000000000 --bucketIndex 0',
-    '$ mplx genesis deposit GenesisAddress123... --amount 1000000000',
-    '$ mplx genesis deposit GenesisAddress123... --amount 5000000000 --bucketIndex 1',
+    '$ mplx genesis withdraw GenesisAddress123... --amount 1000000000 --bucketIndex 0',
+    '$ mplx genesis withdraw GenesisAddress123... --amount 500000000',
   ]
 
-  static override usage = 'genesis deposit [GENESIS] [FLAGS]'
+  static override usage = 'genesis withdraw [GENESIS] [FLAGS]'
 
   static override args = {
     genesis: Args.string({
@@ -43,7 +42,7 @@ Launch pools use a pro-rata allocation model where:
   static override flags = {
     amount: Flags.string({
       char: 'a',
-      description: 'Amount of quote tokens to deposit (in base units, e.g., lamports for SOL)',
+      description: 'Amount of quote tokens to withdraw (in base units, e.g., lamports for SOL)',
       required: true,
     }),
     bucketIndex: Flags.integer({
@@ -54,8 +53,8 @@ Launch pools use a pro-rata allocation model where:
   }
 
   public async run(): Promise<void> {
-    const { args, flags } = await this.parse(GenesisDeposit)
-    const spinner = ora('Processing deposit...').start()
+    const { args, flags } = await this.parse(GenesisWithdraw)
+    const spinner = ora('Processing withdrawal...').start()
 
     try {
       const genesisAddress = publicKey(args.genesis)
@@ -84,36 +83,43 @@ Launch pools use a pro-rata allocation model where:
         this.error(`Launch pool bucket not found at index ${flags.bucketIndex}. Make sure the bucket has been created.`)
       }
 
-      // Parse amount
-      const amount = BigInt(flags.amount)
-
-      // Build the deposit transaction
-      spinner.text = 'Depositing into launch pool...'
-      const transaction = depositLaunchPoolV2(this.context.umi, {
-        genesisAccount: genesisAddress,
-        bucket: bucketPda,
-        baseMint: genesisAccount.baseMint,
-        quoteMint: genesisAccount.quoteMint,
-        depositor: this.context.signer,
-        recipient: this.context.signer,
-        rentPayer: this.context.payer,
-        amountQuoteToken: amount,
-      })
-
-      const result = await umiSendAndConfirmTransaction(this.context.umi, transaction)
-
-      // Find the deposit PDA for reference
+      // Verify the deposit exists
       const depositPda = findLaunchPoolDepositV2Pda(this.context.umi, {
         bucket: bucketPda,
         recipient: this.context.signer.publicKey,
       })
 
-      spinner.succeed('Deposit successful!')
+      spinner.text = 'Verifying deposit...'
+      const deposit = await safeFetchLaunchPoolDepositV2(this.context.umi, depositPda)
+
+      if (!deposit) {
+        spinner.fail('Deposit not found')
+        this.error(`No deposit found for signer ${this.context.signer.publicKey}. Make sure you have deposited into this launch pool.`)
+      }
+
+      // Parse amount
+      const amount = BigInt(flags.amount)
+
+      // Build the withdraw transaction
+      spinner.text = 'Withdrawing from launch pool...'
+      const transaction = withdrawLaunchPoolV2(this.context.umi, {
+        genesisAccount: genesisAddress,
+        bucket: bucketPda,
+        baseMint: genesisAccount.baseMint,
+        quoteMint: genesisAccount.quoteMint,
+        withdrawer: this.context.signer,
+        payer: this.context.payer,
+        amountQuoteToken: amount,
+      })
+
+      const result = await umiSendAndConfirmTransaction(this.context.umi, transaction)
+
+      spinner.succeed('Withdrawal successful!')
 
       this.log('')
-      this.logSuccess(`Deposited ${flags.amount} quote tokens`)
+      this.logSuccess(`Withdrew ${flags.amount} quote tokens`)
       this.log('')
-      this.log('Deposit Details:')
+      this.log('Withdrawal Details:')
       this.log(`  Genesis Account: ${genesisAddress}`)
       this.log(`  Bucket: ${bucketPda}`)
       this.log(`  Bucket Index: ${flags.bucketIndex}`)
@@ -130,12 +136,9 @@ Launch pools use a pro-rata allocation model where:
           'transaction'
         )
       )
-      this.log('')
-      this.log('Note: Your token allocation will be calculated pro-rata based on total contributions.')
-      this.log('Use "mplx genesis claim" to claim your tokens after the launch is finalized.')
 
     } catch (error) {
-      spinner.fail('Failed to deposit')
+      spinner.fail('Failed to withdraw')
       throw error
     }
   }

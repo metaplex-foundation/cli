@@ -1,8 +1,11 @@
 import {
   finalizeV2,
   safeFetchGenesisAccountV2,
+  findLaunchPoolBucketV2Pda,
+  findPresaleBucketV2Pda,
+  findUnlockedBucketV2Pda,
 } from '@metaplex-foundation/genesis'
-import { publicKey } from '@metaplex-foundation/umi'
+import { publicKey, AccountMeta } from '@metaplex-foundation/umi'
 import { Args } from '@oclif/core'
 import ora from 'ora'
 
@@ -57,13 +60,39 @@ Requirements:
         this.error('This Genesis account has already been finalized')
       }
 
+      // Discover all bucket PDAs to pass as remaining accounts
+      spinner.text = 'Discovering bucket accounts...'
+      const bucketAccounts: AccountMeta[] = []
+      const pdaFinders = [
+        findLaunchPoolBucketV2Pda,
+        findPresaleBucketV2Pda,
+        findUnlockedBucketV2Pda,
+      ]
+
+      for (let i = 0; i < genesisAccount.bucketCount; i++) {
+        for (const finder of pdaFinders) {
+          const [pda] = finder(this.context.umi, {
+            genesisAccount: genesisAddress,
+            bucketIndex: i,
+          })
+          const account = await this.context.umi.rpc.getAccount(pda)
+          if (account.exists) {
+            bucketAccounts.push({
+              pubkey: pda,
+              isSigner: false,
+              isWritable: true,
+            })
+          }
+        }
+      }
+
       // Build the finalize transaction
       spinner.text = 'Finalizing Genesis launch...'
       const transaction = finalizeV2(this.context.umi, {
         genesisAccount: genesisAddress,
         baseMint: genesisAccount.baseMint,
         authority: this.context.signer,
-      })
+      }).addRemainingAccounts(bucketAccounts)
 
       const result = await umiSendAndConfirmTransaction(this.context.umi, transaction)
 

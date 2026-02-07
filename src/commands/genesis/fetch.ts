@@ -1,8 +1,7 @@
 import {
-  fetchGenesisAccountV2,
   safeFetchGenesisAccountV2,
 } from '@metaplex-foundation/genesis'
-import { publicKey, lamports, amountToNumber } from '@metaplex-foundation/umi'
+import { publicKey } from '@metaplex-foundation/umi'
 import { Args } from '@oclif/core'
 import ora from 'ora'
 

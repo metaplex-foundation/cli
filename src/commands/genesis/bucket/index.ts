@@ -22,6 +22,8 @@ export default class GenesisBucket extends Command {
     this.log('')
     this.log('Available commands:')
     this.log('  genesis bucket add-launch-pool  Add a launch pool bucket')
+    this.log('  genesis bucket add-presale      Add a presale bucket')
+    this.log('  genesis bucket add-unlocked     Add an unlocked (treasury) bucket')
     this.log('  genesis bucket fetch            Fetch bucket details')
     this.log('')
     this.log('Run "mplx genesis bucket <command> --help" for more information.')

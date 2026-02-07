@@ -2,6 +2,10 @@ import {
   safeFetchGenesisAccountV2,
   findLaunchPoolBucketV2Pda,
   safeFetchLaunchPoolBucketV2,
+  findPresaleBucketV2Pda,
+  safeFetchPresaleBucketV2,
+  findUnlockedBucketV2Pda,
+  safeFetchUnlockedBucketV2,
 } from '@metaplex-foundation/genesis'
 import { publicKey } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
@@ -55,11 +59,12 @@ export default class BucketFetch extends TransactionCommand<typeof BucketFetch> 
   static override description = `Fetch a Genesis bucket by genesis address and bucket index.
 
 This command retrieves and displays information about a bucket in a Genesis account.
-Currently supports Launch Pool buckets (V2).`
+Supports Launch Pool, Presale, and Unlocked bucket types.`
 
   static override examples = [
     '$ mplx genesis bucket fetch GenesisAddress... --bucketIndex 0',
-    '$ mplx genesis bucket fetch GenesisAddress... -b 1',
+    '$ mplx genesis bucket fetch GenesisAddress... -b 1 --type presale',
+    '$ mplx genesis bucket fetch GenesisAddress... -b 2 --type unlocked',
   ]
 
   static override usage = 'genesis bucket fetch [GENESIS] [FLAGS]'
@@ -77,6 +82,12 @@ Currently supports Launch Pool buckets (V2).`
       description: 'Index of the bucket to fetch',
       default: 0,
     }),
+    type: Flags.option({
+      char: 't',
+      description: 'Type of bucket to fetch',
+      default: 'launch-pool',
+      options: ['launch-pool', 'presale', 'unlocked'] as const,
+    })(),
   }
 
   public async run(): Promise<void> {
@@ -95,67 +106,181 @@ Currently supports Launch Pool buckets (V2).`
         this.error(`Genesis account not found at address: ${args.genesis}`)
       }
 
-      // Find and fetch the launch pool bucket
       spinner.text = 'Fetching bucket details...'
-      const bucketPda = findLaunchPoolBucketV2Pda(this.context.umi, {
-        genesisAccount: genesisAddress,
-        bucketIndex: flags.bucketIndex,
-      })
 
-      const bucket = await safeFetchLaunchPoolBucketV2(this.context.umi, bucketPda)
-
-      if (!bucket) {
-        spinner.fail('Bucket not found')
-        this.error(`Launch pool bucket not found at index ${flags.bucketIndex}. It may be a different bucket type or not exist.`)
+      if (flags.type === 'presale') {
+        await this.fetchPresaleBucket(genesisAddress, flags.bucketIndex, spinner)
+      } else if (flags.type === 'unlocked') {
+        await this.fetchUnlockedBucket(genesisAddress, flags.bucketIndex, spinner)
+      } else {
+        await this.fetchLaunchPoolBucket(genesisAddress, flags.bucketIndex, spinner)
       }
-
-      spinner.succeed('Bucket fetched successfully!')
-
-      this.log('')
-      this.logSuccess(`Launch Pool Bucket`)
-      this.log('')
-      this.log('Bucket Details:')
-      this.log(`  Address: ${bucketPda}`)
-      this.log(`  Type: ${KEY_TYPES[bucket.key] || 'Unknown'}`)
-      this.log(`  Genesis Account: ${bucket.bucket.genesis}`)
-      this.log(`  Bucket Index: ${bucket.bucket.bucketIndex}`)
-      this.log('')
-      this.log('Allocation:')
-      this.log(`  Base Token Allocation: ${bucket.bucket.baseTokenAllocation.toString()}`)
-      this.log(`  Base Token Balance: ${bucket.bucket.baseTokenBalance.toString()}`)
-      this.log('')
-      this.log('Deposits:')
-      this.log(`  Deposit Count: ${bucket.depositCount.toString()}`)
-      this.log(`  Total Quote Tokens Deposited: ${bucket.quoteTokenDepositTotal.toString()}`)
-      this.log(`  Weighted Quote Token Total: ${bucket.weightedQuoteTokenTotal.toString()}`)
-      this.log('')
-      this.log('Claims:')
-      this.log(`  Claim Count: ${bucket.claimCount.toString()}`)
-      this.log('')
-      this.log('Schedule:')
-      this.log(`  Deposit Start: ${formatCondition(bucket.depositStartCondition)}`)
-      this.log(`  Deposit End: ${formatCondition(bucket.depositEndCondition)}`)
-      this.log(`  Claim Start: ${formatCondition(bucket.claimStartCondition)}`)
-      this.log(`  Claim End: ${formatCondition(bucket.claimEndCondition)}`)
-      this.log('')
-      this.log('Fees:')
-      this.log(`  Deposit Fee: ${bucket.depositFee.toString()}`)
-      this.log(`  Withdraw Fee: ${bucket.withdrawFee.toString()}`)
-      this.log(`  Claim Fee: ${bucket.claimFee.toString()}`)
-      this.log('')
-      this.log('View on Explorer:')
-      this.log(
-        generateExplorerUrl(
-          this.context.explorer,
-          this.context.chain,
-          publicKey(bucketPda),
-          'account'
-        )
-      )
 
     } catch (error) {
       spinner.fail('Failed to fetch bucket')
       throw error
     }
+  }
+
+  private async fetchLaunchPoolBucket(genesisAddress: ReturnType<typeof publicKey>, bucketIndex: number, spinner: ReturnType<typeof ora>): Promise<void> {
+    const [bucketPda] = findLaunchPoolBucketV2Pda(this.context.umi, {
+      genesisAccount: genesisAddress,
+      bucketIndex,
+    })
+
+    const bucket = await safeFetchLaunchPoolBucketV2(this.context.umi, bucketPda)
+
+    if (!bucket) {
+      spinner.fail('Bucket not found')
+      this.error(`Launch pool bucket not found at index ${bucketIndex}. It may be a different bucket type or not exist.`)
+    }
+
+    spinner.succeed('Bucket fetched successfully!')
+
+    this.log('')
+    this.logSuccess(`Launch Pool Bucket`)
+    this.log('')
+    this.log('Bucket Details:')
+    this.log(`  Address: ${bucketPda}`)
+    this.log(`  Type: ${KEY_TYPES[bucket.key] || 'Unknown'}`)
+    this.log(`  Genesis Account: ${bucket.bucket.genesis}`)
+    this.log(`  Bucket Index: ${bucket.bucket.bucketIndex}`)
+    this.log('')
+    this.log('Allocation:')
+    this.log(`  Base Token Allocation: ${bucket.bucket.baseTokenAllocation.toString()}`)
+    this.log(`  Base Token Balance: ${bucket.bucket.baseTokenBalance.toString()}`)
+    this.log('')
+    this.log('Deposits:')
+    this.log(`  Deposit Count: ${bucket.depositCount.toString()}`)
+    this.log(`  Total Quote Tokens Deposited: ${bucket.quoteTokenDepositTotal.toString()}`)
+    this.log(`  Weighted Quote Token Total: ${bucket.weightedQuoteTokenTotal.toString()}`)
+    this.log('')
+    this.log('Claims:')
+    this.log(`  Claim Count: ${bucket.claimCount.toString()}`)
+    this.log('')
+    this.log('Schedule:')
+    this.log(`  Deposit Start: ${formatCondition(bucket.depositStartCondition)}`)
+    this.log(`  Deposit End: ${formatCondition(bucket.depositEndCondition)}`)
+    this.log(`  Claim Start: ${formatCondition(bucket.claimStartCondition)}`)
+    this.log(`  Claim End: ${formatCondition(bucket.claimEndCondition)}`)
+    this.log('')
+    this.log('Fees:')
+    this.log(`  Deposit Fee: ${bucket.depositFee.toString()}`)
+    this.log(`  Withdraw Fee: ${bucket.withdrawFee.toString()}`)
+    this.log(`  Claim Fee: ${bucket.claimFee.toString()}`)
+    this.log('')
+    this.log('View on Explorer:')
+    this.log(
+      generateExplorerUrl(
+        this.context.explorer,
+        this.context.chain,
+        bucketPda,
+        'account'
+      )
+    )
+  }
+
+  private async fetchPresaleBucket(genesisAddress: ReturnType<typeof publicKey>, bucketIndex: number, spinner: ReturnType<typeof ora>): Promise<void> {
+    const [bucketPda] = findPresaleBucketV2Pda(this.context.umi, {
+      genesisAccount: genesisAddress,
+      bucketIndex,
+    })
+
+    const bucket = await safeFetchPresaleBucketV2(this.context.umi, bucketPda)
+
+    if (!bucket) {
+      spinner.fail('Bucket not found')
+      this.error(`Presale bucket not found at index ${bucketIndex}. It may be a different bucket type or not exist.`)
+    }
+
+    spinner.succeed('Bucket fetched successfully!')
+
+    this.log('')
+    this.logSuccess(`Presale Bucket`)
+    this.log('')
+    this.log('Bucket Details:')
+    this.log(`  Address: ${bucketPda}`)
+    this.log(`  Type: ${KEY_TYPES[bucket.key] || 'Unknown'}`)
+    this.log(`  Genesis Account: ${bucket.bucket.genesis}`)
+    this.log(`  Bucket Index: ${bucket.bucket.bucketIndex}`)
+    this.log('')
+    this.log('Allocation:')
+    this.log(`  Base Token Allocation: ${bucket.bucket.baseTokenAllocation.toString()}`)
+    this.log(`  Base Token Balance: ${bucket.bucket.baseTokenBalance.toString()}`)
+    this.log(`  Quote Token Cap: ${bucket.allocationQuoteTokenCap.toString()}`)
+    this.log('')
+    this.log('Deposits:')
+    this.log(`  Deposit Count: ${bucket.depositCount.toString()}`)
+    this.log(`  Total Quote Tokens Deposited: ${bucket.quoteTokenDepositTotal.toString()}`)
+    this.log('')
+    this.log('Claims:')
+    this.log(`  Claim Count: ${bucket.claimCount.toString()}`)
+    this.log('')
+    this.log('Schedule:')
+    this.log(`  Deposit Start: ${formatCondition(bucket.depositStartCondition)}`)
+    this.log(`  Deposit End: ${formatCondition(bucket.depositEndCondition)}`)
+    this.log(`  Claim Start: ${formatCondition(bucket.claimStartCondition)}`)
+    this.log(`  Claim End: ${formatCondition(bucket.claimEndCondition)}`)
+    this.log('')
+    this.log('Fees:')
+    this.log(`  Deposit Fee: ${bucket.depositFee.toString()}`)
+    this.log(`  Claim Fee: ${bucket.claimFee.toString()}`)
+    this.log('')
+    this.log('View on Explorer:')
+    this.log(
+      generateExplorerUrl(
+        this.context.explorer,
+        this.context.chain,
+        bucketPda,
+        'account'
+      )
+    )
+  }
+
+  private async fetchUnlockedBucket(genesisAddress: ReturnType<typeof publicKey>, bucketIndex: number, spinner: ReturnType<typeof ora>): Promise<void> {
+    const [bucketPda] = findUnlockedBucketV2Pda(this.context.umi, {
+      genesisAccount: genesisAddress,
+      bucketIndex,
+    })
+
+    const bucket = await safeFetchUnlockedBucketV2(this.context.umi, bucketPda)
+
+    if (!bucket) {
+      spinner.fail('Bucket not found')
+      this.error(`Unlocked bucket not found at index ${bucketIndex}. It may be a different bucket type or not exist.`)
+    }
+
+    spinner.succeed('Bucket fetched successfully!')
+
+    this.log('')
+    this.logSuccess(`Unlocked Bucket`)
+    this.log('')
+    this.log('Bucket Details:')
+    this.log(`  Address: ${bucketPda}`)
+    this.log(`  Type: ${KEY_TYPES[bucket.key] || 'Unknown'}`)
+    this.log(`  Genesis Account: ${bucket.bucket.genesis}`)
+    this.log(`  Bucket Index: ${bucket.bucket.bucketIndex}`)
+    this.log('')
+    this.log('Allocation:')
+    this.log(`  Base Token Allocation: ${bucket.bucket.baseTokenAllocation.toString()}`)
+    this.log(`  Base Token Balance: ${bucket.bucket.baseTokenBalance.toString()}`)
+    this.log('')
+    this.log('Recipient:')
+    this.log(`  Recipient: ${bucket.recipient}`)
+    this.log(`  Claimed: ${bucket.claimed ? 'Yes' : 'No'}`)
+    this.log('')
+    this.log('Schedule:')
+    this.log(`  Claim Start: ${formatCondition(bucket.claimStartCondition)}`)
+    this.log(`  Claim End: ${formatCondition(bucket.claimEndCondition)}`)
+    this.log('')
+    this.log('View on Explorer:')
+    this.log(
+      generateExplorerUrl(
+        this.context.explorer,
+        this.context.chain,
+        bucketPda,
+        'account'
+      )
+    )
   }
 }

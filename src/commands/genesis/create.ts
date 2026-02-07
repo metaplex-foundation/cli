@@ -138,7 +138,7 @@ Funding Modes:
       const baseMintPubkey = 'publicKey' in baseMint ? baseMint.publicKey : baseMint
 
       // Get the genesis account PDA
-      const genesisAccountPda = findGenesisAccountV2Pda(this.context.umi, {
+      const [genesisAccountPda] = findGenesisAccountV2Pda(this.context.umi, {
         baseMint: baseMintPubkey,
         genesisIndex: flags.genesisIndex,
       })

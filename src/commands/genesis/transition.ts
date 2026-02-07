@@ -4,7 +4,8 @@ import {
   findLaunchPoolBucketV2Pda,
   safeFetchLaunchPoolBucketV2,
 } from '@metaplex-foundation/genesis'
-import { publicKey } from '@metaplex-foundation/umi'
+import { findAssociatedTokenPda } from '@metaplex-foundation/mpl-toolbox'
+import { publicKey, AccountMeta } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
 
@@ -77,6 +78,29 @@ Requirements:
         this.error(`Launch pool bucket not found at index ${flags.bucketIndex}. Make sure the bucket has been created.`)
       }
 
+      // Collect destination bucket pubkeys from end behaviors
+      spinner.text = 'Resolving end behavior destinations...'
+      const destinationBuckets = new Set<string>()
+      for (const behavior of bucket.endBehaviors) {
+        if ('destinationBucket' in behavior) {
+          destinationBuckets.add(behavior.destinationBucket.toString())
+        }
+      }
+
+      // Build remaining accounts: pairs of (bucket, quote_token_ata)
+      const remainingAccounts: AccountMeta[] = []
+      for (const destBucketStr of destinationBuckets) {
+        const destBucket = publicKey(destBucketStr)
+        const [quoteTokenAta] = findAssociatedTokenPda(this.context.umi, {
+          mint: genesisAccount.quoteMint,
+          owner: destBucket,
+        })
+        remainingAccounts.push(
+          { pubkey: destBucket, isSigner: false, isWritable: true },
+          { pubkey: quoteTokenAta, isSigner: false, isWritable: true },
+        )
+      }
+
       // Build the transition transaction
       spinner.text = 'Executing transition...'
       const transaction = transitionV2(this.context.umi, {
@@ -85,7 +109,7 @@ Requirements:
         baseMint: genesisAccount.baseMint,
         quoteMint: genesisAccount.quoteMint,
         payer: this.context.payer,
-      })
+      }).addRemainingAccounts(remainingAccounts)
 
       const result = await umiSendAndConfirmTransaction(this.context.umi, transaction)
 

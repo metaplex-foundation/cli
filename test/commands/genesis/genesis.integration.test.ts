@@ -6,6 +6,7 @@ describe('genesis integration workflow', () => {
     let genesisAddress: string
     let baseMint: string
     let bucketAddress: string
+    let unlockedBucketAddress: string
 
     // Timestamps for the launch pool
     const now = Math.floor(Date.now() / 1000)
@@ -46,13 +47,30 @@ describe('genesis integration workflow', () => {
         expect(baseMint).to.match(/^[a-zA-Z0-9]+$/)
     })
 
+    it('adds an unlocked bucket as graduation destination', async () => {
+        const result = await addUnlockedBucket(
+            genesisAddress,
+            'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
+            {
+                allocation: '0',
+                claimStart,
+                claimEnd,
+            }
+        )
+
+        unlockedBucketAddress = result.bucketAddress
+
+        expect(unlockedBucketAddress).to.match(/^[a-zA-Z0-9]+$/)
+    })
+
     it('adds a launch pool bucket to the genesis account', async () => {
         const result = await addLaunchPoolBucket(genesisAddress, {
-            allocation: '500000000',
+            allocation: '1000000000',
             depositStart,
             depositEnd,
             claimStart,
             claimEnd,
+            endBehavior: [`${unlockedBucketAddress}:10000`],
         })
 
         bucketAddress = result.bucketAddress
@@ -75,7 +93,7 @@ describe('genesis integration workflow', () => {
         expect(code).to.equal(0)
         expect(cleanStderr).to.contain('Genesis account fetched successfully')
         expect(cleanStdout).to.contain(`Genesis Account: ${genesisAddress}`)
-        expect(cleanStdout).to.contain('Bucket Count: 1')
+        expect(cleanStdout).to.contain('Bucket Count: 2')
         expect(cleanStdout).to.contain('Finalized: No')
     })
 
@@ -95,9 +113,26 @@ describe('genesis integration workflow', () => {
         expect(code).to.equal(0)
         expect(cleanStderr).to.contain('Bucket fetched successfully')
         expect(cleanStdout).to.contain('Launch Pool Bucket')
-        expect(cleanStdout).to.contain('Base Token Allocation: 500000000')
+        expect(cleanStdout).to.contain('Base Token Allocation: 1000000000')
         expect(cleanStdout).to.contain('Deposit Count: 0')
         expect(cleanStdout).to.contain('Claim Count: 0')
+    })
+
+    it('finalizes the genesis launch', async () => {
+        const { stdout, stderr, code } = await runCli([
+            'genesis',
+            'finalize',
+            genesisAddress,
+        ])
+
+        const cleanStderr = stripAnsi(stderr)
+        const cleanStdout = stripAnsi(stdout)
+
+        expect(code).to.equal(0)
+        expect(cleanStderr).to.contain('Genesis launch finalized successfully')
+        expect(cleanStdout).to.contain(`Genesis Account: ${genesisAddress}`)
+        expect(cleanStdout).to.contain('Status: Finalized')
+        expect(cleanStdout).to.contain('Transaction:')
     })
 
     it('deposits into the launch pool', async () => {
@@ -119,23 +154,6 @@ describe('genesis integration workflow', () => {
         expect(cleanStdout).to.contain(`Genesis Account: ${genesisAddress}`)
         expect(cleanStdout).to.contain('Bucket Index: 0')
         expect(cleanStdout).to.contain('Amount: 1000000000')
-        expect(cleanStdout).to.contain('Transaction:')
-    })
-
-    it('finalizes the genesis launch', async () => {
-        const { stdout, stderr, code } = await runCli([
-            'genesis',
-            'finalize',
-            genesisAddress,
-        ])
-
-        const cleanStderr = stripAnsi(stderr)
-        const cleanStdout = stripAnsi(stdout)
-
-        expect(code).to.equal(0)
-        expect(cleanStderr).to.contain('Genesis launch finalized successfully')
-        expect(cleanStdout).to.contain(`Genesis Account: ${genesisAddress}`)
-        expect(cleanStdout).to.contain('Status: Finalized')
         expect(cleanStdout).to.contain('Transaction:')
     })
 
@@ -183,6 +201,8 @@ describe('genesis integration workflow', () => {
                 depositEnd,
                 '--claimStart',
                 claimStart,
+                '--claimEnd',
+                claimEnd,
             ])
             expect.fail('Should have thrown an error for finalized account')
         } catch (error) {

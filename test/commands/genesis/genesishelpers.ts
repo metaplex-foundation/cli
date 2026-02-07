@@ -98,6 +98,7 @@ const addLaunchPoolBucket = async (
         depositEnd?: string
         claimStart?: string
         claimEnd?: string
+        endBehavior?: string[]
     }
 ): Promise<{ bucketAddress: string }> => {
     // Use timestamps in the past so deposits are immediately active
@@ -124,6 +125,12 @@ const addLaunchPoolBucket = async (
         '--claimEnd',
         claimEnd,
     ]
+
+    if (options?.endBehavior) {
+        for (const eb of options.endBehavior) {
+            cliInput.push('--endBehavior', eb)
+        }
+    }
 
     const { stdout, stderr, code } = await runCli(cliInput)
 

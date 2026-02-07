@@ -23,10 +23,10 @@ jobs:
         with:
           node-version: latest
           registry-url: https://registry.npmjs.org
+      - name: Install npm >= 11.5.1
+        run: npm install -g "npm@>=11.5.1"
       - run: pnpm install
       - run: pnpm build
       - run: pnpm prepack
       - run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - run: pnpm postpack

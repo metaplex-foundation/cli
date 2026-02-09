@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import mime from 'mime'
-import {createGenericFile, sol, Umi} from '@metaplex-foundation/umi'
+import {createGenericFile, lamports, Umi} from '@metaplex-foundation/umi'
 import {createIrysUploader} from '@metaplex-foundation/umi-uploader-irys'
 
 export interface UploadFileResult {
@@ -28,11 +28,12 @@ const uploadFiles = async (umi: Umi, filePaths: string[], onProgress?: (progress
   try {
     const balance = await uploader.getBalance()
 
-    if (balance < cost) {
+    const deficit = Number(cost.basisPoints) - Number(balance.basisPoints)
+    if (deficit > 0) {
       console.log(
         `Insufficient balance. Current: ${balance.basisPoints}, Required: ${cost.basisPoints}. Funding account...`,
       )
-      await uploader.fund(sol(Number(cost.basisPoints)), true)
+      await uploader.fund(lamports(deficit), true)
       console.log('Account funded successfully')
     }
   } catch (error) {
@@ -44,13 +45,13 @@ const uploadFiles = async (umi: Umi, filePaths: string[], onProgress?: (progress
   let completedCount = 0
   const uris = await umi.uploader.upload(files, {
     onProgress: () => {
-      onProgress?.(completedCount++)
+      onProgress?.(++completedCount)
     },
   })
 
   return uris.map((uri, index) => ({
     index,
-    fileName: filePaths[index].split('/').pop() || '',
+    fileName: path.basename(filePaths[index]),
     mimeType: files[index].tags?.find((tag) => tag.name === 'content-type')?.value || '',
     uri,
   }))

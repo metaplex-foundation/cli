@@ -52,6 +52,11 @@ module.exports = {
         programId: 'cmtDvXumGCrqC1Age74AVPhSRVXJMd8PJS91L8KbNCK',
         deployPath: './.amman/spl_account_compression.so',
       },
+      {
+        label: 'Genesis',
+        programId: 'GNS1S5J5AspKXgpjz6SvKL66kPaKWAhaGRhCqPRxii2B',
+        deployPath: './.amman/genesis.so',
+      },
     ],
     commitment: 'processed',
   },

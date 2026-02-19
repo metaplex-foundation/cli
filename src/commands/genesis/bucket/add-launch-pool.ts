@@ -197,10 +197,20 @@ Use Unix timestamps for absolute times.`
       const parseClaimSchedule = (json: string) => {
         const parsed = JSON.parse(json)
         return {
-          startTime: BigInt(parsed.startTime),
-          endTime: BigInt(parsed.endTime),
+          startCondition: parsed.startCondition ?? {
+            __kind: 'TimeAbsolute' as const,
+            padding: new Array(7).fill(0),
+            time: BigInt(parsed.startTime ?? 0),
+            triggeredTimestamp: null,
+          },
+          duration: BigInt(parsed.duration ?? parsed.endTime ?? 0),
           period: BigInt(parsed.period),
-          cliffTime: BigInt(parsed.cliffTime),
+          cliffCondition: parsed.cliffCondition ?? {
+            __kind: 'TimeAbsolute' as const,
+            padding: new Array(7).fill(0),
+            time: BigInt(parsed.cliffTime ?? 0),
+            triggeredTimestamp: null,
+          },
           cliffAmountBps: Number(parsed.cliffAmountBps),
           reserved: new Array(7).fill(0),
         }

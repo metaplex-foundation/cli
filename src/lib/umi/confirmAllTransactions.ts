@@ -15,6 +15,11 @@ const confirmAllTransactions = async (
 
   let confirmations: UmiTransactionConfirmationResult[] = []
 
+  // Track blockhashes that are known to be expired so we can skip the
+  // confirmTransaction RPC call for subsequent transactions that share the
+  // same blockhash and go directly to getTransaction instead.
+  const expiredBlockhashes = new Set<string>()
+
   let index = 0
   for (const transaction of transactions) {
     if (!transaction?.signature) {
@@ -32,7 +37,7 @@ const confirmAllTransactions = async (
     const res = await confirmTransaction(umi, {
       ...transaction,
       signature
-    }, sendOptions)
+    }, sendOptions, expiredBlockhashes)
     confirmations.push(res)
     onProgress && onProgress(index, res)
     index++

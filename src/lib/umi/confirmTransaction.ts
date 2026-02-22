@@ -11,6 +11,7 @@ const umiConfirmTransaction = async (
   umi: Umi,
   transaction: UmiTransactionResponse,
   sendOptions?: UmiSendOptions,
+  expiredBlockhashes?: Set<string>,
 ): Promise<UmiTransactionConfirmationResult> => {
 
   if (!transaction.signature) {
@@ -22,6 +23,13 @@ const umiConfirmTransaction = async (
   }
 
   const commitment = sendOptions?.commitment || 'confirmed'
+
+  // If this blockhash is already known to be expired, skip confirmTransaction
+  // and go directly to getTransaction. This avoids redundant RPC calls during
+  // large batch confirmations where many transactions share the same blockhash.
+  if (expiredBlockhashes?.has(transaction.blockhash.blockhash)) {
+    return confirmViaGetTransaction(umi, transaction.signature as Uint8Array, commitment)
+  }
 
   try {
     const confirmation = await umi.rpc.confirmTransaction(transaction.signature as Uint8Array, {
@@ -43,9 +51,11 @@ const umiConfirmTransaction = async (
     }
   } catch {
     // confirmTransaction threw (block height exceeded, timeout, network error, etc.)
+    // Mark this blockhash as expired so subsequent transactions with the same
+    // blockhash can skip the confirmTransaction call entirely.
+    expiredBlockhashes?.add(transaction.blockhash.blockhash)
+
     // Fall back to getTransaction to check if the transaction was actually processed.
-    // This handles the common case during large batch uploads where the blockhash
-    // expires before confirmation can be checked.
     return confirmViaGetTransaction(umi, transaction.signature as Uint8Array, commitment)
   }
 }

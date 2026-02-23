@@ -16,6 +16,7 @@ import { join } from 'node:path'
 import { mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata'
 import { mplToolbox } from '@metaplex-foundation/mpl-toolbox'
 import { mplDistro } from '@metaplex-foundation/mpl-distro'
+import { genesis } from '@metaplex-foundation/genesis'
 import { IrysUploaderOptions } from '@metaplex-foundation/umi-uploader-irys'
 import { createSignerFromFile } from './FileSigner.js'
 import { createSignerFromLedgerPath } from './LedgerSigner.js'
@@ -165,6 +166,7 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
     .use(mplBubblegum())
     .use(mplDistro())
     .use(mplCandyMachine())
+    .use(genesis())
     .use(dasApi())
 
   const storageProvider = await initStorageProvider(config)

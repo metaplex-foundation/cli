@@ -3,9 +3,9 @@ import { Flags } from '@oclif/core'
 import fs from 'node:fs'
 import ora from 'ora'
 
-import { generateSigner, PublicKey, Umi } from '@metaplex-foundation/umi'
+import { generateSigner, Umi } from '@metaplex-foundation/umi'
 import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
-import createAssetFromArgs from '../../../lib/core/create/createAssetFromArgs.js'
+import createAssetFromArgs, { AssetCreationResult } from '../../../lib/core/create/createAssetFromArgs.js'
 import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
 import uploadFile from '../../../lib/uploader/uploadFile.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
@@ -206,10 +206,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
   }
 
   // TODO: Fix any typings
-  private formatAssetResult(result: {
-    asset: PublicKey | undefined;
-    signature: string;
-  }, explorer: ExplorerType): string {
+  private formatAssetResult(result: AssetCreationResult, explorer: ExplorerType): string {
     return `--------------------------------
   Asset: ${result.asset}
   Signature: ${result.signature}
@@ -253,14 +250,14 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       })
 
       spinner.succeed('Asset created successfully')
-      console.log(this.formatAssetResult(result, explorer))
+      this.log(this.formatAssetResult(result, explorer))
     } else if (flags.files) {
       if (!flags.image || !flags.json) {
         this.error('You must provide an image --image and JSON --json file')
       }
 
       const result = await this.handleFileBasedCreation(umi, flags.image, flags.json, flags.collection)
-      console.log(this.formatAssetResult(result, explorer))
+      this.log(this.formatAssetResult(result, explorer))
     } else {
       // Create asset from name and uri flags
       if (!flags.name) {
@@ -286,7 +283,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       })
 
       spinner.succeed('Asset created successfully')
-      console.log(this.formatAssetResult(result, explorer))
+      this.log(this.formatAssetResult(result, explorer))
     }
   }
 }

@@ -3,6 +3,12 @@ import createAssetTx from './createTx.js'
 import { fetchCollection } from '@metaplex-foundation/mpl-core'
 import { PluginData } from '../../types/pluginData.js'
 import umiSendAndConfirmTransaction from '../../umi/sendAndConfirm.js'
+import { txSignatureToString } from '../../util.js'
+
+export interface AssetCreationResult {
+  asset: string
+  signature: string
+}
 
 interface CreateAssetFromArgsOptions {
   assetSigner?: Signer,
@@ -13,7 +19,7 @@ interface CreateAssetFromArgsOptions {
   plugins?: PluginData
 }
 
-const createAssetFromArgs = async (umi: Umi, options: CreateAssetFromArgsOptions) => {
+const createAssetFromArgs = async (umi: Umi, options: CreateAssetFromArgsOptions): Promise<AssetCreationResult> => {
   const collection = options.collection ? await fetchCollection(umi, options.collection) : undefined
 
   const transaction = await createAssetTx(umi, {
@@ -26,9 +32,14 @@ const createAssetFromArgs = async (umi: Umi, options: CreateAssetFromArgsOptions
 
   const res = await umiSendAndConfirmTransaction(umi, transaction.tx)
 
+  const { signature } = res.transaction
+  if (signature === null) {
+    throw new Error('Transaction signature is null — transaction may not have been confirmed')
+  }
+
   return {
-    asset: transaction.asset,
-    signature: res.transaction.signature,
+    asset: transaction.asset ? transaction.asset.toString() : '',
+    signature: typeof signature === 'string' ? signature : txSignatureToString(signature),
   }
 }
 

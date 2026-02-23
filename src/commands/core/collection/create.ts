@@ -144,23 +144,23 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
     const spinner = ora('Creating Collection...').start()
     const collection = generateSigner(umi)
 
-    await createCollection(umi, {
+    const tx = await createCollection(umi, {
       collection,
       name: collectionName,
       uri: metadataUri,
       plugins: pluginData ? mapPluginDataToArray(pluginData) : undefined,
     })
       .sendAndConfirm(umi)
-      .then(async (tx) => {
-        const txStr = txSignatureToString(tx.signature)
-        spinner.succeed('Collection created successfully')
-        const result = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
-        console.log(result)
-      })
       .catch((error) => {
         spinner.fail(`Error creating Collection: ${error}`)
         throw error
       })
+
+    const txStr = txSignatureToString(tx.signature)
+    spinner.succeed('Collection created successfully')
+    const display = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
+    this.log(display)
+    return this.buildJsonResult(collection.publicKey, txStr, explorer)
   }
 
   private async createAndUploadMetadata(umi: Umi, wizard: CreateAssetPromptResult) {
@@ -209,18 +209,27 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
 --------------------------------`
   }
 
-  public async run(): Promise<void> {
+  private buildJsonResult(collectionKey: PublicKey, signature: string, explorer: ExplorerType) {
+    return {
+      collection: String(collectionKey),
+      signature,
+      explorer: generateExplorerUrl(explorer, this.context.chain, signature, 'transaction'),
+      coreExplorer: `https://core.metaplex.com/explorer/${collectionKey}`,
+    }
+  }
+
+  public async run(): Promise<unknown> {
     const { flags } = await this.parse(CoreCollectionCreate)
     const { umi, explorer } = this.context
 
     if (flags.wizard) {
-      console.log(
+      this.log(
         `--------------------------------
-    
+
     Welcome to the Collection Creator Wizard!
 
-    This wizard will guide you through the process of creating a new collection.                
-                
+    This wizard will guide you through the process of creating a new collection.
+
 --------------------------------`
       )
 
@@ -230,29 +239,29 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       const spinner = ora('Creating Collection...').start()
       const collection = generateSigner(umi)
 
-      await createCollection(umi, {
+      const tx = await createCollection(umi, {
         collection,
         name: collectionName,
         uri: metadataUri,
         plugins: wizardData.plugins ? mapPluginDataToArray(wizardData.plugins) : undefined,
       })
         .sendAndConfirm(umi)
-        .then(async (tx) => {
-          const txStr = txSignatureToString(tx.signature)
-          spinner.succeed('Collection created successfully')
-          const result = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
-          console.log(result)
-        })
         .catch((error) => {
           spinner.fail(`Error creating Collection: ${error}`)
           throw error
         })
+
+      const txStr = txSignatureToString(tx.signature)
+      spinner.succeed('Collection created successfully')
+      const display = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
+      this.log(display)
+      return this.buildJsonResult(collection.publicKey, txStr, explorer)
     } else if (flags.files) {
       if (!flags.image || !flags.json) {
         this.error('You must provide an image --image and JSON --json file')
       }
 
-      await this.handleFileBasedCreation(umi, flags.image, flags.json, explorer)
+      return await this.handleFileBasedCreation(umi, flags.image, flags.json, explorer)
     } else {
       // Create collection from name and uri flags
       if (!flags.name) {
@@ -266,23 +275,23 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       const spinner = ora('Creating Collection...').start()
       const collection = generateSigner(umi)
 
-      await createCollection(umi, {
+      const tx = await createCollection(umi, {
         collection,
         name: flags.name,
         uri: flags.uri,
         plugins: pluginData ? mapPluginDataToArray(pluginData) : undefined,
       })
         .sendAndConfirm(umi)
-        .then(async (tx) => {
-          const txStr = txSignatureToString(tx.signature)
-          spinner.succeed('Collection created successfully')
-          const result = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
-          console.log(result)
-        })
         .catch((error) => {
           spinner.fail(`Error creating Collection: ${error}`)
           throw error
         })
+
+      const txStr = txSignatureToString(tx.signature)
+      spinner.succeed('Collection created successfully')
+      const display = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
+      this.log(display)
+      return this.buildJsonResult(collection.publicKey, txStr, explorer)
     }
   }
 }

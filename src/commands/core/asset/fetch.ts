@@ -1,4 +1,5 @@
 import { Args, Flags } from '@oclif/core'
+import util from 'node:util'
 
 // import batchFetchCoreAssets from '../../../lib/core/fetch/batchFetch.js'
 import { BaseCommand } from '../../../BaseCommand.js'
@@ -62,13 +63,13 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
     asset: Args.string({ name: 'asset', description: 'The asset ID to fetch' }),
   }
 
-  public async run() {
+  public async run(): Promise<unknown> {
     const { args, flags } = await this.parse(AssetFetch)
     const { umi } = this.context
 
     if (args.asset) {
       // fetch a single asset
-      await fetchCoreAsset(umi, args.asset, {
+      const result = await fetchCoreAsset(umi, args.asset, {
         download: flags.download,
         outputPath: flags.download ? flags.output : undefined,
         // Pass the flags directly to let fetch.ts handle the downloadAll logic
@@ -76,6 +77,17 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
         metadata: flags.download && flags.metadata,
         asset: flags.download && flags.asset,
       })
+
+      if (result.download) {
+        this.log(`--------------------------------`)
+        this.log(`Asset: ${result.asset}`)
+        this.log(`Files saved to: ${result.outputPath}`)
+        this.log(`--------------------------------`)
+      } else {
+        this.log(util.inspect(result.assetData, false, null, true))
+      }
+
+      return result.assetData
     }
     // Commented out batch fetch functionality for now
     /*

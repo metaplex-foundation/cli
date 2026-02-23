@@ -144,8 +144,9 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     })
 
     assetSpinner.succeed('Asset created successfully')
-    this.log(this.formatAssetResult(result, this.context.explorer))
-    return result
+    const formatted = this.formatAssetResult(result, this.context.explorer)
+    this.log(formatted.display)
+    return formatted.json
   }
 
   // TODO: Fix any typings
@@ -209,14 +210,24 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
   }
 
   // TODO: Fix any typings
-  private formatAssetResult(result: any, explorer: ExplorerType): string {
+  private formatAssetResult(result: any, explorer: ExplorerType): { display: string; json: Record<string, string> } {
     const signature = txSignatureToString(result.signature as Uint8Array)
-    return `--------------------------------
+    const explorerUrl = generateExplorerUrl(explorer, this.context.chain, signature, 'transaction')
+    const coreExplorerUrl = `https://core.metaplex.com/explorer/${result.asset}`
+    return {
+      display: `--------------------------------
   Asset: ${result.asset}
   Signature: ${signature}
-  Explorer: ${generateExplorerUrl(explorer, this.context.chain, signature, 'transaction')}
-  Core Explorer: https://core.metaplex.com/explorer/${result.asset}
---------------------------------`
+  Explorer: ${explorerUrl}
+  Core Explorer: ${coreExplorerUrl}
+--------------------------------`,
+      json: {
+        asset: String(result.asset),
+        signature,
+        explorer: explorerUrl,
+        coreExplorer: coreExplorerUrl,
+      },
+    }
   }
 
   public async run(): Promise<unknown> {
@@ -254,16 +265,15 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       })
 
       spinner.succeed('Asset created successfully')
-      this.log(this.formatAssetResult(result, explorer))
-      return result
+      const formatted = this.formatAssetResult(result, explorer)
+      this.log(formatted.display)
+      return formatted.json
     } else if (flags.files) {
       if (!flags.image || !flags.json) {
         this.error('You must provide an image --image and JSON --json file')
       }
 
-      const result = await this.handleFileBasedCreation(umi, flags.image, flags.json, flags.collection)
-      this.log(this.formatAssetResult(result, explorer))
-      return result
+      return await this.handleFileBasedCreation(umi, flags.image, flags.json, flags.collection)
     } else {
       // Create asset from name and uri flags
       if (!flags.name) {
@@ -289,8 +299,9 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       })
 
       spinner.succeed('Asset created successfully')
-      this.log(this.formatAssetResult(result, explorer))
-      return result
+      const formatted = this.formatAssetResult(result, explorer)
+      this.log(formatted.display)
+      return formatted.json
     }
   }
 }

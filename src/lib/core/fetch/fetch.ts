@@ -78,23 +78,32 @@ const fetchImage = async (url: string): Promise<DownloadedImage> => {
   };
 };
 
-const fetchCoreAsset = async (umi: Umi, asset: string, options: FetchCoreAssetDownloadOptions) => {
+interface FetchCoreAssetResult {
+  asset: string;
+  download?: boolean;
+  outputPath?: string;
+  assetData: any;
+}
+
+const fetchCoreAsset = async (umi: Umi, asset: string, options: FetchCoreAssetDownloadOptions): Promise<FetchCoreAssetResult> => {
   try {
     // Fetch the Asset
     const fetchedAsset = await fetchAsset(umi, publicKey(asset));
-    
-    // If not in download mode, just display the asset info
+
+    // If not in download mode, return the asset data for display
     if (!options.download) {
-      console.log(util.inspect(fetchedAsset, false, null, true));
-      return;
+      return {
+        asset,
+        assetData: JSON.parse(jsonStringify(fetchedAsset)),
+      };
     }
 
     const fetchSpinner = ora('Downloading Asset data...').start();
-    
+
     try {
       // Use current directory if no output path specified
       const baseDirectory = options.outputPath || process.cwd();
-      
+
       // Ensure the output directory exists
       ensureDirectoryExists(baseDirectory);
 
@@ -117,7 +126,7 @@ const fetchCoreAsset = async (umi: Umi, asset: string, options: FetchCoreAssetDo
       // Always fetch metadata if we need the image or metadata
       if (shouldDownloadImage || shouldDownloadMetadata || downloadAll) {
         const jsonFile = await fetchJson(fetchedAsset.uri);
-        
+
         // Save metadata if requested or if downloading all
         if (shouldDownloadMetadata || downloadAll) {
           fs.writeFileSync(
@@ -140,13 +149,12 @@ const fetchCoreAsset = async (umi: Umi, asset: string, options: FetchCoreAssetDo
 
       fetchSpinner.succeed('Asset downloaded successfully');
 
-      // Display results
-      console.log(`--------------------------------`);
-      console.log(`Asset: ${asset}`);
-      console.log(`Files saved to: ${baseDirectory}`);
-      console.log(`--------------------------------`);
-
-      return baseDirectory;
+      return {
+        asset,
+        download: true,
+        outputPath: baseDirectory,
+        assetData: JSON.parse(jsonStringify(fetchedAsset)),
+      };
     } catch (error) {
       fetchSpinner.fail('Failed to download asset');
       throw error;

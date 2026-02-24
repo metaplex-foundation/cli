@@ -37,173 +37,33 @@ describe('genesis launch commands', () => {
             }
         })
 
-        it('fails when required flags are missing (no --name)', async () => {
-            const cliInput = [
-                'genesis', 'launch', 'create',
-                '--symbol', 'MTK',
-                '--image', 'https://gateway.irys.xyz/abc123',
-                '--tokenAllocation', '500000000',
-                '--depositStartTime', futureIso(7 * 86400),
-                '--raiseGoal', '200',
-                '--raydiumLiquidityBps', '5000',
-                '--fundsRecipient', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
-            ]
+        const allFlags: Record<string, string[]> = {
+            name: ['--name', 'My Token'],
+            symbol: ['--symbol', 'MTK'],
+            image: ['--image', 'https://gateway.irys.xyz/abc123'],
+            tokenAllocation: ['--tokenAllocation', '500000000'],
+            depositStartTime: ['--depositStartTime', futureIso(7 * 86400)],
+            raiseGoal: ['--raiseGoal', '200'],
+            raydiumLiquidityBps: ['--raydiumLiquidityBps', '5000'],
+            fundsRecipient: ['--fundsRecipient', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'],
+        }
 
-            try {
-                await runCli(cliInput)
-                expect.fail('Should have thrown an error for missing required flag')
-            } catch (error) {
-                expect((error as Error).message).to.contain('Missing required flag')
-                expect((error as Error).message).to.contain('name')
-            }
-        })
+        for (const omitted of Object.keys(allFlags)) {
+            it(`fails when required flags are missing (no --${omitted})`, async () => {
+                const cliInput = ['genesis', 'launch', 'create']
+                for (const [key, pair] of Object.entries(allFlags)) {
+                    if (key !== omitted) cliInput.push(...pair)
+                }
 
-        it('fails when required flags are missing (no --symbol)', async () => {
-            const cliInput = [
-                'genesis', 'launch', 'create',
-                '--name', 'My Token',
-                '--image', 'https://gateway.irys.xyz/abc123',
-                '--tokenAllocation', '500000000',
-                '--depositStartTime', futureIso(7 * 86400),
-                '--raiseGoal', '200',
-                '--raydiumLiquidityBps', '5000',
-                '--fundsRecipient', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
-            ]
-
-            try {
-                await runCli(cliInput)
-                expect.fail('Should have thrown an error for missing required flag')
-            } catch (error) {
-                expect((error as Error).message).to.contain('Missing required flag')
-                expect((error as Error).message).to.contain('symbol')
-            }
-        })
-
-        it('fails when required flags are missing (no --image)', async () => {
-            const cliInput = [
-                'genesis', 'launch', 'create',
-                '--name', 'My Token',
-                '--symbol', 'MTK',
-                '--tokenAllocation', '500000000',
-                '--depositStartTime', futureIso(7 * 86400),
-                '--raiseGoal', '200',
-                '--raydiumLiquidityBps', '5000',
-                '--fundsRecipient', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
-            ]
-
-            try {
-                await runCli(cliInput)
-                expect.fail('Should have thrown an error for missing required flag')
-            } catch (error) {
-                expect((error as Error).message).to.contain('Missing required flag')
-                expect((error as Error).message).to.contain('image')
-            }
-        })
-
-        it('fails when required flags are missing (no --tokenAllocation)', async () => {
-            const cliInput = [
-                'genesis', 'launch', 'create',
-                '--name', 'My Token',
-                '--symbol', 'MTK',
-                '--image', 'https://gateway.irys.xyz/abc123',
-                '--depositStartTime', futureIso(7 * 86400),
-                '--raiseGoal', '200',
-                '--raydiumLiquidityBps', '5000',
-                '--fundsRecipient', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
-            ]
-
-            try {
-                await runCli(cliInput)
-                expect.fail('Should have thrown an error for missing required flag')
-            } catch (error) {
-                expect((error as Error).message).to.contain('Missing required flag')
-                expect((error as Error).message).to.contain('tokenAllocation')
-            }
-        })
-
-        it('fails when required flags are missing (no --depositStartTime)', async () => {
-            const cliInput = [
-                'genesis', 'launch', 'create',
-                '--name', 'My Token',
-                '--symbol', 'MTK',
-                '--image', 'https://gateway.irys.xyz/abc123',
-                '--tokenAllocation', '500000000',
-                '--raiseGoal', '200',
-                '--raydiumLiquidityBps', '5000',
-                '--fundsRecipient', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
-            ]
-
-            try {
-                await runCli(cliInput)
-                expect.fail('Should have thrown an error for missing required flag')
-            } catch (error) {
-                expect((error as Error).message).to.contain('Missing required flag')
-                expect((error as Error).message).to.contain('depositStartTime')
-            }
-        })
-
-        it('fails when required flags are missing (no --raiseGoal)', async () => {
-            const cliInput = [
-                'genesis', 'launch', 'create',
-                '--name', 'My Token',
-                '--symbol', 'MTK',
-                '--image', 'https://gateway.irys.xyz/abc123',
-                '--tokenAllocation', '500000000',
-                '--depositStartTime', futureIso(7 * 86400),
-                '--raydiumLiquidityBps', '5000',
-                '--fundsRecipient', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
-            ]
-
-            try {
-                await runCli(cliInput)
-                expect.fail('Should have thrown an error for missing required flag')
-            } catch (error) {
-                expect((error as Error).message).to.contain('Missing required flag')
-                expect((error as Error).message).to.contain('raiseGoal')
-            }
-        })
-
-        it('fails when required flags are missing (no --raydiumLiquidityBps)', async () => {
-            const cliInput = [
-                'genesis', 'launch', 'create',
-                '--name', 'My Token',
-                '--symbol', 'MTK',
-                '--image', 'https://gateway.irys.xyz/abc123',
-                '--tokenAllocation', '500000000',
-                '--depositStartTime', futureIso(7 * 86400),
-                '--raiseGoal', '200',
-                '--fundsRecipient', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
-            ]
-
-            try {
-                await runCli(cliInput)
-                expect.fail('Should have thrown an error for missing required flag')
-            } catch (error) {
-                expect((error as Error).message).to.contain('Missing required flag')
-                expect((error as Error).message).to.contain('raydiumLiquidityBps')
-            }
-        })
-
-        it('fails when required flags are missing (no --fundsRecipient)', async () => {
-            const cliInput = [
-                'genesis', 'launch', 'create',
-                '--name', 'My Token',
-                '--symbol', 'MTK',
-                '--image', 'https://gateway.irys.xyz/abc123',
-                '--tokenAllocation', '500000000',
-                '--depositStartTime', futureIso(7 * 86400),
-                '--raiseGoal', '200',
-                '--raydiumLiquidityBps', '5000',
-            ]
-
-            try {
-                await runCli(cliInput)
-                expect.fail('Should have thrown an error for missing required flag')
-            } catch (error) {
-                expect((error as Error).message).to.contain('Missing required flag')
-                expect((error as Error).message).to.contain('fundsRecipient')
-            }
-        })
+                try {
+                    await runCli(cliInput)
+                    expect.fail('Should have thrown an error for missing required flag')
+                } catch (error) {
+                    expect((error as Error).message).to.contain('Missing required flag')
+                    expect((error as Error).message).to.contain(omitted)
+                }
+            })
+        }
 
         it('fails with non-existent locked allocations file', async () => {
             const cliInput = [

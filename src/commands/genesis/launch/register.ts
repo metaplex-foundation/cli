@@ -10,7 +10,7 @@ import ora from 'ora'
 
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { readJsonSync } from '../../../lib/file.js'
-import { RpcChain } from '../../../lib/util.js'
+import { detectSvmNetwork } from '../../../lib/util.js'
 
 export default class GenesisLaunchRegister extends TransactionCommand<typeof GenesisLaunchRegister> {
   static override description = `Register an existing genesis account with the Metaplex platform.
@@ -60,14 +60,7 @@ provided as a JSON file via --launchConfig.`
 
     try {
       // Detect network from chain if not specified
-      let network: SvmNetwork
-      if (flags.network) {
-        network = flags.network
-      } else {
-        network = this.context.chain === RpcChain.Mainnet
-          ? 'solana-mainnet'
-          : 'solana-devnet'
-      }
+      const network: SvmNetwork = flags.network ?? detectSvmNetwork(this.context.chain)
 
       // Read launch config from JSON file
       const filePath = flags.launchConfig

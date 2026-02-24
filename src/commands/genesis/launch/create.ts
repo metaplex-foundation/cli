@@ -12,7 +12,7 @@ import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../../explorers.js'
 import { readJsonSync } from '../../../lib/file.js'
-import { RpcChain, txSignatureToString } from '../../../lib/util.js'
+import { detectSvmNetwork, txSignatureToString } from '../../../lib/util.js'
 
 export default class GenesisLaunchCreate extends TransactionCommand<typeof GenesisLaunchCreate> {
   static override description = `Create a new token launch via the Genesis API.
@@ -118,14 +118,7 @@ Total token supply is fixed at 1,000,000,000. The deposit period is 48 hours.`
 
     try {
       // Detect network from chain if not specified
-      let network: SvmNetwork
-      if (flags.network) {
-        network = flags.network
-      } else {
-        network = this.context.chain === RpcChain.Mainnet
-          ? 'solana-mainnet'
-          : 'solana-devnet'
-      }
+      const network: SvmNetwork = flags.network ?? detectSvmNetwork(this.context.chain)
 
       // Parse locked allocations from JSON file if provided
       let lockedAllocations: LockedAllocation[] | undefined
@@ -161,6 +154,17 @@ Total token supply is fixed at 1,000,000,000. The deposit period is 48 hours.`
           }
           if (!validTimeUnits.has(entry.unlockSchedule)) {
             throw new Error(`Locked allocation [${i}]: "unlockSchedule" must be a valid time unit`)
+          }
+          if (entry.cliff !== undefined) {
+            if (typeof entry.cliff !== 'object' || entry.cliff === null) {
+              throw new Error(`Locked allocation [${i}]: "cliff" must be an object`)
+            }
+            if (!entry.cliff.duration || typeof entry.cliff.duration.value !== 'number' || !validTimeUnits.has(entry.cliff.duration.unit)) {
+              throw new Error(`Locked allocation [${i}]: "cliff.duration" must have a numeric "value" and a valid "unit"`)
+            }
+            if (entry.cliff.unlockAmount !== undefined && (typeof entry.cliff.unlockAmount !== 'number' || entry.cliff.unlockAmount < 0)) {
+              throw new Error(`Locked allocation [${i}]: "cliff.unlockAmount" must be a non-negative number`)
+            }
           }
         }
 

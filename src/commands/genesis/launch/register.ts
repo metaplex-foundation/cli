@@ -5,7 +5,6 @@ import {
   registerLaunch,
 } from '@metaplex-foundation/genesis'
 import { Args, Flags } from '@oclif/core'
-import { existsSync } from 'node:fs'
 import ora from 'ora'
 
 import { TransactionCommand } from '../../../TransactionCommand.js'
@@ -64,11 +63,15 @@ provided as a JSON file via --launchConfig.`
 
       // Read launch config from JSON file
       const filePath = flags.launchConfig
-      if (!existsSync(filePath)) {
-        throw new Error(`Launch config file not found: ${filePath}`)
+      let launchConfig: CreateLaunchInput
+      try {
+        launchConfig = readJsonSync(filePath) as CreateLaunchInput
+      } catch (err) {
+        if (err && typeof err === 'object' && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
+          throw new Error(`Launch config file not found: ${filePath}`)
+        }
+        throw err
       }
-
-      const launchConfig = readJsonSync(filePath) as CreateLaunchInput
 
       // Validate required top-level fields
       if (!launchConfig.token || typeof launchConfig.token !== 'object') {

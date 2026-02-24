@@ -6,7 +6,6 @@ import {
   createAndRegisterLaunch,
 } from '@metaplex-foundation/genesis'
 import { Flags } from '@oclif/core'
-import { existsSync } from 'node:fs'
 import ora from 'ora'
 
 import { TransactionCommand } from '../../../TransactionCommand.js'
@@ -128,11 +127,15 @@ Total token supply is fixed at 1,000,000,000. The deposit period is 48 hours.`
       let lockedAllocations: LockedAllocation[] | undefined
       if (flags.lockedAllocations) {
         const filePath = flags.lockedAllocations
-        if (!existsSync(filePath)) {
-          throw new Error(`Locked allocations file not found: ${filePath}`)
+        let parsed: unknown
+        try {
+          parsed = readJsonSync(filePath)
+        } catch (err) {
+          if (err && typeof err === 'object' && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
+            throw new Error(`Locked allocations file not found: ${filePath}`)
+          }
+          throw err
         }
-
-        const parsed = readJsonSync(filePath)
 
         if (!Array.isArray(parsed)) {
           throw new Error('Locked allocations file must contain a JSON array')

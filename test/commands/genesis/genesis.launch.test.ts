@@ -1,5 +1,6 @@
 import { expect } from 'chai'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { runCli } from '../../runCli'
 import { stripAnsi, createGenesisAccount, addLaunchPoolBucket } from './genesishelpers'
@@ -76,7 +77,7 @@ describe('genesis launch commands', () => {
                 '--raiseGoal', '200',
                 '--raydiumLiquidityBps', '5000',
                 '--fundsRecipient', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
-                '--lockedAllocations', '/tmp/nonexistent-file-12345.json',
+                '--lockedAllocations', path.join(os.tmpdir(), 'nonexistent-file-12345.json'),
             ]
 
             try {
@@ -88,7 +89,7 @@ describe('genesis launch commands', () => {
         })
 
         it('fails when locked allocations file is not a JSON array', async () => {
-            const tmpFile = path.join('/tmp', 'test-bad-allocations.json')
+            const tmpFile = path.join(os.tmpdir(), `test-bad-allocations-${process.pid}.json`)
             fs.writeFileSync(tmpFile, JSON.stringify({ notAnArray: true }))
 
             try {
@@ -115,7 +116,7 @@ describe('genesis launch commands', () => {
         })
 
         it('parses locked allocations file and reaches API call', async () => {
-            const tmpFile = path.join('/tmp', 'test-locked-allocations.json')
+            const tmpFile = path.join(os.tmpdir(), `test-locked-allocations-${process.pid}.json`)
             fs.writeFileSync(tmpFile, JSON.stringify([
                 {
                     name: 'Team',
@@ -213,7 +214,7 @@ describe('genesis launch commands', () => {
 
         it('fails when genesis account argument is missing', async () => {
             // Create a temp config file for the test
-            const tmpConfig = path.join('/tmp', 'test-launch-config.json')
+            const tmpConfig = path.join(os.tmpdir(), `test-launch-config-${process.pid}.json`)
             fs.writeFileSync(tmpConfig, JSON.stringify({
                 wallet: 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
                 token: { name: 'Test', symbol: 'TST', image: 'https://gateway.irys.xyz/abc' },
@@ -267,7 +268,7 @@ describe('genesis launch commands', () => {
             const cliInput = [
                 'genesis', 'launch', 'register',
                 '11111111111111111111111111111111',
-                '--launchConfig', '/tmp/nonexistent-config-12345.json',
+                '--launchConfig', path.join(os.tmpdir(), 'nonexistent-config-12345.json'),
             ]
 
             try {
@@ -279,7 +280,7 @@ describe('genesis launch commands', () => {
         })
 
         it('calls the Genesis API with valid input (expects API error since API is not local)', async () => {
-            const tmpConfig = path.join('/tmp', 'test-launch-config-register.json')
+            const tmpConfig = path.join(os.tmpdir(), `test-launch-config-register-${process.pid}.json`)
             fs.writeFileSync(tmpConfig, JSON.stringify({
                 wallet: 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
                 token: { name: 'Test', symbol: 'TST', image: 'https://gateway.irys.xyz/abc' },

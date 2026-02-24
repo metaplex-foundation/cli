@@ -10,18 +10,5 @@ export default class GenesisLaunch extends Command {
 
   public async run(): Promise<void> {
     await this.parse(GenesisLaunch)
-
-    this.log('Genesis Launch Commands - Create and register token launches via the Genesis API')
-    this.log('')
-    this.log('The Genesis API provides an all-in-one flow for creating token launches:')
-    this.log('  1. Builds the on-chain transactions (genesis account, buckets, etc.)')
-    this.log('  2. Signs and sends them to the network')
-    this.log('  3. Registers the launch on the Metaplex platform')
-    this.log('')
-    this.log('Available commands:')
-    this.log('  genesis launch create    Create a new token launch via the Genesis API')
-    this.log('  genesis launch register  Register an existing genesis account')
-    this.log('')
-    this.log('Run "mplx genesis launch <command> --help" for more information.')
   }
 }

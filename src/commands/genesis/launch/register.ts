@@ -5,10 +5,11 @@ import {
   registerLaunch,
 } from '@metaplex-foundation/genesis'
 import { Args, Flags } from '@oclif/core'
-import fs from 'node:fs'
+import { existsSync } from 'node:fs'
 import ora from 'ora'
 
 import { TransactionCommand } from '../../../TransactionCommand.js'
+import { readJsonSync } from '../../../lib/file.js'
 import { RpcChain } from '../../../lib/util.js'
 
 export default class GenesisLaunchRegister extends TransactionCommand<typeof GenesisLaunchRegister> {
@@ -70,12 +71,11 @@ provided as a JSON file via --launchConfig.`
 
       // Read launch config from JSON file
       const filePath = flags.launchConfig
-      if (!fs.existsSync(filePath)) {
+      if (!existsSync(filePath)) {
         throw new Error(`Launch config file not found: ${filePath}`)
       }
 
-      const fileContent = fs.readFileSync(filePath, 'utf-8')
-      const launchConfig = JSON.parse(fileContent) as CreateLaunchInput
+      const launchConfig = readJsonSync(filePath) as CreateLaunchInput
 
       // Override network if specified via flag
       launchConfig.network = network

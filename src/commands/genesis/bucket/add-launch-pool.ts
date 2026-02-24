@@ -262,15 +262,17 @@ Use Unix timestamps for absolute times.`
         endBehaviors: [],
       })
 
+      // Compute bucket PDA once for reuse
+      const [bucketPda] = findLaunchPoolBucketV2Pda(this.context.umi, {
+        genesisAccount: genesisAddress,
+        bucketIndex,
+      })
+
       const result = await umiSendAndConfirmTransaction(this.context.umi, transaction)
 
       // Set end behaviors in a separate transaction if provided
+      let behaviorsSignature: string | undefined
       if (endBehaviors.length > 0) {
-        const [bucketPda] = findLaunchPoolBucketV2Pda(this.context.umi, {
-          genesisAccount: genesisAddress,
-          bucketIndex,
-        })
-
         spinner.text = 'Setting end behaviors...'
         const setBehaviorsTx = setLaunchPoolBucketV2Behaviors(this.context.umi, {
           genesisAccount: genesisAddress,
@@ -281,14 +283,9 @@ Use Unix timestamps for absolute times.`
           endBehaviors,
         })
 
-        await umiSendAndConfirmTransaction(this.context.umi, setBehaviorsTx)
+        const behaviorsResult = await umiSendAndConfirmTransaction(this.context.umi, setBehaviorsTx)
+        behaviorsSignature = txSignatureToString(behaviorsResult.transaction.signature as Uint8Array)
       }
-
-      // Get the bucket PDA
-      const [bucketPda] = findLaunchPoolBucketV2Pda(this.context.umi, {
-        genesisAccount: genesisAddress,
-        bucketIndex,
-      })
 
       spinner.succeed('Launch pool bucket added successfully!')
 
@@ -317,6 +314,18 @@ Use Unix timestamps for absolute times.`
           'transaction'
         )
       )
+      if (behaviorsSignature) {
+        this.log('')
+        this.log(`Behaviors Transaction: ${behaviorsSignature}`)
+        this.log(
+          generateExplorerUrl(
+            this.context.explorer,
+            this.context.chain,
+            behaviorsSignature,
+            'transaction'
+          )
+        )
+      }
 
     } catch (error) {
       spinner.fail('Failed to add launch pool bucket')

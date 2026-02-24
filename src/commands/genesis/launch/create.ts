@@ -6,11 +6,12 @@ import {
   createAndRegisterLaunch,
 } from '@metaplex-foundation/genesis'
 import { Flags } from '@oclif/core'
-import fs from 'node:fs'
+import { existsSync } from 'node:fs'
 import ora from 'ora'
 
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../../explorers.js'
+import { readJsonSync } from '../../../lib/file.js'
 import { RpcChain, txSignatureToString } from '../../../lib/util.js'
 
 export default class GenesisLaunchCreate extends TransactionCommand<typeof GenesisLaunchCreate> {
@@ -130,16 +131,40 @@ Total token supply is fixed at 1,000,000,000. The deposit period is 48 hours.`
       let lockedAllocations: LockedAllocation[] | undefined
       if (flags.lockedAllocations) {
         const filePath = flags.lockedAllocations
-        if (!fs.existsSync(filePath)) {
+        if (!existsSync(filePath)) {
           throw new Error(`Locked allocations file not found: ${filePath}`)
         }
 
-        const fileContent = fs.readFileSync(filePath, 'utf-8')
-        lockedAllocations = JSON.parse(fileContent) as LockedAllocation[]
+        const parsed = readJsonSync(filePath)
 
-        if (!Array.isArray(lockedAllocations)) {
+        if (!Array.isArray(parsed)) {
           throw new Error('Locked allocations file must contain a JSON array')
         }
+
+        const validTimeUnits = new Set(['SECOND', 'MINUTE', 'HOUR', 'DAY', 'WEEK', 'TWO_WEEKS', 'MONTH', 'QUARTER', 'YEAR'])
+        for (let i = 0; i < parsed.length; i++) {
+          const entry = parsed[i]
+          if (typeof entry.name !== 'string' || entry.name.length === 0) {
+            throw new Error(`Locked allocation [${i}]: "name" must be a non-empty string`)
+          }
+          if (typeof entry.recipient !== 'string' || entry.recipient.length === 0) {
+            throw new Error(`Locked allocation [${i}]: "recipient" must be a non-empty string`)
+          }
+          if (typeof entry.tokenAmount !== 'number' || entry.tokenAmount <= 0) {
+            throw new Error(`Locked allocation [${i}]: "tokenAmount" must be a positive number`)
+          }
+          if (!entry.vestingStartTime || (typeof entry.vestingStartTime !== 'string' && !(entry.vestingStartTime instanceof Date))) {
+            throw new Error(`Locked allocation [${i}]: "vestingStartTime" must be a date string or Date`)
+          }
+          if (!entry.vestingDuration || typeof entry.vestingDuration.value !== 'number' || !validTimeUnits.has(entry.vestingDuration.unit)) {
+            throw new Error(`Locked allocation [${i}]: "vestingDuration" must have a numeric "value" and a valid "unit"`)
+          }
+          if (!validTimeUnits.has(entry.unlockSchedule)) {
+            throw new Error(`Locked allocation [${i}]: "unlockSchedule" must be a valid time unit`)
+          }
+        }
+
+        lockedAllocations = parsed as LockedAllocation[]
       }
 
       // Build external links
@@ -181,11 +206,16 @@ Total token supply is fixed at 1,000,000,000. The deposit period is 48 hours.`
 
       spinner.text = 'Building transactions via Genesis API...'
 
+      const allowedCommitments = ['processed', 'confirmed', 'finalized'] as const
+      const commitment = allowedCommitments.includes(this.context.commitment as typeof allowedCommitments[number])
+        ? (this.context.commitment as typeof allowedCommitments[number])
+        : 'confirmed'
+
       const result = await createAndRegisterLaunch(
         this.context.umi,
         apiConfig,
         input,
-        { commitment: (this.context.commitment as 'processed' | 'confirmed' | 'finalized') ?? 'confirmed' },
+        { commitment },
       )
 
       spinner.succeed('Token launch created and registered successfully!')

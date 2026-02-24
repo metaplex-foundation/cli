@@ -114,6 +114,10 @@ Total token supply is fixed at 1,000,000,000. The deposit period is 48 hours.`
   public async run(): Promise<void> {
     const { flags } = await this.parse(GenesisLaunchCreate)
 
+    if (flags.raydiumLiquidityBps < 2000 || flags.raydiumLiquidityBps > 10000) {
+      this.error('raydiumLiquidityBps must be between 2000 and 10000 (20%-100%)')
+    }
+
     const spinner = ora('Creating token launch via Genesis API...').start()
 
     try {

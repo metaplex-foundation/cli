@@ -238,7 +238,11 @@ describe('genesis launch commands', () => {
                 await runCli(cliInput)
                 expect.fail('Should have thrown an error for missing argument')
             } catch (error) {
-                expect((error as Error).message).to.not.be.empty
+                const msg = (error as Error).message
+                expect(msg).to.satisfy(
+                    (m: string) => m.includes('genesisAccount') || m.includes('Missing'),
+                    'Expected error about missing genesisAccount argument'
+                )
             } finally {
                 fs.unlinkSync(tmpConfig)
             }

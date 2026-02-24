@@ -153,8 +153,8 @@ Total token supply is fixed at 1,000,000,000. The deposit period is 48 hours.`
           if (typeof entry.tokenAmount !== 'number' || entry.tokenAmount <= 0) {
             throw new Error(`Locked allocation [${i}]: "tokenAmount" must be a positive number`)
           }
-          if (!entry.vestingStartTime || (typeof entry.vestingStartTime !== 'string' && !(entry.vestingStartTime instanceof Date))) {
-            throw new Error(`Locked allocation [${i}]: "vestingStartTime" must be a date string or Date`)
+          if (typeof entry.vestingStartTime !== 'string' || entry.vestingStartTime.length === 0) {
+            throw new Error(`Locked allocation [${i}]: "vestingStartTime" must be a non-empty date string`)
           }
           if (!entry.vestingDuration || typeof entry.vestingDuration.value !== 'number' || !validTimeUnits.has(entry.vestingDuration.unit)) {
             throw new Error(`Locked allocation [${i}]: "vestingDuration" must have a numeric "value" and a valid "unit"`)

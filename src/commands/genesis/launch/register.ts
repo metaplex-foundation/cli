@@ -77,6 +77,17 @@ provided as a JSON file via --launchConfig.`
 
       const launchConfig = readJsonSync(filePath) as CreateLaunchInput
 
+      // Validate required top-level fields
+      if (!launchConfig.token || typeof launchConfig.token !== 'object') {
+        throw new Error('Launch config is missing required "token" object (must include name, symbol, image)')
+      }
+      if (!launchConfig.launch || typeof launchConfig.launch !== 'object') {
+        throw new Error('Launch config is missing required "launch" object (must include launchpool config)')
+      }
+      if (launchConfig.launchType !== 'project') {
+        throw new Error(`Launch config "launchType" must be "project", got "${launchConfig.launchType}"`)
+      }
+
       // Override network if specified via flag
       launchConfig.network = network
 

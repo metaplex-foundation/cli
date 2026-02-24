@@ -272,22 +272,35 @@ Use Unix timestamps for absolute times.`
 
       // Set end behaviors in a separate transaction if provided
       let behaviorsSignature: string | undefined
+      let behaviorsError: unknown
       if (endBehaviors.length > 0) {
-        spinner.text = 'Setting end behaviors...'
-        const setBehaviorsTx = setLaunchPoolBucketV2Behaviors(this.context.umi, {
-          genesisAccount: genesisAddress,
-          bucket: bucketPda,
-          authority: this.context.signer,
-          payer: this.context.payer,
-          padding: new Array(3).fill(0),
-          endBehaviors,
-        })
+        try {
+          spinner.text = 'Setting end behaviors...'
+          const setBehaviorsTx = setLaunchPoolBucketV2Behaviors(this.context.umi, {
+            genesisAccount: genesisAddress,
+            bucket: bucketPda,
+            authority: this.context.signer,
+            payer: this.context.payer,
+            padding: new Array(3).fill(0),
+            endBehaviors,
+          })
 
-        const behaviorsResult = await umiSendAndConfirmTransaction(this.context.umi, setBehaviorsTx)
-        behaviorsSignature = txSignatureToString(behaviorsResult.transaction.signature as Uint8Array)
+          const behaviorsResult = await umiSendAndConfirmTransaction(this.context.umi, setBehaviorsTx)
+          behaviorsSignature = txSignatureToString(behaviorsResult.transaction.signature as Uint8Array)
+        } catch (error) {
+          behaviorsError = error
+        }
       }
 
-      spinner.succeed('Launch pool bucket added successfully!')
+      if (behaviorsError) {
+        spinner.warn('Bucket created but failed to set end behaviors')
+        this.warn(
+          `End behaviors were not set. Run setLaunchPoolBucketV2Behaviors manually for bucket ${bucketPda}.\n` +
+          `Error: ${behaviorsError instanceof Error ? behaviorsError.message : String(behaviorsError)}`
+        )
+      } else {
+        spinner.succeed('Launch pool bucket added successfully!')
+      }
 
       this.log('')
       this.logSuccess(`Launch Pool Bucket Added`)

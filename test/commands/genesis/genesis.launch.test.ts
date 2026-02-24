@@ -231,27 +231,27 @@ describe('genesis launch commands', () => {
             const tmpFile = path.join('/tmp', 'test-bad-allocations.json')
             fs.writeFileSync(tmpFile, JSON.stringify({ notAnArray: true }))
 
-            const cliInput = [
-                'genesis', 'launch', 'create',
-                '--name', 'My Token',
-                '--symbol', 'MTK',
-                '--image', 'https://gateway.irys.xyz/abc123',
-                '--tokenAllocation', '500000000',
-                '--depositStartTime', futureIso(7 * 86400),
-                '--raiseGoal', '200',
-                '--raydiumLiquidityBps', '5000',
-                '--fundsRecipient', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
-                '--lockedAllocations', tmpFile,
-            ]
-
             try {
+                const cliInput = [
+                    'genesis', 'launch', 'create',
+                    '--name', 'My Token',
+                    '--symbol', 'MTK',
+                    '--image', 'https://gateway.irys.xyz/abc123',
+                    '--tokenAllocation', '500000000',
+                    '--depositStartTime', futureIso(7 * 86400),
+                    '--raiseGoal', '200',
+                    '--raydiumLiquidityBps', '5000',
+                    '--fundsRecipient', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
+                    '--lockedAllocations', tmpFile,
+                ]
+
                 await runCli(cliInput)
                 expect.fail('Should have thrown an error for non-array allocations')
             } catch (error) {
                 expect((error as Error).message).to.contain('must contain a JSON array')
+            } finally {
+                fs.unlinkSync(tmpFile)
             }
-
-            fs.unlinkSync(tmpFile)
         })
 
         it('parses locked allocations file and reaches API call', async () => {
@@ -271,29 +271,29 @@ describe('genesis launch commands', () => {
                 },
             ]))
 
-            const cliInput = [
-                'genesis', 'launch', 'create',
-                '--name', 'My Token',
-                '--symbol', 'MTK',
-                '--image', 'https://gateway.irys.xyz/abc123',
-                '--tokenAllocation', '500000000',
-                '--depositStartTime', futureIso(30 * 86400),
-                '--raiseGoal', '200',
-                '--raydiumLiquidityBps', '5000',
-                '--fundsRecipient', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
-                '--lockedAllocations', tmpFile,
-            ]
-
             try {
+                const cliInput = [
+                    'genesis', 'launch', 'create',
+                    '--name', 'My Token',
+                    '--symbol', 'MTK',
+                    '--image', 'https://gateway.irys.xyz/abc123',
+                    '--tokenAllocation', '500000000',
+                    '--depositStartTime', futureIso(30 * 86400),
+                    '--raiseGoal', '200',
+                    '--raydiumLiquidityBps', '5000',
+                    '--fundsRecipient', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
+                    '--lockedAllocations', tmpFile,
+                ]
+
                 await runCli(cliInput)
                 expect.fail('Should have thrown an API error (API not available on localnet)')
             } catch (error) {
                 // Should get past file parsing and validation, then fail at the API call
                 const msg = (error as Error).message
                 expect(msg).to.contain('Failed')
+            } finally {
+                fs.unlinkSync(tmpFile)
             }
-
-            fs.unlinkSync(tmpFile)
         })
 
         it('passes optional metadata flags and reaches API call', async () => {
@@ -369,19 +369,19 @@ describe('genesis launch commands', () => {
                 },
             }))
 
-            const cliInput = [
-                'genesis', 'launch', 'register',
-                '--launchConfig', tmpConfig,
-            ]
-
             try {
+                const cliInput = [
+                    'genesis', 'launch', 'register',
+                    '--launchConfig', tmpConfig,
+                ]
+
                 await runCli(cliInput)
                 expect.fail('Should have thrown an error for missing argument')
             } catch (error) {
                 expect((error as Error).message).to.not.be.empty
+            } finally {
+                fs.unlinkSync(tmpConfig)
             }
-
-            fs.unlinkSync(tmpConfig)
         })
 
         it('fails when --launchConfig is missing', async () => {
@@ -431,28 +431,28 @@ describe('genesis launch commands', () => {
                 },
             }))
 
-            const cliInput = [
-                'genesis', 'launch', 'register',
-                '11111111111111111111111111111111',
-                '--launchConfig', tmpConfig,
-            ]
-
             try {
+                const cliInput = [
+                    'genesis', 'launch', 'register',
+                    '11111111111111111111111111111111',
+                    '--launchConfig', tmpConfig,
+                ]
+
                 await runCli(cliInput)
                 expect.fail('Should have thrown an API error')
             } catch (error) {
                 const msg = (error as Error).message
                 expect(msg).to.contain('Failed')
+            } finally {
+                fs.unlinkSync(tmpConfig)
             }
-
-            fs.unlinkSync(tmpConfig)
         })
     })
 
     describe('add-launch-pool with claimSchedule (createClaimSchedule)', () => {
         let genesisAddress: string
 
-        it('creates a genesis account for claimSchedule test', async () => {
+        before(async () => {
             const result = await createGenesisAccount({
                 name: 'ClaimSchedule Test',
                 symbol: 'CST',
@@ -521,7 +521,7 @@ describe('genesis launch commands', () => {
     describe('transition uses triggerBehaviorsV2', () => {
         let genesisAddress: string
 
-        it('creates a genesis account for transition test', async () => {
+        before(async () => {
             const result = await createGenesisAccount({
                 name: 'Transition Test',
                 symbol: 'TRN',
@@ -530,19 +530,15 @@ describe('genesis launch commands', () => {
             })
 
             genesisAddress = result.genesisAddress
-        })
 
-        it('adds a launch pool bucket', async () => {
             const now = Math.floor(Date.now() / 1000)
-            const result = await addLaunchPoolBucket(genesisAddress, {
+            await addLaunchPoolBucket(genesisAddress, {
                 allocation: '1000000000',
                 depositStart: (now - 3600).toString(),
                 depositEnd: (now + 86400).toString(),
                 claimStart: (now + 86400 + 1).toString(),
                 claimEnd: (now + 86400 * 365).toString(),
             })
-
-            expect(result.bucketAddress).to.be.a('string')
         })
 
         it('transition invokes triggerBehaviorsV2 on-chain', async () => {

@@ -1,7 +1,9 @@
 import {
   addLaunchPoolBucketV2,
+  setLaunchPoolBucketV2Behaviors,
   safeFetchGenesisAccountV2,
   findLaunchPoolBucketV2Pda,
+  createClaimSchedule,
 } from '@metaplex-foundation/genesis'
 import { publicKey, some, none } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
@@ -196,14 +198,13 @@ Use Unix timestamps for absolute times.`
       // Parse optional ClaimSchedule
       const parseClaimSchedule = (json: string) => {
         const parsed = JSON.parse(json)
-        return {
+        return createClaimSchedule({
           startTime: BigInt(parsed.startTime),
           endTime: BigInt(parsed.endTime),
           period: BigInt(parsed.period),
           cliffTime: BigInt(parsed.cliffTime),
           cliffAmountBps: Number(parsed.cliffAmountBps),
-          reserved: new Array(7).fill(0),
-        }
+        })
       }
 
       // Parse optional Allowlist
@@ -219,7 +220,7 @@ Use Unix timestamps for absolute times.`
         }
       }
 
-      // Build the add bucket transaction
+      // Build the add bucket transaction (without endBehaviors to stay within tx size limit)
       spinner.text = 'Adding launch pool bucket...'
       const transaction = addLaunchPoolBucketV2(this.context.umi, {
         genesisAccount: genesisAddress,
@@ -258,10 +259,30 @@ Use Unix timestamps for absolute times.`
         minimumQuoteTokenThreshold: flags.minimumQuoteTokenThreshold
           ? some({ amount: BigInt(flags.minimumQuoteTokenThreshold) })
           : none(),
-        endBehaviors,
+        endBehaviors: [],
       })
 
       const result = await umiSendAndConfirmTransaction(this.context.umi, transaction)
+
+      // Set end behaviors in a separate transaction if provided
+      if (endBehaviors.length > 0) {
+        const [bucketPda] = findLaunchPoolBucketV2Pda(this.context.umi, {
+          genesisAccount: genesisAddress,
+          bucketIndex,
+        })
+
+        spinner.text = 'Setting end behaviors...'
+        const setBehaviorsTx = setLaunchPoolBucketV2Behaviors(this.context.umi, {
+          genesisAccount: genesisAddress,
+          bucket: bucketPda,
+          authority: this.context.signer,
+          payer: this.context.payer,
+          padding: new Array(3).fill(0),
+          endBehaviors,
+        })
+
+        await umiSendAndConfirmTransaction(this.context.umi, setBehaviorsTx)
+      }
 
       // Get the bucket PDA
       const [bucketPda] = findLaunchPoolBucketV2Pda(this.context.umi, {

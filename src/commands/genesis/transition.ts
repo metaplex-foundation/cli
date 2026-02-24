@@ -1,5 +1,5 @@
 import {
-  transitionV2,
+  triggerBehaviorsV2,
   safeFetchGenesisAccountV2,
   findLaunchPoolBucketV2Pda,
   safeFetchLaunchPoolBucketV2,
@@ -103,7 +103,7 @@ Requirements:
 
       // Build the transition transaction
       spinner.text = 'Executing transition...'
-      const transaction = transitionV2(this.context.umi, {
+      const transaction = triggerBehaviorsV2(this.context.umi, {
         genesisAccount: genesisAddress,
         primaryBucket: primaryBucketPda,
         baseMint: genesisAccount.baseMint,

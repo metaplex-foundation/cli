@@ -1,16 +1,8 @@
 import { expect } from 'chai'
 import { runCli } from '../../runCli'
-import { createCoreAsset, createCoreCollection } from './corehelpers'
+import { createCoreAsset, createCoreCollection, extractAssetId, stripAnsi } from './corehelpers'
 
 
-// Helper to strip ANSI color codes
-const stripAnsi = (str: string) => str.replace(/\u001b\[\d+m/g, '')
-
-// Helper to extract asset ID from message
-const extractAssetId = (str: string) => {
-    const match = str.match(/Asset created with ID: ([a-zA-Z0-9]+)/)
-    return match ? match[1] : null
-}
 
 describe('core asset commands', () => {
 
@@ -97,6 +89,27 @@ describe('core asset commands', () => {
         const { assetId } = await createCoreAsset(collectionId)
 
         expect(assetId).to.match(/^[a-zA-Z0-9]+$/)
+    })
+
+    it('creates an asset with a custom --owner and verifies ownership on chain', async () => {
+        const ownerAddress = 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
+
+        const { stdout: createStdout, stderr: createStderr } = await runCli([
+            'core', 'asset', 'create',
+            '--name', 'Owner Test Asset',
+            '--uri', 'https://example.com/owner-test',
+            '--owner', ownerAddress,
+        ], ['\n'])
+
+        const cleanCreateStdout = stripAnsi(createStdout)
+        const cleanCreateStderr = stripAnsi(createStderr)
+        const assetId = extractAssetId(cleanCreateStdout) || extractAssetId(cleanCreateStderr)
+
+        expect(assetId).to.match(/^[a-zA-Z0-9]+$/)
+        expect(cleanCreateStderr).to.contain('Asset created successfully')
+
+        const { stdout: fetchStdout } = await runCli(['core', 'asset', 'fetch', assetId!])
+        expect(stripAnsi(fetchStdout)).to.contain(ownerAddress)
     })
 })
 

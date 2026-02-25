@@ -27,6 +27,7 @@ const createAssetFromArgs = async (umi: Umi, options: CreateAssetFromArgsOptions
     name: options.name,
     uri: options.uri,
     collection: collection,
+    owner: options.owner,
     plugins: options.plugins,
   })
 

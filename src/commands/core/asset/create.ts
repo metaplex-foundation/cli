@@ -49,6 +49,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     name: Flags.string({ name: 'name', description: 'Asset name', exclusive: ['wizard'] }),
     uri: Flags.string({ name: 'uri', description: 'URI of the Asset metadata', exclusive: ['wizard'] }),
     collection: Flags.string({ name: 'collection', description: 'Collection ID' }),
+    owner: Flags.string({ name: 'owner', description: 'Public key of the owner the Asset will be minted to. Defaults to the signer.' }),
     // File-based asset creation flags
     files: Flags.boolean({
       name: 'files',
@@ -101,7 +102,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     return undefined
   }
 
-  private async handleFileBasedCreation(umi: any, imagePath: string, jsonPath: string, collection?: string) {
+  private async handleFileBasedCreation(umi: any, imagePath: string, jsonPath: string, collection?: string, owner?: string) {
     const imageSpinner = ora('Uploading image...').start()
     const imageUri = await uploadFile(umi, imagePath).catch((err) => {
       imageSpinner.fail(`Failed to upload image. ${err}`)
@@ -135,6 +136,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       name: jsonFile.name,
       uri: jsonUri,
       collection,
+      owner,
       plugins: pluginData,
     }).catch((err) => {
       assetSpinner.fail(`Failed to create asset: ${err}`)
@@ -244,6 +246,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
         uri: jsonUri,
         plugins: pluginData,
         collection: wizardData.collection,
+        owner: flags.owner,
       }).catch((err) => {
         spinner.fail(`Failed to create Asset. ${err}`)
         throw err
@@ -256,7 +259,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
         this.error('You must provide an image --image and JSON --json file')
       }
 
-      const result = await this.handleFileBasedCreation(umi, flags.image, flags.json, flags.collection)
+      const result = await this.handleFileBasedCreation(umi, flags.image, flags.json, flags.collection, flags.owner)
       this.log(this.formatAssetResult(result, explorer))
     } else {
       // Create asset from name and uri flags
@@ -276,6 +279,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
         name: flags.name,
         uri: flags.uri,
         collection: flags.collection,
+        owner: flags.owner,
         plugins: pluginData,
       }).catch((err) => {
         spinner.fail(`Failed to create Asset. ${err}`)

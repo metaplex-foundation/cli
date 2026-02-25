@@ -29,6 +29,7 @@ export default class Genesis extends Command {
     this.log('')
     this.log('Subcommand groups:')
     this.log('  genesis bucket         Manage buckets (add-launch-pool, add-presale, add-unlocked, fetch)')
+    this.log('  genesis launch         Create and register launches via the Genesis API')
     this.log('  genesis presale        Presale deposit and claim commands')
     this.log('')
     this.log('Run "mplx genesis <command> --help" for more information about a command.')

@@ -1,7 +1,9 @@
 import {
   addLaunchPoolBucketV2,
+  setLaunchPoolBucketV2Behaviors,
   safeFetchGenesisAccountV2,
   findLaunchPoolBucketV2Pda,
+  createClaimSchedule,
 } from '@metaplex-foundation/genesis'
 import { publicKey, some, none } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
@@ -196,14 +198,13 @@ Use Unix timestamps for absolute times.`
       // Parse optional ClaimSchedule
       const parseClaimSchedule = (json: string) => {
         const parsed = JSON.parse(json)
-        return {
+        return createClaimSchedule({
           startTime: BigInt(parsed.startTime),
           endTime: BigInt(parsed.endTime),
           period: BigInt(parsed.period),
           cliffTime: BigInt(parsed.cliffTime),
           cliffAmountBps: Number(parsed.cliffAmountBps),
-          reserved: new Array(7).fill(0),
-        }
+        })
       }
 
       // Parse optional Allowlist
@@ -219,7 +220,7 @@ Use Unix timestamps for absolute times.`
         }
       }
 
-      // Build the add bucket transaction
+      // Build the add bucket transaction (without endBehaviors to stay within tx size limit)
       spinner.text = 'Adding launch pool bucket...'
       const transaction = addLaunchPoolBucketV2(this.context.umi, {
         genesisAccount: genesisAddress,
@@ -258,18 +259,48 @@ Use Unix timestamps for absolute times.`
         minimumQuoteTokenThreshold: flags.minimumQuoteTokenThreshold
           ? some({ amount: BigInt(flags.minimumQuoteTokenThreshold) })
           : none(),
-        endBehaviors,
+        endBehaviors: [],
       })
 
-      const result = await umiSendAndConfirmTransaction(this.context.umi, transaction)
-
-      // Get the bucket PDA
+      // Compute bucket PDA once for reuse
       const [bucketPda] = findLaunchPoolBucketV2Pda(this.context.umi, {
         genesisAccount: genesisAddress,
         bucketIndex,
       })
 
-      spinner.succeed('Launch pool bucket added successfully!')
+      const result = await umiSendAndConfirmTransaction(this.context.umi, transaction)
+
+      // Set end behaviors in a separate transaction if provided
+      let behaviorsSignature: string | undefined
+      let behaviorsError: unknown
+      if (endBehaviors.length > 0) {
+        try {
+          spinner.text = 'Setting end behaviors...'
+          const setBehaviorsTx = setLaunchPoolBucketV2Behaviors(this.context.umi, {
+            genesisAccount: genesisAddress,
+            bucket: bucketPda,
+            authority: this.context.signer,
+            payer: this.context.payer,
+            padding: new Array(3).fill(0),
+            endBehaviors,
+          })
+
+          const behaviorsResult = await umiSendAndConfirmTransaction(this.context.umi, setBehaviorsTx)
+          behaviorsSignature = txSignatureToString(behaviorsResult.transaction.signature as Uint8Array)
+        } catch (error) {
+          behaviorsError = error
+        }
+      }
+
+      if (behaviorsError) {
+        spinner.warn('Bucket created but failed to set end behaviors')
+        this.warn(
+          `End behaviors were not set. Run setLaunchPoolBucketV2Behaviors manually for bucket ${bucketPda}.\n` +
+          `Error: ${behaviorsError instanceof Error ? behaviorsError.message : String(behaviorsError)}`
+        )
+      } else {
+        spinner.succeed('Launch pool bucket added successfully!')
+      }
 
       this.log('')
       this.logSuccess(`Launch Pool Bucket Added`)
@@ -296,6 +327,18 @@ Use Unix timestamps for absolute times.`
           'transaction'
         )
       )
+      if (behaviorsSignature) {
+        this.log('')
+        this.log(`Behaviors Transaction: ${behaviorsSignature}`)
+        this.log(
+          generateExplorerUrl(
+            this.context.explorer,
+            this.context.chain,
+            behaviorsSignature,
+            'transaction'
+          )
+        )
+      }
 
     } catch (error) {
       spinner.fail('Failed to add launch pool bucket')

@@ -94,18 +94,20 @@ describe('core asset commands', () => {
     it('creates an asset with a custom --owner and verifies ownership on chain', async () => {
         const ownerAddress = 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
 
-        const { stdout: createStdout, stderr: createStderr } = await runCli([
+        const { stdout: createStdout, stderr: createStderr, code } = await runCli([
             'core', 'asset', 'create',
             '--name', 'Owner Test Asset',
             '--uri', 'https://example.com/owner-test',
             '--owner', ownerAddress,
         ], ['\n'])
 
+        expect(code).to.equal(0)
+
         const cleanCreateStdout = stripAnsi(createStdout)
         const cleanCreateStderr = stripAnsi(createStderr)
         const assetId = extractAssetId(cleanCreateStdout) || extractAssetId(cleanCreateStderr)
 
-        expect(assetId).to.match(/^[a-zA-Z0-9]+$/)
+        expect(assetId).to.be.ok
         expect(cleanCreateStderr).to.contain('Asset created successfully')
 
         const { stdout: fetchStdout } = await runCli(['core', 'asset', 'fetch', assetId!])

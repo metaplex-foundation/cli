@@ -3,7 +3,7 @@ import { Flags } from '@oclif/core'
 import fs from 'node:fs'
 import ora from 'ora'
 
-import { generateSigner, Umi } from '@metaplex-foundation/umi'
+import { generateSigner, publicKey, Umi } from '@metaplex-foundation/umi'
 import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
 import createAssetFromArgs, { AssetCreationResult } from '../../../lib/core/create/createAssetFromArgs.js'
 import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
@@ -29,6 +29,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
   Additional Options:
   - Use --collection to specify a collection ID for the asset
+  - Use --owner to mint the asset directly to a specific wallet address (defaults to the signer)
   - Use --plugins to interactively select and configure plugins
   - Use --pluginsFile to provide plugin configuration from a JSON file
   `
@@ -39,6 +40,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     '$ mplx core asset create --files --image "./my-nft.png" --json "./metadata.json"',
     '$ mplx core asset create --name "My NFT" --uri "https://example.com/metadata.json" --collection "collection_id_here"',
     '$ mplx core asset create --files --image "./my-nft.png" --json "./metadata.json" --collection "collection_id_here"',
+    '$ mplx core asset create --name "My NFT" --uri "https://example.com/metadata.json" --owner "recipient_address_here"',
   ]
 
   static override usage = 'core asset create [FLAGS]'
@@ -49,7 +51,18 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     name: Flags.string({ name: 'name', description: 'Asset name', exclusive: ['wizard'] }),
     uri: Flags.string({ name: 'uri', description: 'URI of the Asset metadata', exclusive: ['wizard'] }),
     collection: Flags.string({ name: 'collection', description: 'Collection ID' }),
-    owner: Flags.string({ name: 'owner', description: 'Public key of the owner the Asset will be minted to. Defaults to the signer.' }),
+    owner: Flags.string({
+      name: 'owner',
+      description: 'Public key of the owner the Asset will be minted to. Defaults to the signer.',
+      parse: async (value) => {
+        try {
+          publicKey(value)
+        } catch {
+          throw new Error(`Invalid public key for --owner: "${value}". Must be a valid base58 public key.`)
+        }
+        return value
+      },
+    }),
     // File-based asset creation flags
     files: Flags.boolean({
       name: 'files',

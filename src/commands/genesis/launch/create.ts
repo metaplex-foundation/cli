@@ -2,6 +2,7 @@ import {
   CreateLaunchInput,
   GenesisApiConfig,
   LockedAllocation,
+  QuoteMintInput,
   SvmNetwork,
   createAndRegisterLaunch,
 } from '@metaplex-foundation/genesis'
@@ -208,7 +209,7 @@ Total token supply is fixed at 1,000,000,000. The deposit period is 48 hours.`
           ...(lockedAllocations && { lockedAllocations }),
         },
         network,
-        quoteMint: flags.quoteMint,
+        ...(flags.quoteMint !== 'SOL' && { quoteMint: flags.quoteMint as QuoteMintInput }),
       }
 
       const apiConfig: GenesisApiConfig = {

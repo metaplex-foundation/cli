@@ -63,9 +63,9 @@ provided as a JSON file via --launchConfig.`
 
       // Read launch config from JSON file
       const filePath = flags.launchConfig
-      let launchConfig: CreateLaunchInput
+      let parsed: Record<string, unknown>
       try {
-        launchConfig = readJsonSync(filePath) as CreateLaunchInput
+        parsed = readJsonSync(filePath) as Record<string, unknown>
       } catch (err) {
         if (err && typeof err === 'object' && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
           throw new Error(`Launch config file not found: ${filePath}`)
@@ -74,15 +74,17 @@ provided as a JSON file via --launchConfig.`
       }
 
       // Validate required top-level fields
-      if (!launchConfig.token || typeof launchConfig.token !== 'object') {
+      if (!parsed.token || typeof parsed.token !== 'object') {
         throw new Error('Launch config is missing required "token" object (must include name, symbol, image)')
       }
-      if (!launchConfig.launch || typeof launchConfig.launch !== 'object') {
-        throw new Error('Launch config is missing required "launch" object (must include launchpool config)')
+      if (!parsed.launch || typeof parsed.launch !== 'object') {
+        throw new Error('Launch config is missing required "launch" object')
       }
-      if (launchConfig.launchType !== 'project') {
-        throw new Error(`Launch config "launchType" must be "project", got "${launchConfig.launchType}"`)
+      if (parsed.launchType !== 'project' && parsed.launchType !== 'memecoin') {
+        throw new Error(`Launch config "launchType" must be "project" or "memecoin", got "${parsed.launchType}"`)
       }
+
+      const launchConfig = parsed as unknown as CreateLaunchInput
 
       // Override network if specified via flag
       launchConfig.network = network

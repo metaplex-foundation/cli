@@ -1,10 +1,13 @@
 import {
   addLaunchPoolBucketV2Base,
   addLaunchPoolBucketV2Extensions,
+  AllowlistInitArgsArgs,
+  ClaimScheduleArgs,
   createClaimSchedule,
   createTimeAbsoluteCondition,
   findLaunchPoolBucketV2Pda,
   LaunchPoolV2ExtensionArgs,
+  LinearBpsScheduleV2Args,
   safeFetchGenesisAccountV2,
   setLaunchPoolBucketV2Behaviors,
 } from '@metaplex-foundation/genesis'
@@ -229,18 +232,23 @@ Use Unix timestamps for absolute times.`
       const extensions = buildExtensions(flags, parseLinearBpsSchedule, parseClaimSchedule, parseAllowlist)
 
       let extensionsSignature: string | undefined
+      let extensionsError: unknown
       if (extensions.length > 0) {
-        spinner.text = 'Setting extensions...'
-        const extensionsTx = addLaunchPoolBucketV2Extensions(this.context.umi, {
-          authority: this.context.signer,
-          bucket: bucketPda,
-          extensions,
-          genesisAccount: genesisAddress,
-          padding: Array.from({ length: 3 }, () => 0),
-          payer: this.context.payer,
-        })
-        const extensionsResult = await umiSendAndConfirmTransaction(this.context.umi, extensionsTx)
-        extensionsSignature = txSignatureToString(extensionsResult.transaction.signature as Uint8Array)
+        try {
+          spinner.text = 'Setting extensions...'
+          const extensionsTx = addLaunchPoolBucketV2Extensions(this.context.umi, {
+            authority: this.context.signer,
+            bucket: bucketPda,
+            extensions,
+            genesisAccount: genesisAddress,
+            padding: Array.from({ length: 3 }, () => 0),
+            payer: this.context.payer,
+          })
+          const extensionsResult = await umiSendAndConfirmTransaction(this.context.umi, extensionsTx)
+          extensionsSignature = txSignatureToString(extensionsResult.transaction.signature as Uint8Array)
+        } catch (error) {
+          extensionsError = error
+        }
       }
 
       // Transaction 3: Set end behaviors in a separate transaction if provided
@@ -265,13 +273,23 @@ Use Unix timestamps for absolute times.`
         }
       }
 
+      if (extensionsError) {
+        spinner.warn('Bucket created but failed to set extensions')
+        this.warn(
+          `Extensions were not set for bucket ${bucketPda}.\n` +
+          `Error: ${extensionsError instanceof Error ? extensionsError.message : String(extensionsError)}`
+        )
+      }
+
       if (behaviorsError) {
         spinner.warn('Bucket created but failed to set end behaviors')
         this.warn(
           `End behaviors were not set. Run setLaunchPoolBucketV2Behaviors manually for bucket ${bucketPda}.\n` +
           `Error: ${behaviorsError instanceof Error ? behaviorsError.message : String(behaviorsError)}`
         )
-      } else {
+      }
+
+      if (!extensionsError && !behaviorsError) {
         spinner.succeed('Launch pool bucket added successfully!')
       }
 
@@ -345,9 +363,9 @@ function buildExtensions(
     minimumQuoteTokenThreshold?: string
     withdrawPenalty?: string
   },
-  parseLinearBpsSchedule: (json: string) => ReturnType<typeof Object>,
-  parseClaimSchedule: (json: string) => ReturnType<typeof Object>,
-  parseAllowlist: (json: string) => ReturnType<typeof Object>,
+  parseLinearBpsSchedule: (json: string) => LinearBpsScheduleV2Args,
+  parseClaimSchedule: (json: string) => ClaimScheduleArgs,
+  parseAllowlist: (json: string) => AllowlistInitArgsArgs,
 ): LaunchPoolV2ExtensionArgs[] {
   const extensions: LaunchPoolV2ExtensionArgs[] = []
 

@@ -1,5 +1,7 @@
 import {
   CreateLaunchInput,
+  CreateMemecoinLaunchInput,
+  CreateProjectLaunchInput,
   GenesisApiConfig,
   LockedAllocation,
   QuoteMintInput,
@@ -25,15 +27,24 @@ This is an all-in-one command that:
 The Genesis API handles creating the genesis account, mint, launch pool bucket,
 and optional locked allocations in a single flow.
 
-Total token supply is fixed at 1,000,000,000. The deposit period is 48 hours.`
+Launch types:
+  - project: Total supply 1B, 48-hour deposit period, configurable allocations.
+  - memecoin: Total supply 1B, 1-hour deposit period, hardcoded fund flows. Only --depositStartTime is required.`
 
   static override examples = [
     '$ mplx genesis launch create --name "My Token" --symbol "MTK" --image "https://gateway.irys.xyz/abc123" --tokenAllocation 500000000 --depositStartTime 2025-03-01T00:00:00Z --raiseGoal 200 --raydiumLiquidityBps 5000 --fundsRecipient <ADDRESS>',
-    '$ mplx genesis launch create --name "My Token" --symbol "MTK" --image "https://gateway.irys.xyz/abc123" --tokenAllocation 500000000 --depositStartTime 1709251200 --raiseGoal 200 --raydiumLiquidityBps 5000 --fundsRecipient <ADDRESS> --quoteMint USDC',
+    '$ mplx genesis launch create --launchType memecoin --name "My Meme" --symbol "MEME" --image "https://gateway.irys.xyz/abc123" --depositStartTime 2025-03-01T00:00:00Z',
     '$ mplx genesis launch create --name "My Token" --symbol "MTK" --image "https://gateway.irys.xyz/abc123" --tokenAllocation 500000000 --depositStartTime 2025-03-01T00:00:00Z --raiseGoal 200 --raydiumLiquidityBps 5000 --fundsRecipient <ADDRESS> --lockedAllocations allocations.json',
   ]
 
   static override flags = {
+    // Launch type
+    launchType: Flags.option({
+      description: 'Launch type: project (default) or memecoin',
+      options: ['project', 'memecoin'] as const,
+      default: 'project' as const,
+    })(),
+
     // Token metadata
     name: Flags.string({
       char: 'n',
@@ -66,31 +77,33 @@ Total token supply is fixed at 1,000,000,000. The deposit period is 48 hours.`
       required: false,
     }),
 
-    // Launchpool config
-    tokenAllocation: Flags.integer({
-      description: 'Launch pool token allocation (portion of 1B total supply)',
+    // Shared config
+    depositStartTime: Flags.string({
+      description: 'Deposit start time (ISO date string or unix timestamp). Project: 48h deposit. Memecoin: 1h deposit.',
       required: true,
     }),
-    depositStartTime: Flags.string({
-      description: 'Deposit start time (ISO date string or unix timestamp). Deposit period is 48 hours.',
-      required: true,
+
+    // Project-only launchpool config
+    tokenAllocation: Flags.integer({
+      description: '[project only] Launch pool token allocation (portion of 1B total supply)',
+      required: false,
     }),
     raiseGoal: Flags.integer({
-      description: 'Raise goal in whole units (e.g., 200 for 200 SOL)',
-      required: true,
+      description: '[project only] Raise goal in whole units (e.g., 200 for 200 SOL)',
+      required: false,
     }),
     raydiumLiquidityBps: Flags.integer({
-      description: 'Raydium liquidity in basis points (2000-10000, i.e. 20%-100%)',
-      required: true,
+      description: '[project only] Raydium liquidity in basis points (2000-10000, i.e. 20%-100%)',
+      required: false,
     }),
     fundsRecipient: Flags.string({
-      description: 'Funds recipient wallet address',
-      required: true,
+      description: '[project only] Funds recipient wallet address',
+      required: false,
     }),
 
     // Optional
     lockedAllocations: Flags.string({
-      description: 'Path to JSON file with locked allocation configs',
+      description: '[project only] Path to JSON file with locked allocation configs',
       required: false,
     }),
     quoteMint: Flags.string({
@@ -114,8 +127,18 @@ Total token supply is fixed at 1,000,000,000. The deposit period is 48 hours.`
   public async run(): Promise<void> {
     const { flags } = await this.parse(GenesisLaunchCreate)
 
-    if (flags.raydiumLiquidityBps < 2000 || flags.raydiumLiquidityBps > 10000) {
-      this.error('raydiumLiquidityBps must be between 2000 and 10000 (20%-100%)')
+    const isMemecoin = flags.launchType === 'memecoin'
+
+    // Validate project-only required flags
+    if (!isMemecoin) {
+      if (!flags.tokenAllocation) this.error('--tokenAllocation is required for project launches')
+      if (!flags.raiseGoal) this.error('--raiseGoal is required for project launches')
+      if (flags.raydiumLiquidityBps === undefined) this.error('--raydiumLiquidityBps is required for project launches')
+      if (!flags.fundsRecipient) this.error('--fundsRecipient is required for project launches')
+
+      if (flags.raydiumLiquidityBps < 2000 || flags.raydiumLiquidityBps > 10000) {
+        this.error('raydiumLiquidityBps must be between 2000 and 10000 (20%-100%)')
+      }
     }
 
     const spinner = ora('Creating token launch via Genesis API...').start()
@@ -124,92 +147,61 @@ Total token supply is fixed at 1,000,000,000. The deposit period is 48 hours.`
       // Detect network from chain if not specified
       const network: SvmNetwork = flags.network ?? detectSvmNetwork(this.context.chain)
 
-      // Parse locked allocations from JSON file if provided
-      let lockedAllocations: LockedAllocation[] | undefined
-      if (flags.lockedAllocations) {
-        const filePath = flags.lockedAllocations
-        let parsed: unknown
-        try {
-          parsed = readJsonSync(filePath)
-        } catch (err) {
-          if (err && typeof err === 'object' && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
-            throw new Error(`Locked allocations file not found: ${filePath}`)
-          }
-          throw err
-        }
-
-        if (!Array.isArray(parsed)) {
-          throw new Error('Locked allocations file must contain a JSON array')
-        }
-
-        const validTimeUnits = new Set(['SECOND', 'MINUTE', 'HOUR', 'DAY', 'WEEK', 'TWO_WEEKS', 'MONTH', 'QUARTER', 'YEAR'])
-        for (let i = 0; i < parsed.length; i++) {
-          const entry = parsed[i]
-          if (typeof entry.name !== 'string' || entry.name.length === 0) {
-            throw new Error(`Locked allocation [${i}]: "name" must be a non-empty string`)
-          }
-          if (typeof entry.recipient !== 'string' || entry.recipient.length === 0) {
-            throw new Error(`Locked allocation [${i}]: "recipient" must be a non-empty string`)
-          }
-          if (typeof entry.tokenAmount !== 'number' || entry.tokenAmount <= 0) {
-            throw new Error(`Locked allocation [${i}]: "tokenAmount" must be a positive number`)
-          }
-          if (typeof entry.vestingStartTime !== 'string' || entry.vestingStartTime.length === 0) {
-            throw new Error(`Locked allocation [${i}]: "vestingStartTime" must be a non-empty date string`)
-          }
-          if (!entry.vestingDuration || typeof entry.vestingDuration.value !== 'number' || !validTimeUnits.has(entry.vestingDuration.unit)) {
-            throw new Error(`Locked allocation [${i}]: "vestingDuration" must have a numeric "value" and a valid "unit"`)
-          }
-          if (!validTimeUnits.has(entry.unlockSchedule)) {
-            throw new Error(`Locked allocation [${i}]: "unlockSchedule" must be a valid time unit`)
-          }
-          if (entry.cliff !== undefined) {
-            if (typeof entry.cliff !== 'object' || entry.cliff === null) {
-              throw new Error(`Locked allocation [${i}]: "cliff" must be an object`)
-            }
-            if (!entry.cliff.duration || typeof entry.cliff.duration.value !== 'number' || !validTimeUnits.has(entry.cliff.duration.unit)) {
-              throw new Error(`Locked allocation [${i}]: "cliff.duration" must have a numeric "value" and a valid "unit"`)
-            }
-            if (entry.cliff.unlockAmount !== undefined && (typeof entry.cliff.unlockAmount !== 'number' || entry.cliff.unlockAmount < 0)) {
-              throw new Error(`Locked allocation [${i}]: "cliff.unlockAmount" must be a non-negative number`)
-            }
-          }
-        }
-
-        lockedAllocations = parsed as LockedAllocation[]
-      }
-
       // Build external links
       const externalLinks: Record<string, string> = {}
       if (flags.website) externalLinks.website = flags.website
       if (flags.twitter) externalLinks.twitter = flags.twitter
       if (flags.telegram) externalLinks.telegram = flags.telegram
 
-      // Build input
+      // Build token metadata
       const wallet = this.context.signer.publicKey.toString()
+      const token = {
+        name: flags.name,
+        symbol: flags.symbol,
+        image: flags.image,
+        ...(flags.description && { description: flags.description }),
+        ...(Object.keys(externalLinks).length > 0 && { externalLinks }),
+      }
 
-      const input: CreateLaunchInput = {
-        wallet,
-        token: {
-          name: flags.name,
-          symbol: flags.symbol,
-          image: flags.image,
-          ...(flags.description && { description: flags.description }),
-          ...(Object.keys(externalLinks).length > 0 && { externalLinks }),
-        },
-        launchType: 'project',
-        launch: {
-          launchpool: {
-            tokenAllocation: flags.tokenAllocation,
+      let input: CreateLaunchInput
+
+      if (isMemecoin) {
+        const memecoinInput: CreateMemecoinLaunchInput = {
+          wallet,
+          token,
+          launchType: 'memecoin',
+          launch: {
             depositStartTime: flags.depositStartTime,
-            raiseGoal: flags.raiseGoal,
-            raydiumLiquidityBps: flags.raydiumLiquidityBps,
-            fundsRecipient: flags.fundsRecipient,
           },
-          ...(lockedAllocations && { lockedAllocations }),
-        },
-        network,
-        ...(flags.quoteMint !== 'SOL' && { quoteMint: flags.quoteMint as QuoteMintInput }),
+          network,
+          ...(flags.quoteMint !== 'SOL' && { quoteMint: flags.quoteMint as QuoteMintInput }),
+        }
+        input = memecoinInput
+      } else {
+        // Parse locked allocations from JSON file if provided
+        let lockedAllocations: LockedAllocation[] | undefined
+        if (flags.lockedAllocations) {
+          lockedAllocations = this.parseLockedAllocations(flags.lockedAllocations)
+        }
+
+        const projectInput: CreateProjectLaunchInput = {
+          wallet,
+          token,
+          launchType: 'project',
+          launch: {
+            launchpool: {
+              tokenAllocation: flags.tokenAllocation!,
+              depositStartTime: flags.depositStartTime,
+              raiseGoal: flags.raiseGoal!,
+              raydiumLiquidityBps: flags.raydiumLiquidityBps!,
+              fundsRecipient: flags.fundsRecipient!,
+            },
+            ...(lockedAllocations && { lockedAllocations }),
+          },
+          network,
+          ...(flags.quoteMint !== 'SOL' && { quoteMint: flags.quoteMint as QuoteMintInput }),
+        }
+        input = projectInput
       }
 
       const apiConfig: GenesisApiConfig = {
@@ -263,5 +255,57 @@ Total token supply is fixed at 1,000,000,000. The deposit period is 48 hours.`
 
       throw error
     }
+  }
+
+  private parseLockedAllocations(filePath: string): LockedAllocation[] {
+    let parsed: unknown
+    try {
+      parsed = readJsonSync(filePath)
+    } catch (err) {
+      if (err && typeof err === 'object' && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
+        throw new Error(`Locked allocations file not found: ${filePath}`)
+      }
+      throw err
+    }
+
+    if (!Array.isArray(parsed)) {
+      throw new Error('Locked allocations file must contain a JSON array')
+    }
+
+    const validTimeUnits = new Set(['SECOND', 'MINUTE', 'HOUR', 'DAY', 'WEEK', 'TWO_WEEKS', 'MONTH', 'QUARTER', 'YEAR'])
+    for (let i = 0; i < parsed.length; i++) {
+      const entry = parsed[i]
+      if (typeof entry.name !== 'string' || entry.name.length === 0) {
+        throw new Error(`Locked allocation [${i}]: "name" must be a non-empty string`)
+      }
+      if (typeof entry.recipient !== 'string' || entry.recipient.length === 0) {
+        throw new Error(`Locked allocation [${i}]: "recipient" must be a non-empty string`)
+      }
+      if (typeof entry.tokenAmount !== 'number' || entry.tokenAmount <= 0) {
+        throw new Error(`Locked allocation [${i}]: "tokenAmount" must be a positive number`)
+      }
+      if (typeof entry.vestingStartTime !== 'string' || entry.vestingStartTime.length === 0) {
+        throw new Error(`Locked allocation [${i}]: "vestingStartTime" must be a non-empty date string`)
+      }
+      if (!entry.vestingDuration || typeof entry.vestingDuration.value !== 'number' || !validTimeUnits.has(entry.vestingDuration.unit)) {
+        throw new Error(`Locked allocation [${i}]: "vestingDuration" must have a numeric "value" and a valid "unit"`)
+      }
+      if (!validTimeUnits.has(entry.unlockSchedule)) {
+        throw new Error(`Locked allocation [${i}]: "unlockSchedule" must be a valid time unit`)
+      }
+      if (entry.cliff !== undefined) {
+        if (typeof entry.cliff !== 'object' || entry.cliff === null) {
+          throw new Error(`Locked allocation [${i}]: "cliff" must be an object`)
+        }
+        if (!entry.cliff.duration || typeof entry.cliff.duration.value !== 'number' || !validTimeUnits.has(entry.cliff.duration.unit)) {
+          throw new Error(`Locked allocation [${i}]: "cliff.duration" must have a numeric "value" and a valid "unit"`)
+        }
+        if (entry.cliff.unlockAmount !== undefined && (typeof entry.cliff.unlockAmount !== 'number' || entry.cliff.unlockAmount < 0)) {
+          throw new Error(`Locked allocation [${i}]: "cliff.unlockAmount" must be a non-negative number`)
+        }
+      }
+    }
+
+    return parsed as LockedAllocation[]
   }
 }

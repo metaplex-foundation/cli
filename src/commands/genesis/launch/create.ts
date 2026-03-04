@@ -131,8 +131,12 @@ Launch types:
 
     // Validate project-only required flags
     if (!isMemecoin) {
-      if (!flags.tokenAllocation) this.error('--tokenAllocation is required for project launches')
-      if (!flags.raiseGoal) this.error('--raiseGoal is required for project launches')
+      if (flags.tokenAllocation === undefined || flags.tokenAllocation <= 0) {
+        this.error('--tokenAllocation is required for project launches and must be a positive number')
+      }
+      if (flags.raiseGoal === undefined || flags.raiseGoal <= 0) {
+        this.error('--raiseGoal is required for project launches and must be a positive number')
+      }
       if (flags.raydiumLiquidityBps === undefined) this.error('--raydiumLiquidityBps is required for project launches')
       if (!flags.fundsRecipient) this.error('--fundsRecipient is required for project launches')
 
@@ -275,6 +279,9 @@ Launch types:
     const validTimeUnits = new Set(['SECOND', 'MINUTE', 'HOUR', 'DAY', 'WEEK', 'TWO_WEEKS', 'MONTH', 'QUARTER', 'YEAR'])
     for (let i = 0; i < parsed.length; i++) {
       const entry = parsed[i]
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+        throw new Error(`Locked allocation [${i}]: entry must be an object`)
+      }
       if (typeof entry.name !== 'string' || entry.name.length === 0) {
         throw new Error(`Locked allocation [${i}]: "name" must be a non-empty string`)
       }

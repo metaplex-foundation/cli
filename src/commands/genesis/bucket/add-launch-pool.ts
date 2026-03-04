@@ -169,6 +169,9 @@ Use Unix timestamps for absolute times.`
         const parsed = JSON.parse(json)
         const startTime = BigInt(parsed.startTime)
         const endTime = BigInt(parsed.endTime)
+        if (endTime < startTime) {
+          throw new Error('"endTime" must be greater than or equal to "startTime" in schedule')
+        }
         return {
           duration: endTime - startTime,
           interceptBps: BigInt(parsed.interceptBps),
@@ -294,7 +297,11 @@ Use Unix timestamps for absolute times.`
       }
 
       this.log('')
-      this.logSuccess(`Launch Pool Bucket Added`)
+      if (!extensionsError && !behaviorsError) {
+        this.logSuccess(`Launch Pool Bucket Added`)
+      } else {
+        this.log('Launch Pool Bucket Added (with warnings)')
+      }
       this.log('')
       this.log('Bucket Details:')
       this.log(`  Genesis Account: ${genesisAddress}`)

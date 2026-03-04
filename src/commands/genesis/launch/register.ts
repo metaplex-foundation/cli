@@ -63,9 +63,9 @@ provided as a JSON file via --launchConfig.`
 
       // Read launch config from JSON file
       const filePath = flags.launchConfig
-      let parsed: Record<string, unknown>
+      let parsed: unknown
       try {
-        parsed = readJsonSync(filePath) as Record<string, unknown>
+        parsed = readJsonSync(filePath)
       } catch (err) {
         if (err && typeof err === 'object' && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
           throw new Error(`Launch config file not found: ${filePath}`)
@@ -73,18 +73,27 @@ provided as a JSON file via --launchConfig.`
         throw err
       }
 
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('Launch config must be a JSON object')
+      }
+      const config = parsed as Record<string, unknown>
+
       // Validate required top-level fields
-      if (!parsed.token || typeof parsed.token !== 'object') {
+      if (!config.token || typeof config.token !== 'object' || Array.isArray(config.token)) {
         throw new Error('Launch config is missing required "token" object (must include name, symbol, image)')
       }
-      if (!parsed.launch || typeof parsed.launch !== 'object') {
+      const token = config.token as Record<string, unknown>
+      if (typeof token.name !== 'string' || typeof token.symbol !== 'string' || typeof token.image !== 'string') {
+        throw new Error('Launch config token must include string fields: "name", "symbol", "image"')
+      }
+      if (!config.launch || typeof config.launch !== 'object' || Array.isArray(config.launch)) {
         throw new Error('Launch config is missing required "launch" object')
       }
-      if (parsed.launchType !== 'project' && parsed.launchType !== 'memecoin') {
-        throw new Error(`Launch config "launchType" must be "project" or "memecoin", got "${parsed.launchType}"`)
+      if (config.launchType !== 'project' && config.launchType !== 'memecoin') {
+        throw new Error(`Launch config "launchType" must be "project" or "memecoin", got "${config.launchType}"`)
       }
 
-      const launchConfig = parsed as unknown as CreateLaunchInput
+      const launchConfig = config as unknown as CreateLaunchInput
 
       // Override network if specified via flag
       launchConfig.network = network

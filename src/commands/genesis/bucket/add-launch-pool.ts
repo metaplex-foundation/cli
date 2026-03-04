@@ -355,7 +355,8 @@ Use Unix timestamps for absolute times.`
       }
 
       if (extensionsError || behaviorsError) {
-        this.exit(1)
+        process.exitCode = 1
+        return
       }
 
     } catch (error) {

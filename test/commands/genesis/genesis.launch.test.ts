@@ -271,8 +271,7 @@ describe('genesis launch commands', () => {
             }
         })
 
-        it('memecoin launch ignores project-only flags without error', async () => {
-            // Project-only flags like tokenAllocation are accepted but ignored for memecoins
+        it('memecoin launch rejects project-only flags', async () => {
             const cliInput = [
                 'genesis', 'launch', 'create',
                 '--launchType', 'memecoin',
@@ -285,11 +284,11 @@ describe('genesis launch commands', () => {
 
             try {
                 await runCli(cliInput)
-                expect.fail('Should have thrown an API error (API not available on localnet)')
+                expect.fail('Should have thrown an error for disallowed flags')
             } catch (error) {
-                // Should reach API call without validation errors
                 const msg = (error as Error).message
-                expect(msg).to.contain('Failed')
+                expect(msg).to.contain('not allowed for memecoin')
+                expect(msg).to.contain('--tokenAllocation')
             }
         })
     })

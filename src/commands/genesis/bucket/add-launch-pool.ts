@@ -213,6 +213,9 @@ Use Unix timestamps for absolute times.`
         bucketIndex,
       })
 
+      // Parse extensions before any on-chain write so invalid JSON fails fast
+      const extensions = buildExtensions(flags, parseLinearBpsSchedule, parseClaimSchedule, parseAllowlist)
+
       // Transaction 1: Create the bucket with base fields only (fits in tx size limit)
       spinner.text = 'Creating launch pool bucket...'
       const baseTx = addLaunchPoolBucketV2Base(this.context.umi, {
@@ -232,7 +235,6 @@ Use Unix timestamps for absolute times.`
       const result = await umiSendAndConfirmTransaction(this.context.umi, baseTx)
 
       // Transaction 2: Add extensions if any optional fields were provided
-      const extensions = buildExtensions(flags, parseLinearBpsSchedule, parseClaimSchedule, parseAllowlist)
 
       let extensionsSignature: string | undefined
       let extensionsError: unknown
@@ -350,6 +352,10 @@ Use Unix timestamps for absolute times.`
             'transaction'
           )
         )
+      }
+
+      if (extensionsError || behaviorsError) {
+        this.exit(1)
       }
 
     } catch (error) {

@@ -89,6 +89,9 @@ provided as a JSON file via --launchConfig.`
       if (!config.launch || typeof config.launch !== 'object' || Array.isArray(config.launch)) {
         throw new Error('Launch config is missing required "launch" object')
       }
+      if (!config.launchType) {
+        config.launchType = 'project'
+      }
       if (config.launchType !== 'project' && config.launchType !== 'memecoin') {
         throw new Error(`Launch config "launchType" must be "project" or "memecoin", got "${config.launchType}"`)
       }

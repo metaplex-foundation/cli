@@ -129,6 +129,15 @@ Launch types:
 
     const isMemecoin = flags.launchType === 'memecoin'
 
+    // Reject project-only flags for memecoin launches
+    if (isMemecoin) {
+      const disallowed = ['tokenAllocation', 'raiseGoal', 'raydiumLiquidityBps', 'fundsRecipient', 'lockedAllocations'] as const
+      const present = disallowed.filter(f => flags[f] !== undefined)
+      if (present.length > 0) {
+        this.error(`The following flags are not allowed for memecoin launches: ${present.map(f => `--${f}`).join(', ')}`)
+      }
+    }
+
     // Validate project-only required flags
     if (!isMemecoin) {
       if (flags.tokenAllocation === undefined || flags.tokenAllocation <= 0) {

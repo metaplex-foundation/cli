@@ -96,6 +96,18 @@ provided as a JSON file via --launchConfig.`
         throw new Error(`Launch config "launchType" must be "project" or "memecoin", got "${config.launchType}"`)
       }
 
+      // Validate required launch fields per type
+      const launch = config.launch as Record<string, unknown>
+      if (config.launchType === 'project') {
+        if (!launch.launchpool || typeof launch.launchpool !== 'object') {
+          throw new Error('Project launch config requires a "launch.launchpool" object')
+        }
+      } else {
+        if (!launch.depositStartTime) {
+          throw new Error('Memecoin launch config requires "launch.depositStartTime"')
+        }
+      }
+
       const launchConfig = config as unknown as CreateLaunchInput
 
       // Override network if specified via flag

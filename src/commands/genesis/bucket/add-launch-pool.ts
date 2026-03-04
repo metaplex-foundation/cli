@@ -140,6 +140,13 @@ Use Unix timestamps for absolute times.`
       const claimStart = BigInt(flags.claimStart)
       const claimEnd = BigInt(flags.claimEnd)
 
+      if (depositEnd < depositStart) {
+        throw new Error('"depositEnd" must be greater than or equal to "depositStart"')
+      }
+      if (claimEnd < claimStart) {
+        throw new Error('"claimEnd" must be greater than or equal to "claimStart"')
+      }
+
       // Parse allocation
       const allocation = BigInt(flags.allocation)
 
@@ -155,10 +162,16 @@ Use Unix timestamps for absolute times.`
         if (!destinationBucketAddr || !percentageBpsStr) {
           throw new Error(`Invalid end behavior format: "${behavior}". Expected format: <destinationBucketAddress>:<percentageBps>`)
         }
+        const percentageBps = Number(percentageBpsStr)
+        if (!Number.isInteger(percentageBps) || percentageBps < 0 || percentageBps > 10000) {
+          throw new Error(
+            `Invalid percentageBps "${percentageBpsStr}" in "${behavior}". Expected an integer between 0 and 10000`
+          )
+        }
         return {
           __kind: 'SendQuoteTokenPercentage' as const,
           processed: false,
-          percentageBps: Number(percentageBpsStr),
+          percentageBps,
           padding: new Array(4).fill(0),
           destinationBucket: publicKey(destinationBucketAddr),
         }

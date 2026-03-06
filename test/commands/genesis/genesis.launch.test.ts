@@ -30,29 +30,22 @@ describe('genesis launch commands', () => {
                 expect(msg).to.contain('name')
                 expect(msg).to.contain('symbol')
                 expect(msg).to.contain('image')
-                expect(msg).to.contain('tokenAllocation')
                 expect(msg).to.contain('depositStartTime')
-                expect(msg).to.contain('raiseGoal')
-                expect(msg).to.contain('raydiumLiquidityBps')
-                expect(msg).to.contain('fundsRecipient')
             }
         })
 
-        const allFlags: Record<string, string[]> = {
+        // Flags always required by OCLIF (shared across launch types)
+        const sharedRequiredFlags: Record<string, string[]> = {
             name: ['--name', 'My Token'],
             symbol: ['--symbol', 'MTK'],
             image: ['--image', 'https://gateway.irys.xyz/abc123'],
-            tokenAllocation: ['--tokenAllocation', '500000000'],
             depositStartTime: ['--depositStartTime', futureIso(7 * 86400)],
-            raiseGoal: ['--raiseGoal', '200'],
-            raydiumLiquidityBps: ['--raydiumLiquidityBps', '5000'],
-            fundsRecipient: ['--fundsRecipient', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'],
         }
 
-        for (const omitted of Object.keys(allFlags)) {
+        for (const omitted of Object.keys(sharedRequiredFlags)) {
             it(`fails when required flags are missing (no --${omitted})`, async () => {
                 const cliInput = ['genesis', 'launch', 'create']
-                for (const [key, pair] of Object.entries(allFlags)) {
+                for (const [key, pair] of Object.entries(sharedRequiredFlags)) {
                     if (key !== omitted) cliInput.push(...pair)
                 }
 
@@ -61,6 +54,32 @@ describe('genesis launch commands', () => {
                     expect.fail('Should have thrown an error for missing required flag')
                 } catch (error) {
                     expect((error as Error).message).to.contain('Missing required flag')
+                    expect((error as Error).message).to.contain(omitted)
+                }
+            })
+        }
+
+        // Project-only flags validated at runtime
+        const projectOnlyFlags: Record<string, string[]> = {
+            tokenAllocation: ['--tokenAllocation', '500000000'],
+            raiseGoal: ['--raiseGoal', '200'],
+            raydiumLiquidityBps: ['--raydiumLiquidityBps', '5000'],
+            fundsRecipient: ['--fundsRecipient', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'],
+        }
+
+        const allProjectFlags = { ...sharedRequiredFlags, ...projectOnlyFlags }
+
+        for (const omitted of Object.keys(projectOnlyFlags)) {
+            it(`fails for project launch when --${omitted} is missing`, async () => {
+                const cliInput = ['genesis', 'launch', 'create']
+                for (const [key, pair] of Object.entries(allProjectFlags)) {
+                    if (key !== omitted) cliInput.push(...pair)
+                }
+
+                try {
+                    await runCli(cliInput)
+                    expect.fail('Should have thrown an error for missing project flag')
+                } catch (error) {
                     expect((error as Error).message).to.contain(omitted)
                 }
             })
@@ -208,6 +227,70 @@ describe('genesis launch commands', () => {
                 expect(msg).to.contain('Failed')
             }
         })
+
+        it('memecoin launch only requires depositStartTime (reaches API call)', async () => {
+            const cliInput = [
+                'genesis', 'launch', 'create',
+                '--launchType', 'memecoin',
+                '--name', 'My Meme',
+                '--symbol', 'MEME',
+                '--image', 'https://gateway.irys.xyz/abc123',
+                '--depositStartTime', futureIso(30 * 86400),
+            ]
+
+            try {
+                await runCli(cliInput)
+                expect.fail('Should have thrown an API error (API not available on localnet)')
+            } catch (error) {
+                // Should get past flag parsing (no project-only flags needed),
+                // then fail at the API call
+                const msg = (error as Error).message
+                expect(msg).to.contain('Failed')
+            }
+        })
+
+        it('memecoin launch with optional metadata reaches API call', async () => {
+            const cliInput = [
+                'genesis', 'launch', 'create',
+                '--launchType', 'memecoin',
+                '--name', 'My Meme',
+                '--symbol', 'MEME',
+                '--image', 'https://gateway.irys.xyz/abc123',
+                '--depositStartTime', futureIso(30 * 86400),
+                '--description', 'A memecoin for testing',
+                '--twitter', 'https://x.com/mymeme',
+                '--quoteMint', 'USDC',
+            ]
+
+            try {
+                await runCli(cliInput)
+                expect.fail('Should have thrown an API error (API not available on localnet)')
+            } catch (error) {
+                const msg = (error as Error).message
+                expect(msg).to.contain('Failed')
+            }
+        })
+
+        it('memecoin launch rejects project-only flags', async () => {
+            const cliInput = [
+                'genesis', 'launch', 'create',
+                '--launchType', 'memecoin',
+                '--name', 'My Meme',
+                '--symbol', 'MEME',
+                '--image', 'https://gateway.irys.xyz/abc123',
+                '--depositStartTime', futureIso(30 * 86400),
+                '--tokenAllocation', '500000000',
+            ]
+
+            try {
+                await runCli(cliInput)
+                expect.fail('Should have thrown an error for disallowed flags')
+            } catch (error) {
+                const msg = (error as Error).message
+                expect(msg).to.contain('not allowed for memecoin')
+                expect(msg).to.contain('--tokenAllocation')
+            }
+        })
     })
 
     describe('genesis launch register', () => {
@@ -306,6 +389,57 @@ describe('genesis launch commands', () => {
                 await runCli(cliInput)
                 expect.fail('Should have thrown an API error')
             } catch (error) {
+                const msg = (error as Error).message
+                expect(msg).to.contain('Failed')
+            } finally {
+                fs.unlinkSync(tmpConfig)
+            }
+        })
+
+        it('rejects invalid launchType in config', async () => {
+            const tmpConfig = path.join(os.tmpdir(), `test-launch-config-badtype-${process.pid}.json`)
+            fs.writeFileSync(tmpConfig, JSON.stringify({
+                wallet: 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
+                token: { name: 'Test', symbol: 'TST', image: 'https://gateway.irys.xyz/abc' },
+                launchType: 'invalid',
+                launch: { depositStartTime: futureIso(30 * 86400) },
+            }))
+
+            try {
+                await runCli([
+                    'genesis', 'launch', 'register',
+                    '11111111111111111111111111111111',
+                    '--launchConfig', tmpConfig,
+                ])
+                expect.fail('Should have thrown a validation error')
+            } catch (error) {
+                const msg = (error as Error).message
+                expect(msg).to.contain('must be "project" or "memecoin"')
+            } finally {
+                fs.unlinkSync(tmpConfig)
+            }
+        })
+
+        it('accepts memecoin launchType in config (expects API error since API is not local)', async () => {
+            const tmpConfig = path.join(os.tmpdir(), `test-launch-config-meme-${process.pid}.json`)
+            fs.writeFileSync(tmpConfig, JSON.stringify({
+                wallet: 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
+                token: { name: 'Meme', symbol: 'MEME', image: 'https://gateway.irys.xyz/abc' },
+                launchType: 'memecoin',
+                launch: {
+                    depositStartTime: futureIso(30 * 86400),
+                },
+            }))
+
+            try {
+                await runCli([
+                    'genesis', 'launch', 'register',
+                    '11111111111111111111111111111111',
+                    '--launchConfig', tmpConfig,
+                ])
+                expect.fail('Should have thrown an API error')
+            } catch (error) {
+                // Should get past validation and fail at the API call
                 const msg = (error as Error).message
                 expect(msg).to.contain('Failed')
             } finally {

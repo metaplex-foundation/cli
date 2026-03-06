@@ -63,9 +63,9 @@ provided as a JSON file via --launchConfig.`
 
       // Read launch config from JSON file
       const filePath = flags.launchConfig
-      let launchConfig: CreateLaunchInput
+      let parsed: unknown
       try {
-        launchConfig = readJsonSync(filePath) as CreateLaunchInput
+        parsed = readJsonSync(filePath)
       } catch (err) {
         if (err && typeof err === 'object' && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
           throw new Error(`Launch config file not found: ${filePath}`)
@@ -73,16 +73,42 @@ provided as a JSON file via --launchConfig.`
         throw err
       }
 
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('Launch config must be a JSON object')
+      }
+      const config = parsed as Record<string, unknown>
+
       // Validate required top-level fields
-      if (!launchConfig.token || typeof launchConfig.token !== 'object') {
+      if (!config.token || typeof config.token !== 'object' || Array.isArray(config.token)) {
         throw new Error('Launch config is missing required "token" object (must include name, symbol, image)')
       }
-      if (!launchConfig.launch || typeof launchConfig.launch !== 'object') {
-        throw new Error('Launch config is missing required "launch" object (must include launchpool config)')
+      const token = config.token as Record<string, unknown>
+      if (typeof token.name !== 'string' || typeof token.symbol !== 'string' || typeof token.image !== 'string') {
+        throw new Error('Launch config token must include string fields: "name", "symbol", "image"')
       }
-      if (launchConfig.launchType !== 'project') {
-        throw new Error(`Launch config "launchType" must be "project", got "${launchConfig.launchType}"`)
+      if (!config.launch || typeof config.launch !== 'object' || Array.isArray(config.launch)) {
+        throw new Error('Launch config is missing required "launch" object')
       }
+      if (config.launchType === undefined || config.launchType === null) {
+        config.launchType = 'project'
+      }
+      if (config.launchType !== 'project' && config.launchType !== 'memecoin') {
+        throw new Error(`Launch config "launchType" must be "project" or "memecoin", got "${config.launchType}"`)
+      }
+
+      // Validate required launch fields per type
+      const launch = config.launch as Record<string, unknown>
+      if (config.launchType === 'project') {
+        if (!launch.launchpool || typeof launch.launchpool !== 'object') {
+          throw new Error('Project launch config requires a "launch.launchpool" object')
+        }
+      } else {
+        if (!launch.depositStartTime) {
+          throw new Error('Memecoin launch config requires "launch.depositStartTime"')
+        }
+      }
+
+      const launchConfig = config as unknown as CreateLaunchInput
 
       // Override network if specified via flag
       launchConfig.network = network

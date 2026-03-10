@@ -27,7 +27,7 @@ export default class AssetTemplate extends BaseCommand<typeof AssetTemplate> {
     output: Args.string({ name: 'output', description: 'Output directory, if not provided, the current working directory will be used' }),
   }
 
-  public async run(): Promise<unknown> {
+  public async run(): Promise<Record<string, unknown>> {
     const { flags, args } = await this.parse(AssetTemplate)
     const { output } = args
 
@@ -64,6 +64,8 @@ export default class AssetTemplate extends BaseCommand<typeof AssetTemplate> {
 
     // this.log('Asset template folder created at:', directory + '/asset')
 
-    return
+    return {
+      directory: directory + '/asset',
+    }
   }
 }

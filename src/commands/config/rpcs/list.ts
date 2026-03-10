@@ -6,7 +6,7 @@ export default class ConfigRpcsListCommand extends Command {
 
   static override examples = ['<%= config.bin %> <%= command.id %> list']
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const {flags, args} = await this.parse(ConfigRpcsListCommand)
 
     const path = flags.config ?? getDefaultConfigPath()
@@ -18,6 +18,10 @@ export default class ConfigRpcsListCommand extends Command {
     } else {
       this.log('Installed RPCs:')
       console.table(config.rpcs)
+    }
+
+    return {
+      rpcs: config.rpcs ?? [],
     }
   }
 }

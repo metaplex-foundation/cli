@@ -22,7 +22,7 @@ export default class ConfigWalletAddCommand extends Command {
     '<%= config.bin %> <%= command.id %> dev-wallet /Users/dev/.solana/devnet.json',
   ]
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { flags, args } = await this.parse(ConfigWalletAddCommand)
 
     // Validate name (removed character limit for MCP compatibility)
@@ -79,5 +79,10 @@ export default class ConfigWalletAddCommand extends Command {
     writeJsonSync(path, config)
 
     this.log(`✅ Wallet '${args.name}' successfully added to configuration!\n   Address: ${signer.publicKey}\n   Path: ${args.path}\n\nUse 'mplx config wallets set ${args.name}' to make this your active wallet.`)
+
+    return {
+      name: args.name,
+      path: args.path,
+    }
   }
 }

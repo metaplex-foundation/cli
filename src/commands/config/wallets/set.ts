@@ -16,7 +16,7 @@ export default class ConfigWalletSetCommand extends Command {
     })
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
 
     const {flags, args} = await this.parse(ConfigWalletSetCommand)
 
@@ -26,7 +26,7 @@ export default class ConfigWalletSetCommand extends Command {
 
     if (!config.wallets || config.wallets.length === 0) {
       this.log('No wallets found')
-      return
+      return { name: null }
     }
 
     const availableWallets = config.wallets.map(wallet => ({
@@ -40,7 +40,7 @@ export default class ConfigWalletSetCommand extends Command {
     if (args.name) {
       // Find wallet by name
       selectedWallet = availableWallets.find(wallet => wallet.name === args.name)
-      
+
       if (!selectedWallet) {
         this.error(`Wallet with name "${args.name}" not found. Available wallets: ${availableWallets.map(w => w.name).join(', ')}`)
       }
@@ -56,5 +56,9 @@ export default class ConfigWalletSetCommand extends Command {
     writeJsonSync(path, config)
 
     this.log(`Selected wallet: ${selectedWallet.name} (${shortenAddress(selectedWallet.publicKey)})`)
+
+    return {
+      name: selectedWallet.name,
+    }
   }
 }

@@ -36,7 +36,7 @@ export default class CorePluginsGenerate extends BaseCommand<typeof CorePluginsG
     }),
   }
 
-  public async run(): Promise<unknown> {
+  public async run(): Promise<Record<string, unknown>> {
     const { flags } = await this.parse(CorePluginsGenerate)
 
     if (!flags.asset && !flags.collection) {
@@ -51,6 +51,8 @@ export default class CorePluginsGenerate extends BaseCommand<typeof CorePluginsG
 
     fs.writeFileSync(destination + '/plugins.json', JSON.stringify(mapPluginDataToArray(pluginData), null, 2))
 
-    return
+    return {
+      filePath: destination + '/plugins.json',
+    }
   }
 }

@@ -62,13 +62,13 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
     asset: Args.string({ name: 'asset', description: 'The asset ID to fetch' }),
   }
 
-  public async run() {
+  public async run(): Promise<Record<string, unknown>> {
     const { args, flags } = await this.parse(AssetFetch)
     const { umi } = this.context
 
     if (args.asset) {
       // fetch a single asset
-      await fetchCoreAsset(umi, args.asset, {
+      const result = await fetchCoreAsset(umi, args.asset, {
         download: flags.download,
         outputPath: flags.download ? flags.output : undefined,
         // Pass the flags directly to let fetch.ts handle the downloadAll logic
@@ -76,6 +76,20 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
         metadata: flags.download && flags.metadata,
         asset: flags.download && flags.asset,
       })
+
+      if (result && typeof result === 'object' && 'publicKey' in result) {
+        // Non-download mode: result is the fetched asset
+        const assetData = result as Record<string, unknown>
+        return {
+          ...assetData,
+          publicKey: String(assetData.publicKey),
+        }
+      }
+
+      return {
+        asset: args.asset,
+        outputPath: flags.output || process.cwd(),
+      }
     }
     // Commented out batch fetch functionality for now
     /*
@@ -95,5 +109,7 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
       await batchFetchCoreAssets(umi, assets, { outputDirectory: flags.output })
     }
     */
+
+    return {}
   }
 }

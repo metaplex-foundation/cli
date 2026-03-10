@@ -35,7 +35,7 @@ export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNe
 
     static args = {}
 
-    public async run() {
+    public async run(): Promise<Record<string, unknown>> {
         const { flags } = await this.parse(ConfigWalletsNew)
         const { umi } = this.context
 
@@ -53,7 +53,7 @@ export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNe
         }
 
         // Determine save path
-        const savePath = flags.hidden 
+        const savePath = flags.hidden
             ? dirname(getDefaultConfigPath())
             : normalize(flags.output ?? process.cwd())
 
@@ -66,7 +66,7 @@ export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNe
         const walletData = Array.from(wallet.secretKey)
 
         // Create filename with sanitized name if provided
-        const fileName = flags.name 
+        const fileName = flags.name
             ? `${flags.name}-${wallet.publicKey}.json`
             : `${wallet.publicKey}.json`
 
@@ -79,7 +79,7 @@ export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNe
         if (flags.name) {
             const configPath = flags.config ?? getDefaultConfigPath()
             const config = readConfig(configPath)
-            
+
             if (!config.wallets) {
                 config.wallets = []
             }
@@ -116,6 +116,12 @@ export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNe
             writeJsonSync(configPath, config)
 
             console.log(`Wallet ${shortenAddress(wallet.publicKey)} added to config.`)
+        }
+
+        return {
+            name: flags.name ?? null,
+            publicKey: wallet.publicKey.toString(),
+            path: filePath,
         }
     }
 }

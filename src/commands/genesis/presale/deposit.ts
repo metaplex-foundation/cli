@@ -50,7 +50,7 @@ Requirements:
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { args, flags } = await this.parse(PresaleDeposit)
     const spinner = ora('Processing presale deposit...').start()
 
@@ -131,6 +131,14 @@ Requirements:
       )
       this.log('')
       this.log('Use "mplx genesis presale claim" to claim your tokens after the claim period starts.')
+
+      return {
+        genesisAccount: genesisAddress.toString(),
+        bucket: bucketPda.toString(),
+        bucketIndex: flags.bucketIndex,
+        amount: flags.amount,
+        signature: txSignatureToString(result.transaction.signature as Uint8Array),
+      }
 
     } catch (error) {
       spinner.fail('Failed to deposit into presale')

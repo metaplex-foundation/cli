@@ -77,7 +77,7 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
     }),
   }
 
-  public async run(): Promise<unknown> {
+  public async run(): Promise<Record<string, unknown>> {
     const { args, flags } = await this.parse(AssetBurn)
 
     const { umi, explorer } = this.context
@@ -89,7 +89,7 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
 
       if (disabled) {
         this.log('Burning Assets from list coming soon')
-        return
+        return { message: 'Burning Assets from list coming soon' }
       }
 
       this.log('Burning assets from list')
@@ -154,6 +154,12 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
   Cache file: ${currentDirectory}/burn-cache.json
 --------------------------------`)
       }
+
+      return {
+        assetsBurned: cache.items.length,
+        totalAssets: assetsList.length,
+        cacheFile: `${currentDirectory}/burn-cache.json`,
+      }
     } else {
       // Burn single asset
       if (!args.asset) {
@@ -166,7 +172,7 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
       if (!burnTx) {
         transactionSpinner.fail('Failed to build transaction')
         this.error('Failed to build transaction')
-        return
+        return { error: 'Failed to build transaction' }
       }
 
       const result = await umiSendAndConfirmTransaction(umi, burnTx)
@@ -181,10 +187,15 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
   Asset burned: ${args.asset}
   Signature: ${signature}
 --------------------------------`)
+
+        return {
+          asset: args.asset,
+          signature,
+        }
       }
     }
 
-    return
+    return {}
   }
 }
 

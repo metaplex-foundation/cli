@@ -52,7 +52,7 @@ Requirements:
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { args, flags } = await this.parse(GenesisWithdraw)
     const spinner = ora('Processing withdrawal...').start()
 
@@ -145,6 +145,15 @@ Requirements:
           'transaction'
         )
       )
+
+      return {
+        genesisAccount: genesisAddress.toString(),
+        bucket: bucketPda.toString(),
+        bucketIndex: flags.bucketIndex,
+        depositPda: depositPda.toString(),
+        amount: flags.amount,
+        signature: txSignatureToString(result.transaction.signature as Uint8Array),
+      }
 
     } catch (error) {
       spinner.fail('Failed to withdraw')

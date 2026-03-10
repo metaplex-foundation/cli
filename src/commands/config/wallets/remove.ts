@@ -17,7 +17,7 @@ export default class ConfigWalletRemoveCommand extends Command {
     '<%= config.bin %> <%= command.id %> remove dev1',
   ]
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const {flags, args} = await this.parse(ConfigWalletRemoveCommand)
 
     const path = flags.config ?? getDefaultConfigPath()
@@ -39,6 +39,10 @@ export default class ConfigWalletRemoveCommand extends Command {
       const dir = dirname(path)
       ensureDirectoryExists(dir)
       writeJsonSync(path, config)
+    }
+
+    return {
+      name: args.name,
     }
   }
 }

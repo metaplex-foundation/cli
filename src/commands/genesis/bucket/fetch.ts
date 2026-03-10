@@ -59,7 +59,7 @@ Supports Launch Pool, Presale, and Unlocked bucket types.`
     })(),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { args, flags } = await this.parse(BucketFetch)
     const spinner = ora('Fetching bucket...').start()
 
@@ -78,11 +78,11 @@ Supports Launch Pool, Presale, and Unlocked bucket types.`
       spinner.text = 'Fetching bucket details...'
 
       if (flags.type === 'presale') {
-        await this.fetchPresaleBucket(genesisAddress, flags.bucketIndex, spinner)
+        return await this.fetchPresaleBucket(genesisAddress, flags.bucketIndex, spinner)
       } else if (flags.type === 'unlocked') {
-        await this.fetchUnlockedBucket(genesisAddress, flags.bucketIndex, spinner)
+        return await this.fetchUnlockedBucket(genesisAddress, flags.bucketIndex, spinner)
       } else {
-        await this.fetchLaunchPoolBucket(genesisAddress, flags.bucketIndex, spinner)
+        return await this.fetchLaunchPoolBucket(genesisAddress, flags.bucketIndex, spinner)
       }
 
     } catch (error) {
@@ -91,7 +91,7 @@ Supports Launch Pool, Presale, and Unlocked bucket types.`
     }
   }
 
-  private async fetchLaunchPoolBucket(genesisAddress: ReturnType<typeof publicKey>, bucketIndex: number, spinner: ReturnType<typeof ora>): Promise<void> {
+  private async fetchLaunchPoolBucket(genesisAddress: ReturnType<typeof publicKey>, bucketIndex: number, spinner: ReturnType<typeof ora>): Promise<Record<string, unknown>> {
     const [bucketPda] = findLaunchPoolBucketV2Pda(this.context.umi, {
       genesisAccount: genesisAddress,
       bucketIndex,
@@ -147,9 +147,31 @@ Supports Launch Pool, Presale, and Unlocked bucket types.`
         'account'
       )
     )
+
+    return {
+      type: 'launchPool',
+      address: bucketPda.toString(),
+      key: bucket.key,
+      keyType: KEY_TYPES[bucket.key] || 'Unknown',
+      genesis: bucket.bucket.genesis.toString(),
+      bucketIndex: bucket.bucket.bucketIndex,
+      baseTokenAllocation: bucket.bucket.baseTokenAllocation.toString(),
+      baseTokenBalance: bucket.bucket.baseTokenBalance.toString(),
+      depositCount: bucket.depositCount.toString(),
+      quoteTokenDepositTotal: bucket.quoteTokenDepositTotal.toString(),
+      weightedQuoteTokenTotal: bucket.weightedQuoteTokenTotal.toString(),
+      claimCount: bucket.claimCount.toString(),
+      depositStartCondition: formatCondition(bucket.depositStartCondition),
+      depositEndCondition: formatCondition(bucket.depositEndCondition),
+      claimStartCondition: formatCondition(bucket.claimStartCondition),
+      claimEndCondition: formatCondition(bucket.claimEndCondition),
+      depositFee: bucket.depositFee.toString(),
+      withdrawFee: bucket.withdrawFee.toString(),
+      claimFee: bucket.claimFee.toString(),
+    }
   }
 
-  private async fetchPresaleBucket(genesisAddress: ReturnType<typeof publicKey>, bucketIndex: number, spinner: ReturnType<typeof ora>): Promise<void> {
+  private async fetchPresaleBucket(genesisAddress: ReturnType<typeof publicKey>, bucketIndex: number, spinner: ReturnType<typeof ora>): Promise<Record<string, unknown>> {
     const [bucketPda] = findPresaleBucketV2Pda(this.context.umi, {
       genesisAccount: genesisAddress,
       bucketIndex,
@@ -204,9 +226,30 @@ Supports Launch Pool, Presale, and Unlocked bucket types.`
         'account'
       )
     )
+
+    return {
+      type: 'presale',
+      address: bucketPda.toString(),
+      key: bucket.key,
+      keyType: KEY_TYPES[bucket.key] || 'Unknown',
+      genesis: bucket.bucket.genesis.toString(),
+      bucketIndex: bucket.bucket.bucketIndex,
+      baseTokenAllocation: bucket.bucket.baseTokenAllocation.toString(),
+      baseTokenBalance: bucket.bucket.baseTokenBalance.toString(),
+      allocationQuoteTokenCap: bucket.allocationQuoteTokenCap.toString(),
+      depositCount: bucket.depositCount.toString(),
+      quoteTokenDepositTotal: bucket.quoteTokenDepositTotal.toString(),
+      claimCount: bucket.claimCount.toString(),
+      depositStartCondition: formatCondition(bucket.depositStartCondition),
+      depositEndCondition: formatCondition(bucket.depositEndCondition),
+      claimStartCondition: formatCondition(bucket.claimStartCondition),
+      claimEndCondition: formatCondition(bucket.claimEndCondition),
+      depositFee: bucket.depositFee.toString(),
+      claimFee: bucket.claimFee.toString(),
+    }
   }
 
-  private async fetchUnlockedBucket(genesisAddress: ReturnType<typeof publicKey>, bucketIndex: number, spinner: ReturnType<typeof ora>): Promise<void> {
+  private async fetchUnlockedBucket(genesisAddress: ReturnType<typeof publicKey>, bucketIndex: number, spinner: ReturnType<typeof ora>): Promise<Record<string, unknown>> {
     const [bucketPda] = findUnlockedBucketV2Pda(this.context.umi, {
       genesisAccount: genesisAddress,
       bucketIndex,
@@ -251,5 +294,20 @@ Supports Launch Pool, Presale, and Unlocked bucket types.`
         'account'
       )
     )
+
+    return {
+      type: 'unlocked',
+      address: bucketPda.toString(),
+      key: bucket.key,
+      keyType: KEY_TYPES[bucket.key] || 'Unknown',
+      genesis: bucket.bucket.genesis.toString(),
+      bucketIndex: bucket.bucket.bucketIndex,
+      baseTokenAllocation: bucket.bucket.baseTokenAllocation.toString(),
+      baseTokenBalance: bucket.bucket.baseTokenBalance.toString(),
+      recipient: bucket.recipient.toString(),
+      claimed: bucket.claimed,
+      claimStartCondition: formatCondition(bucket.claimStartCondition),
+      claimEndCondition: formatCondition(bucket.claimEndCondition),
+    }
   }
 }

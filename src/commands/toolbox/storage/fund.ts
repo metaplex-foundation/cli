@@ -17,7 +17,7 @@ export default class ToolboxStorageFund extends TransactionCommand<typeof Toolbo
         amount: Args.string({ description: 'Amount to fund the storage account', required: true }),
     }
 
-    public async run() {
+    public async run(): Promise<Record<string, unknown>> {
         const { args, flags } = await this.parse(ToolboxStorageFund)
 
         const { umi, } = this.context
@@ -33,6 +33,10 @@ export default class ToolboxStorageFund extends TransactionCommand<typeof Toolbo
 
         fundingSpinner.succeed(`Storage account funded new balance: ${balance.basisPoints}`)
 
-        return
+        return {
+            newBalanceBasisPoints: balance.basisPoints.toString(),
+            newBalanceIdentifier: balance.identifier,
+            newBalanceDecimals: balance.decimals,
+        }
     }
 }

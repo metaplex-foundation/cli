@@ -230,18 +230,18 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 --------------------------------`
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { flags } = await this.parse(AssetCreate)
     const { umi, explorer } = this.context
 
     if (flags.wizard) {
       this.log(
         `--------------------------------
-    
+
     Welcome to the Asset Creator Wizard!
 
-    This wizard will guide you through the process of creating a new asset.                
-                
+    This wizard will guide you through the process of creating a new asset.
+
 --------------------------------`
       )
 
@@ -267,6 +267,15 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
       spinner.succeed('Asset created successfully')
       this.log(this.formatAssetResult(result, explorer))
+
+      return {
+        asset: result.asset,
+        signature: result.signature,
+        name: wizardData.name,
+        uri: jsonUri,
+        collection: wizardData.collection,
+        owner: flags.owner,
+      }
     } else if (flags.files) {
       if (!flags.image || !flags.json) {
         this.error('You must provide an image --image and JSON --json file')
@@ -274,6 +283,13 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
       const result = await this.handleFileBasedCreation(umi, flags.image, flags.json, flags.collection, flags.owner)
       this.log(this.formatAssetResult(result, explorer))
+
+      return {
+        asset: result.asset,
+        signature: result.signature,
+        collection: flags.collection,
+        owner: flags.owner,
+      }
     } else {
       // Create asset from name and uri flags
       if (!flags.name) {
@@ -301,6 +317,15 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
       spinner.succeed('Asset created successfully')
       this.log(this.formatAssetResult(result, explorer))
+
+      return {
+        asset: result.asset,
+        signature: result.signature,
+        name: flags.name,
+        uri: flags.uri,
+        collection: flags.collection,
+        owner: flags.owner,
+      }
     }
   }
 }

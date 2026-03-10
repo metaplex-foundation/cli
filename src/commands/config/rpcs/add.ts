@@ -22,7 +22,7 @@ export default class ConfigRPCAddCommand extends Command {
     '<%= config.bin %> <%= command.id %> remove dev1',
   ]
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const {flags, args} = await this.parse(ConfigRPCAddCommand)
 
     // Validate name (removed character limit for MCP compatibility)
@@ -59,5 +59,10 @@ export default class ConfigRPCAddCommand extends Command {
     writeJsonSync(path, config)
 
     this.log(`RPC ${''} added to config.`)
+
+    return {
+      name: args.name,
+      url: args.endpoint,
+    }
   }
 }

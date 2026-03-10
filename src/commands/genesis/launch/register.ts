@@ -52,7 +52,7 @@ provided as a JSON file via --launchConfig.`
 
   static override usage = 'genesis launch register <GENESIS_ACCOUNT> [FLAGS]'
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { args, flags } = await this.parse(GenesisLaunchRegister)
 
     const spinner = ora('Registering genesis account...').start()
@@ -138,6 +138,14 @@ provided as a JSON file via --launchConfig.`
       this.log(`Launch Link: ${result.launch.link}`)
       this.log(`Token ID: ${result.token.id}`)
       this.log(`Mint Address: ${result.token.mintAddress}`)
+
+      return {
+        launchId: result.launch.id,
+        launchLink: result.launch.link,
+        tokenId: result.token.id,
+        mintAddress: result.token.mintAddress,
+        existing: result.existing,
+      }
     } catch (error) {
       spinner.fail('Failed to register genesis account')
       if (error && typeof error === 'object' && 'responseBody' in error) {

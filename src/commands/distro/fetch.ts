@@ -31,7 +31,7 @@ You can use this to check the status, configuration, and details of any distribu
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const {args} = await this.parse(ResizeFetch)
     const spinner = ora('Fetching distribution...').start()
 
@@ -92,6 +92,31 @@ You can use this to check the status, configuration, and details of any distribu
           'account',
         ),
       )
+
+      return {
+        address: distributionAddress.toString(),
+        name: distribution.name,
+        authority: distribution.authority.toString(),
+        mint: distribution.mint.toString(),
+        totalClaimants: distribution.totalClaimants.toString(),
+        treeHeight: distribution.treeHeight,
+        distributionType: distributionType,
+        allowedDistributor: allowedDistributor,
+        totalAmount: distribution.totalAmount.toString(),
+        claimAmount: distribution.claimAmount.toString(),
+        claimCount: distribution.claimCount.toString(),
+        subsidizeReceipts: distribution.subsidizeReceipts,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        status,
+        merkleRoot: base58.deserialize(distribution.merkleRoot)[0],
+        explorer: generateExplorerUrl(
+          this.context.explorer,
+          this.context.chain,
+          distributionAddress,
+          'account',
+        ),
+      }
     } catch (error) {
       spinner.fail('Failed to fetch distribution')
       if (error instanceof Error && error.message.includes('Account does not exist')) {

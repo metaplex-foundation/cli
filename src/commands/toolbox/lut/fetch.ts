@@ -76,7 +76,7 @@ export default class ToolboxLutFetch extends BaseCommand<typeof ToolboxLutFetch>
         }
     }
 
-    public async run() {
+    public async run(): Promise<Record<string, unknown>> {
         const { args, flags } = await this.parse(ToolboxLutFetch)
         const { umi } = this.context
 
@@ -120,6 +120,15 @@ export default class ToolboxLutFetch extends BaseCommand<typeof ToolboxLutFetch>
                     lut.lastExtendedSlot,
                     flags.verbose
                 ))
+            }
+
+            return {
+                address: lutAddress.toString(),
+                authority: authorityStr,
+                addresses: addressStrings,
+                deactivationSlot: lut.deactivationSlot.toString(),
+                lastExtendedSlot: lut.lastExtendedSlot.toString(),
+                totalAddresses: addressStrings.length,
             }
 
         } catch (error) {

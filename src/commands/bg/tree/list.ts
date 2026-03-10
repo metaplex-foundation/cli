@@ -18,7 +18,7 @@ export default class BgTreeListCommand extends Command {
     })
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { flags } = await this.parse(BgTreeListCommand)
 
     const trees = listTrees(flags.network as 'mainnet' | 'devnet' | 'testnet' | 'localnet')
@@ -29,7 +29,7 @@ export default class BgTreeListCommand extends Command {
       } else {
         this.log('No trees found. Create one with: mplx bg create --wizard')
       }
-      return
+      return { trees: [] }
     }
 
     this.log(`\nSaved Trees${flags.network ? ` (${flags.network})` : ''}:`)
@@ -50,6 +50,17 @@ export default class BgTreeListCommand extends Command {
     
     if (!flags.network) {
       this.log('\nTip: Use --network flag to filter by specific network')
+    }
+
+    return {
+      trees: trees.map(tree => ({
+        name: tree.name,
+        address: tree.address,
+        network: tree.network,
+        maxNfts: tree.maxNfts.toString(),
+        isPublic: tree.isPublic,
+        createdAt: tree.createdAt,
+      })),
     }
   }
 }

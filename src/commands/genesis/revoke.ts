@@ -49,7 +49,7 @@ Options:
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { args, flags } = await this.parse(GenesisRevoke)
 
     if (!flags.revokeMint && !flags.revokeFreeze) {
@@ -107,6 +107,14 @@ Options:
       )
       this.log('')
       this.log('WARNING: This action is irreversible. The revoked authorities cannot be restored.')
+
+      return {
+        genesisAccount: genesisAddress.toString(),
+        baseMint: genesisAccount.baseMint.toString(),
+        revokeMintAuthority: flags.revokeMint,
+        revokeFreezeAuthority: flags.revokeFreeze,
+        signature: txSignatureToString(result.transaction.signature as Uint8Array),
+      }
 
     } catch (error) {
       spinner.fail('Failed to revoke authorities')

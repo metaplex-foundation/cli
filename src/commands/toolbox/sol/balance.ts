@@ -36,7 +36,7 @@ export default class ToolboxSolBalance extends TransactionCommand<typeof Toolbox
         };
     }
 
-    public async run() {
+    public async run(): Promise<Record<string, unknown>> {
         const { args } = await this.parse(ToolboxSolBalance)
         const { umi } = this.context
 
@@ -51,6 +51,12 @@ export default class ToolboxSolBalance extends TransactionCommand<typeof Toolbox
                 targetAddress.toString(),
                 balanceNumber
             ))
+
+            return {
+                address: targetAddress.toString(),
+                balanceSol: balanceNumber,
+                balanceLamports: balance.basisPoints.toString(),
+            }
         } catch (err) {
             if (err instanceof Error) {
                 throw new Error(`Failed to check balance: ${err.message}`)

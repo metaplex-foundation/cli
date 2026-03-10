@@ -66,7 +66,7 @@ export default class ToolboxLutCreate extends TransactionCommand<typeof ToolboxL
         }
     }
 
-    public async run() {
+    public async run(): Promise<Record<string, unknown>> {
         const { args, flags } = await this.parse(ToolboxLutCreate)
         const { umi } = this.context
 
@@ -116,10 +116,12 @@ export default class ToolboxLutCreate extends TransactionCommand<typeof ToolboxL
             )
 
             spinner.succeed('Address Lookup Table created successfully!')
-            
+
+            const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+
             this.logSuccess(SUCCESS_MESSAGE(
                 lutPda[0].toString(),
-                txSignatureToString(result.transaction.signature as Uint8Array)
+                signature
             ))
 
             // If addresses were added, show them
@@ -128,6 +130,12 @@ export default class ToolboxLutCreate extends TransactionCommand<typeof ToolboxL
                 addresses.forEach((addr, index) => {
                     this.log(`  ${index + 1}. ${addr}`)
                 })
+            }
+
+            return {
+                address: lutPda[0].toString(),
+                signature,
+                addresses,
             }
 
         } catch (error) {

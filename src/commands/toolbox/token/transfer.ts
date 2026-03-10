@@ -29,7 +29,7 @@ export default class ToolboxTokenTransfer extends TransactionCommand<typeof Tool
     }
 
 
-    public async run() {
+    public async run(): Promise<Record<string, unknown>> {
         const { args, flags } = await this.parse(ToolboxTokenTransfer)
 
         const { umi } = this.context
@@ -38,9 +38,9 @@ export default class ToolboxTokenTransfer extends TransactionCommand<typeof Tool
 
         this.logSuccess(
             `--------------------------------
-    
-    Token Transfer         
-                
+
+    Token Transfer
+
 --------------------------------`
         )
 
@@ -66,12 +66,21 @@ export default class ToolboxTokenTransfer extends TransactionCommand<typeof Tool
             })
         transferSpinner.succeed('Tokens Transferred Successfully!')
 
+        const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+
         this.logSuccess(
             `--------------------------------
     'Tokens Transferred Successfully!'
-    Signature: ${txSignatureToString(result.transaction.signature as Uint8Array)}
+    Signature: ${signature}
 --------------------------------`
         )
+
+        return {
+            mint: args.mintAddress,
+            destination: args.destination,
+            amount: args.amount,
+            signature,
+        }
 
     }
 

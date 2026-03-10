@@ -21,7 +21,7 @@ export default class ToolboxStorageWithdraw extends TransactionCommand<typeof To
         all: Flags.boolean({ description: 'Withdraw all funds from the storage account', required: false }),
     }
 
-    public async run() {
+    public async run(): Promise<Record<string, unknown>> {
         const { args, flags } = await this.parse(ToolboxStorageWithdraw)
 
         const { umi, } = this.context
@@ -55,10 +55,14 @@ export default class ToolboxStorageWithdraw extends TransactionCommand<typeof To
             const newBalance = await storageProvider.getBalance()
             withdrawSpinner.succeed(`Funds withdrawn from storage account. New balance: ${newBalance.basisPoints}`)
 
+            return {
+                newBalanceBasisPoints: newBalance.basisPoints.toString(),
+                newBalanceIdentifier: newBalance.identifier,
+                newBalanceDecimals: newBalance.decimals,
+            }
+
         } catch (error) {
             this.error(`Withdrawal failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }
-
-        return
     }
 }

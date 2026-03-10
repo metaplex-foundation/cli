@@ -82,11 +82,11 @@ const fetchCoreAsset = async (umi: Umi, asset: string, options: FetchCoreAssetDo
   try {
     // Fetch the Asset
     const fetchedAsset = await fetchAsset(umi, publicKey(asset));
-    
+
     // If not in download mode, just display the asset info
     if (!options.download) {
       console.log(util.inspect(fetchedAsset, false, null, true));
-      return;
+      return fetchedAsset;
     }
 
     const fetchSpinner = ora('Downloading Asset data...').start();

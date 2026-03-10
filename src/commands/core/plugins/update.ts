@@ -29,7 +29,7 @@ export default class CorePluginsUpdate extends BaseCommand<typeof CorePluginsUpd
         json: Args.file({ description: 'path to a plugin data JSON file', required: false }),
     }
 
-    public async run() {
+    public async run(): Promise<Record<string, unknown>> {
         const { args, flags } = await this.parse(CorePluginsUpdate)
 
         // Fetch current asset or collection to validate it exists
@@ -76,11 +76,17 @@ export default class CorePluginsUpdate extends BaseCommand<typeof CorePluginsUpd
             console.log(wizardPluginData)
 
             const pluginsArray = Object.values(wizardPluginData) as (UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin)[]
-            await this.updatePluginsBatch(args.id, pluginsArray, {
+            const result = await this.updatePluginsBatch(args.id, pluginsArray, {
                 isCollection: flags.collection,
                 collectionId
             })
-            return
+
+            return {
+                address: args.id,
+                isCollection: flags.collection,
+                pluginsUpdated: pluginsArray.length,
+                ...result,
+            }
         }
 
         if (args.json) {
@@ -94,18 +100,24 @@ export default class CorePluginsUpdate extends BaseCommand<typeof CorePluginsUpd
                 throw new Error('Plugin data array is empty')
             }
 
-            await this.updatePluginsBatch(args.id, jsonData as (UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin)[], {
+            const result = await this.updatePluginsBatch(args.id, jsonData as (UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin)[], {
                 isCollection: flags.collection,
                 collectionId
             })
-            return
+
+            return {
+                address: args.id,
+                isCollection: flags.collection,
+                pluginsUpdated: jsonData.length,
+                ...result,
+            }
         }
 
         throw new Error('Either --wizard flag or JSON file argument is required')
     }
 
 
-    private async updatePluginsBatch(assetOrCollection: string, pluginsData: (UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin)[], options: { isCollection: boolean, collectionId?: string }) {
+    private async updatePluginsBatch(assetOrCollection: string, pluginsData: (UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin)[], options: { isCollection: boolean, collectionId?: string }): Promise<Record<string, unknown>> {
         const { umi, explorer } = this.context
         const { isCollection, collectionId } = options
 
@@ -154,7 +166,10 @@ Core Explorer: https://core.metaplex.com/explorer/${assetOrCollection}
 --------------------------------`
             )
 
-            return results[0]
+            return {
+                signatures,
+                transactionCount: transactions.length,
+            }
         } catch (error: unknown) {
             transactionSpinner.fail(`Failed to update plugins: ${error instanceof Error ? error.message : 'Unknown error'}`)
             throw error

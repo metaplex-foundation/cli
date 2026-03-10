@@ -9,7 +9,7 @@ import { ensureDirectoryExists, writeJsonSync } from '../../../lib/file.js'
 export default class ConfigStorageSet extends Command {
     static override description = 'Set a new active storage provider from a list of storage providers'
 
-    public async run(): Promise<void> {
+    public async run(): Promise<Record<string, unknown>> {
         const { flags, args } = await this.parse(ConfigStorageSet)
         const path = flags.config ?? getDefaultConfigPath()
 
@@ -18,7 +18,6 @@ export default class ConfigStorageSet extends Command {
             config = readConfig(path)
         } catch (error) {
             this.error(`Failed to read config file at ${path}: ${error instanceof Error ? error.message : 'Unknown error'}`)
-            return
         }
 
         const storageProvidersList = Object.values(storageProviders)
@@ -43,6 +42,10 @@ export default class ConfigStorageSet extends Command {
             this.log(`Configuration updated: ${path}`)
         } catch (error) {
             this.error(`Failed to write config file at ${path}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        }
+
+        return {
+            storage: selectedStorage,
         }
     }
 }

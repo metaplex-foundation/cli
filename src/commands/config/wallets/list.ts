@@ -6,7 +6,7 @@ export default class ConfigWalletListCommand extends Command {
 
   static override examples = ['<%= config.bin %> <%= command.id %> list']
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const {flags, args} = await this.parse(ConfigWalletListCommand)
 
     const path = flags.config ?? getDefaultConfigPath()
@@ -18,6 +18,10 @@ export default class ConfigWalletListCommand extends Command {
     } else {
       this.log('Installed Wallets:')
       console.table(config.wallets)
+    }
+
+    return {
+      wallets: config.wallets ?? [],
     }
   }
 }

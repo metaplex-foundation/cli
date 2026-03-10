@@ -31,7 +31,7 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
 
 
 
-    public async run() {
+    public async run(): Promise<Record<string, unknown>> {
         const { args, flags } = await this.parse(CorePluginsAdd)
 
         // Auto-detect collection ID if this is an asset operation
@@ -64,11 +64,17 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
             console.log(wizardPluginData)
 
             const pluginsArray = Object.values(wizardPluginData) as (AddPluginArgsPlugin | AddCollectionPluginArgsPlugin)[]
-            await this.addPluginsBatch(args.id, pluginsArray, {
+            const result = await this.addPluginsBatch(args.id, pluginsArray, {
                 isCollection: flags.collection,
                 collectionId
             })
-            return
+
+            return {
+                address: args.id,
+                isCollection: flags.collection,
+                pluginsAdded: pluginsArray.length,
+                ...result,
+            }
         }
 
         if (args.json) {
@@ -82,18 +88,24 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
                 throw new Error('Plugin data array is empty')
             }
 
-            await this.addPluginsBatch(args.id, jsonData as (AddPluginArgsPlugin | AddCollectionPluginArgsPlugin)[], {
+            const result = await this.addPluginsBatch(args.id, jsonData as (AddPluginArgsPlugin | AddCollectionPluginArgsPlugin)[], {
                 isCollection: flags.collection,
                 collectionId
             })
-            return
+
+            return {
+                address: args.id,
+                isCollection: flags.collection,
+                pluginsAdded: jsonData.length,
+                ...result,
+            }
         }
 
         throw new Error('Either --wizard flag or JSON file argument is required')
     }
 
 
-    private async addPluginsBatch(asset: string, pluginsData: (AddPluginArgsPlugin | AddCollectionPluginArgsPlugin)[], options: { isCollection: boolean, collectionId?: string }) {
+    private async addPluginsBatch(asset: string, pluginsData: (AddPluginArgsPlugin | AddCollectionPluginArgsPlugin)[], options: { isCollection: boolean, collectionId?: string }): Promise<Record<string, unknown>> {
         const { umi, explorer } = this.context
         const { isCollection, collectionId } = options
 
@@ -140,7 +152,10 @@ Core Explorer: https://core.metaplex.com/explorer/${asset}
 --------------------------------`
             )
 
-            return results[0]
+            return {
+                signatures,
+                transactionCount: transactions.length,
+            }
         } catch (error: unknown) {
             transactionSpinner.fail(`Failed to add plugins: ${error instanceof Error ? error.message : 'Unknown error'}`)
             throw error

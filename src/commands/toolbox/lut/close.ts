@@ -58,7 +58,7 @@ export default class ToolboxLutClose extends TransactionCommand<typeof ToolboxLu
         }
     }
 
-    public async run() {
+    public async run(): Promise<Record<string, unknown>> {
         const { args, flags } = await this.parse(ToolboxLutClose)
         const { umi } = this.context
 
@@ -70,10 +70,10 @@ export default class ToolboxLutClose extends TransactionCommand<typeof ToolboxLu
 
         // Fetch LUT to check its status
         const spinner = ora('Fetching Address Lookup Table...').start()
-        
+
         try {
             const lut = await safeFetchAddressLookupTable(umi, lutAddress)
-            
+
             if (!lut) {
                 spinner.fail('Address Lookup Table not found')
                 throw new Error(`No Address Lookup Table found at address: ${args.address}`)
@@ -82,10 +82,10 @@ export default class ToolboxLutClose extends TransactionCommand<typeof ToolboxLu
             // Check authority
             if (isSome(lut.authority)) {
                 const lutAuthority = lut.authority.value.toString()
-                const expectedAuthority = flags.authority ? 
-                    publicKey(flags.authority).toString() : 
+                const expectedAuthority = flags.authority ?
+                    publicKey(flags.authority).toString() :
                     umi.identity.publicKey.toString()
-                
+
                 if (lutAuthority !== expectedAuthority) {
                     spinner.fail('Authority mismatch')
                     throw new Error(`You are not the authority of this LUT. Authority: ${lutAuthority}`)
@@ -104,7 +104,7 @@ export default class ToolboxLutClose extends TransactionCommand<typeof ToolboxLu
             // Check if enough time has passed (512 slots)
             const currentSlot = await umi.rpc.getSlot()
             const slotsSinceDeactivation = Number(currentSlot) - Number(lut.deactivationSlot)
-            
+
             if (slotsSinceDeactivation < 512) {
                 const remainingSlots = 512 - slotsSinceDeactivation
                 spinner.fail('Too early to close')
@@ -121,7 +121,7 @@ export default class ToolboxLutClose extends TransactionCommand<typeof ToolboxLu
 
             // Build and send close transaction
             const closeSpinner = ora('Closing Address Lookup Table...').start()
-            
+
             const recipient = flags.recipient ? publicKey(flags.recipient) : umi.identity.publicKey
 
             const tx = closeLut(umi, {
@@ -137,13 +137,21 @@ export default class ToolboxLutClose extends TransactionCommand<typeof ToolboxLu
             )
 
             closeSpinner.succeed('Address Lookup Table closed successfully!')
-            
+
+            const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+
             this.logSuccess(SUCCESS_MESSAGE(
                 lutAddress.toString(),
-                txSignatureToString(result.transaction.signature as Uint8Array)
+                signature
             ))
 
             this.log(`\nRent reclaimed to: ${recipient.toString()}`)
+
+            return {
+                address: lutAddress.toString(),
+                recipient: recipient.toString(),
+                signature,
+            }
 
         } catch (error) {
             if (!spinner.isSpinning) {

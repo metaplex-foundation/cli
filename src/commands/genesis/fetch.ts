@@ -29,7 +29,7 @@ Use this to check the status, configuration, and details of any Genesis launch.`
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { args } = await this.parse(GenesisFetch)
     const spinner = ora('Fetching Genesis account...').start()
 
@@ -78,6 +78,25 @@ Use this to check the status, configuration, and details of any Genesis launch.`
           'account'
         )
       )
+
+      return {
+        address: genesisAddress.toString(),
+        key: genesisAccount.key,
+        keyType: KEY_TYPES[genesisAccount.key] || 'Unknown',
+        authority: genesisAccount.authority.toString(),
+        baseMint: genesisAccount.baseMint.toString(),
+        quoteMint: genesisAccount.quoteMint.toString(),
+        finalized: genesisAccount.finalized,
+        index: genesisAccount.index,
+        bucketCount: genesisAccount.bucketCount,
+        totalSupplyBaseToken: genesisAccount.totalSupplyBaseToken.toString(),
+        totalAllocatedSupplyBaseToken: genesisAccount.totalAllocatedSupplyBaseToken.toString(),
+        unallocatedSupply: (genesisAccount.totalSupplyBaseToken - genesisAccount.totalAllocatedSupplyBaseToken).toString(),
+        totalProceedsQuoteToken: genesisAccount.totalProceedsQuoteToken.toString(),
+        fundingMode: genesisAccount.fundingMode,
+        fundingModeLabel: FUNDING_MODES[genesisAccount.fundingMode] || `Unknown (${genesisAccount.fundingMode})`,
+        bump: genesisAccount.bump,
+      }
     } catch (error) {
       spinner.fail('Failed to fetch Genesis account')
       if (error instanceof Error && error.message.includes('Account does not exist')) {

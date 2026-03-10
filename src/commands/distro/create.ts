@@ -106,7 +106,7 @@ You can either provide all required flags individually or use a distro config JS
 
   static override usage = 'distro create [FLAGS]'
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { flags } = await this.parse(DistroCreate)
 
     if (flags.wizard) {
@@ -129,6 +129,16 @@ You can either provide all required flags individually or use a distro config JS
         spinner.succeed('Distribution created successfully!')
         this.displayDistributionResults(distributionResult)
 
+        return {
+          distributionPda: distributionResult.distributionPda.toString(),
+          name: distributionResult.config.name,
+          mint: distributionResult.mint.toString(),
+          totalClaimants: distributionResult.totalClaimants.toString(),
+          distributionType: distributionResult.distributionType === DistributionType.Wallet ? 'Wallet' : 'Legacy NFT',
+          startTime: distributionResult.startTime.toString(),
+          endTime: distributionResult.endTime.toString(),
+          signature: txSignatureToString(distributionResult.result.transaction.signature as Uint8Array),
+        }
       } catch (error) {
         spinner.fail('Failed to create distribution')
         throw error
@@ -172,6 +182,16 @@ You can either provide all required flags individually or use a distro config JS
         spinner.succeed('Distribution created successfully!')
         this.displayDistributionResults(distributionResult)
 
+        return {
+          distributionPda: distributionResult.distributionPda.toString(),
+          name: distributionResult.config.name,
+          mint: distributionResult.mint.toString(),
+          totalClaimants: distributionResult.totalClaimants.toString(),
+          distributionType: distributionResult.distributionType === DistributionType.Wallet ? 'Wallet' : 'Legacy NFT',
+          startTime: distributionResult.startTime.toString(),
+          endTime: distributionResult.endTime.toString(),
+          signature: txSignatureToString(distributionResult.result.transaction.signature as Uint8Array),
+        }
       } catch (error) {
         spinner.fail('Failed to create distribution')
         throw error

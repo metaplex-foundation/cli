@@ -111,7 +111,7 @@ Use Unix timestamps for absolute times.`
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { args, flags } = await this.parse(AddLaunchPool)
     const spinner = ora('Adding launch pool bucket...').start()
 
@@ -369,7 +369,31 @@ Use Unix timestamps for absolute times.`
 
       if (extensionsError || behaviorsError) {
         process.exitCode = 1
-        return
+        return {
+          genesisAccount: genesisAddress.toString(),
+          bucketAddress: bucketPda.toString(),
+          bucketIndex,
+          allocation: flags.allocation,
+          signature: txSignatureToString(result.transaction.signature as Uint8Array),
+          extensionsSignature,
+          behaviorsSignature,
+          extensionsError: extensionsError instanceof Error ? extensionsError.message : String(extensionsError ?? ''),
+          behaviorsError: behaviorsError instanceof Error ? behaviorsError.message : String(behaviorsError ?? ''),
+        }
+      }
+
+      return {
+        genesisAccount: genesisAddress.toString(),
+        bucketAddress: bucketPda.toString(),
+        bucketIndex,
+        allocation: flags.allocation,
+        depositStart: flags.depositStart,
+        depositEnd: flags.depositEnd,
+        claimStart: flags.claimStart,
+        claimEnd: flags.claimEnd,
+        signature: txSignatureToString(result.transaction.signature as Uint8Array),
+        extensionsSignature,
+        behaviorsSignature,
       }
 
     } catch (error) {

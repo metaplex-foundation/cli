@@ -51,7 +51,7 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
     assetId: Args.string({ name: 'Asset ID', description: 'Asset to update', required: true }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { args, flags } = await this.parse(AssetUpdate)
     const umi = this.context.umi
     const assetId = args.assetId
@@ -74,7 +74,12 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
       // use the new uri name
       const assetName = name || asset.name
 
-      await this.updateAsset(umi, asset, assetName, uri)
+      const signature = await this.updateAsset(umi, asset, assetName, uri)
+
+      return {
+        asset: assetId,
+        signature,
+      }
     } else {
       // name, image, and json flags require modification of the original metadata and a new metadata upload.
 
@@ -111,7 +116,12 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
 
       const metadataUri = await this.uploadJson(umi, metadata)
 
-      await this.updateAsset(umi, asset, updatedName, metadataUri)
+      const signature = await this.updateAsset(umi, asset, updatedName, metadataUri)
+
+      return {
+        asset: assetId,
+        signature,
+      }
     }
   }
 
@@ -181,7 +191,7 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
     }
   }
 
-  private async updateAsset(umi: Umi, asset: AssetV1, name: string, uri: string): Promise<void> {
+  private async updateAsset(umi: Umi, asset: AssetV1, name: string, uri: string): Promise<string> {
     const spinner = ora('Updating Asset on-chain...').start()
     try {
       let collection
@@ -191,6 +201,7 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
       const tx = await update(umi, { asset, collection, name, uri }).sendAndConfirm(umi)
       const txStr = txSignatureToString(tx.signature)
       spinner.succeed(`Asset updated: ${asset.publicKey} (Tx: ${txStr})`)
+      return txStr
     } catch (error) {
       spinner.fail('Asset update failed')
       throw error

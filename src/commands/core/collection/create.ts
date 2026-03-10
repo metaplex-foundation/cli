@@ -103,7 +103,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
     return undefined
   }
 
-  private async handleFileBasedCreation(umi: Umi, imagePath: string, jsonPath: string, explorer: ExplorerType) {
+  private async handleFileBasedCreation(umi: Umi, imagePath: string, jsonPath: string, explorer: ExplorerType): Promise<Record<string, unknown>> {
     const imageSpinner = ora('Uploading image...').start()
     const imageResult = await uploadFile(umi, imagePath).catch((err) => {
       imageSpinner.fail(`Failed to upload image. ${err}`)
@@ -119,7 +119,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
     }
 
     jsonFile.image = imageResult.uri
-    
+
     // Initialize properties and files if they don't exist
     if (!jsonFile.properties || typeof jsonFile.properties !== 'object') {
       jsonFile.properties = {}
@@ -127,7 +127,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
     if (!Array.isArray(jsonFile.properties.files)) {
       jsonFile.properties.files = []
     }
-    
+
     jsonFile.properties.files[0] = {
       uri: imageResult.uri,
       type: imageResult.mimeType,
@@ -144,23 +144,29 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
     const spinner = ora('Creating Collection...').start()
     const collection = generateSigner(umi)
 
-    await createCollection(umi, {
+    const tx = await createCollection(umi, {
       collection,
       name: collectionName,
       uri: metadataUri,
       plugins: pluginData ? mapPluginDataToArray(pluginData) : undefined,
     })
       .sendAndConfirm(umi)
-      .then(async (tx) => {
-        const txStr = txSignatureToString(tx.signature)
-        spinner.succeed('Collection created successfully')
-        const result = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
-        console.log(result)
-      })
       .catch((error) => {
         spinner.fail(`Error creating Collection: ${error}`)
         throw error
       })
+
+    const txStr = txSignatureToString(tx.signature)
+    spinner.succeed('Collection created successfully')
+    const resultStr = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
+    console.log(resultStr)
+
+    return {
+      collection: collection.publicKey.toString(),
+      signature: txStr,
+      name: collectionName,
+      uri: metadataUri,
+    }
   }
 
   private async createAndUploadMetadata(umi: Umi, wizard: CreateAssetPromptResult) {
@@ -209,18 +215,18 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
 --------------------------------`
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { flags } = await this.parse(CoreCollectionCreate)
     const { umi, explorer } = this.context
 
     if (flags.wizard) {
       console.log(
         `--------------------------------
-    
+
     Welcome to the Collection Creator Wizard!
 
-    This wizard will guide you through the process of creating a new collection.                
-                
+    This wizard will guide you through the process of creating a new collection.
+
 --------------------------------`
       )
 
@@ -230,29 +236,36 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       const spinner = ora('Creating Collection...').start()
       const collection = generateSigner(umi)
 
-      await createCollection(umi, {
+      const tx = await createCollection(umi, {
         collection,
         name: collectionName,
         uri: metadataUri,
         plugins: wizardData.plugins ? mapPluginDataToArray(wizardData.plugins) : undefined,
       })
         .sendAndConfirm(umi)
-        .then(async (tx) => {
-          const txStr = txSignatureToString(tx.signature)
-          spinner.succeed('Collection created successfully')
-          const result = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
-          console.log(result)
-        })
         .catch((error) => {
           spinner.fail(`Error creating Collection: ${error}`)
           throw error
         })
+
+      const txStr = txSignatureToString(tx.signature)
+      spinner.succeed('Collection created successfully')
+      const resultStr = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
+      console.log(resultStr)
+
+      return {
+        collection: collection.publicKey.toString(),
+        signature: txStr,
+        name: collectionName,
+        uri: metadataUri,
+      }
     } else if (flags.files) {
-      if (!flags.image || !flags.json) {
+      const jsonPath = (flags as Record<string, unknown>).json as string | undefined
+      if (!flags.image || !jsonPath) {
         this.error('You must provide an image --image and JSON --json file')
       }
 
-      await this.handleFileBasedCreation(umi, flags.image, flags.json, explorer)
+      return await this.handleFileBasedCreation(umi, flags.image, jsonPath, explorer)
     } else {
       // Create collection from name and uri flags
       if (!flags.name) {
@@ -266,23 +279,29 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       const spinner = ora('Creating Collection...').start()
       const collection = generateSigner(umi)
 
-      await createCollection(umi, {
+      const tx = await createCollection(umi, {
         collection,
         name: flags.name,
         uri: flags.uri,
         plugins: pluginData ? mapPluginDataToArray(pluginData) : undefined,
       })
         .sendAndConfirm(umi)
-        .then(async (tx) => {
-          const txStr = txSignatureToString(tx.signature)
-          spinner.succeed('Collection created successfully')
-          const result = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
-          console.log(result)
-        })
         .catch((error) => {
           spinner.fail(`Error creating Collection: ${error}`)
           throw error
         })
+
+      const txStr = txSignatureToString(tx.signature)
+      spinner.succeed('Collection created successfully')
+      const resultStr = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
+      console.log(resultStr)
+
+      return {
+        collection: collection.publicKey.toString(),
+        signature: txStr,
+        name: flags.name,
+        uri: flags.uri,
+      }
     }
   }
 }

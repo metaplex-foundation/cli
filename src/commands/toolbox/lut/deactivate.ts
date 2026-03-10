@@ -47,7 +47,7 @@ export default class ToolboxLutDeactivate extends TransactionCommand<typeof Tool
         }
     }
 
-    public async run() {
+    public async run(): Promise<Record<string, unknown>> {
         const { args, flags } = await this.parse(ToolboxLutDeactivate)
         const { umi } = this.context
 
@@ -57,10 +57,10 @@ export default class ToolboxLutDeactivate extends TransactionCommand<typeof Tool
 
         // Fetch LUT to check its status
         const spinner = ora('Fetching Address Lookup Table...').start()
-        
+
         try {
             const lut = await safeFetchAddressLookupTable(umi, lutAddress)
-            
+
             if (!lut) {
                 spinner.fail('Address Lookup Table not found')
                 throw new Error(`No Address Lookup Table found at address: ${args.address}`)
@@ -69,10 +69,10 @@ export default class ToolboxLutDeactivate extends TransactionCommand<typeof Tool
             // Check authority
             if (isSome(lut.authority)) {
                 const lutAuthority = lut.authority.value.toString()
-                const expectedAuthority = flags.authority ? 
-                    publicKey(flags.authority).toString() : 
+                const expectedAuthority = flags.authority ?
+                    publicKey(flags.authority).toString() :
                     umi.identity.publicKey.toString()
-                
+
                 if (lutAuthority !== expectedAuthority) {
                     spinner.fail('Authority mismatch')
                     throw new Error(`You are not the authority of this LUT. Authority: ${lutAuthority}`)
@@ -97,7 +97,7 @@ export default class ToolboxLutDeactivate extends TransactionCommand<typeof Tool
 
             // Build and send deactivate transaction
             const deactivateSpinner = ora('Deactivating Address Lookup Table...').start()
-            
+
             const tx = deactivateLut(umi, {
                 address: lutAddress,
                 authority: flags.authority ? umi.identity : undefined,
@@ -110,14 +110,21 @@ export default class ToolboxLutDeactivate extends TransactionCommand<typeof Tool
             )
 
             deactivateSpinner.succeed('Address Lookup Table deactivated successfully!')
-            
+
+            const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+
             this.logSuccess(SUCCESS_MESSAGE(
                 lutAddress.toString(),
-                txSignatureToString(result.transaction.signature as Uint8Array)
+                signature
             ))
 
             this.log('\nNote: You can close this LUT after approximately 512 slots (~5 minutes on mainnet)')
             this.log('Use: toolbox lut close <address>')
+
+            return {
+                address: lutAddress.toString(),
+                signature,
+            }
 
         } catch (error) {
             if (!spinner.isSpinning) {

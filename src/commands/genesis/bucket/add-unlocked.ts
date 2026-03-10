@@ -61,7 +61,7 @@ Instead, they allocate base tokens directly to a recipient.`
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { args, flags } = await this.parse(AddUnlocked)
     const spinner = ora('Adding unlocked bucket...').start()
 
@@ -160,6 +160,17 @@ Instead, they allocate base tokens directly to a recipient.`
           'transaction'
         )
       )
+
+      return {
+        genesisAccount: genesisAddress.toString(),
+        bucketAddress: bucketPda.toString(),
+        bucketIndex,
+        allocation: flags.allocation,
+        recipient: flags.recipient,
+        claimStart: flags.claimStart,
+        claimEnd: flags.claimEnd ?? '',
+        signature: txSignatureToString(result.transaction.signature as Uint8Array),
+      }
 
     } catch (error) {
       spinner.fail('Failed to add unlocked bucket')

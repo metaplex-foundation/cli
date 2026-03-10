@@ -86,7 +86,7 @@ Funding Modes:
 
   static override usage = 'genesis create [FLAGS]'
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { flags } = await this.parse(GenesisCreate)
 
     const spinner = ora('Creating Genesis account...').start()
@@ -173,6 +173,18 @@ Funding Modes:
       this.log('  1. Add buckets to your Genesis account (launch pool, auction, presale, etc.)')
       this.log('  2. Configure your launch parameters')
       this.log('  3. Finalize the launch when ready')
+
+      return {
+        genesisAccount: genesisAccountPda.toString(),
+        baseMint: baseMintPubkey.toString(),
+        quoteMint: quoteMint.toString(),
+        name: flags.name,
+        symbol: flags.symbol,
+        totalSupply: flags.totalSupply,
+        decimals: flags.decimals,
+        fundingMode: flags.fundingMode,
+        signature: txSignatureToString(result.transaction.signature as Uint8Array),
+      }
 
     } catch (error) {
       spinner.fail('Failed to create Genesis account')

@@ -53,7 +53,7 @@ Requirements:
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { args, flags } = await this.parse(GenesisClaim)
     const spinner = ora('Processing claim...').start()
 
@@ -137,6 +137,15 @@ Requirements:
           'transaction'
         )
       )
+
+      return {
+        genesisAccount: genesisAddress.toString(),
+        bucket: bucketPda.toString(),
+        bucketIndex: flags.bucketIndex,
+        recipient: recipientAddress.toString(),
+        baseMint: genesisAccount.baseMint.toString(),
+        signature: txSignatureToString(result.transaction.signature as Uint8Array),
+      }
 
     } catch (error) {
       spinner.fail('Failed to claim tokens')

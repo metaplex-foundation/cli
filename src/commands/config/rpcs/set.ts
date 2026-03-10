@@ -15,7 +15,7 @@ export default class ConfigRpcSetCommand extends Command {
     })
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { flags, args } = await this.parse(ConfigRpcSetCommand)
 
     const path = flags.config ?? getDefaultConfigPath()
@@ -24,7 +24,7 @@ export default class ConfigRpcSetCommand extends Command {
 
     if (!config.rpcs || config.rpcs.length === 0) {
       this.log('No RPCs found')
-      return
+      return { name: null }
     }
 
     const availableRpcs = config.rpcs.map(rpc => ({
@@ -37,7 +37,7 @@ export default class ConfigRpcSetCommand extends Command {
     if (args.name) {
       // Find RPC by name
       selectedRpc = availableRpcs.find(rpc => rpc.name === args.name)
-      
+
       if (!selectedRpc) {
         this.error(`RPC with name "${args.name}" not found. Available RPCs: ${availableRpcs.map(r => r.name).join(', ')}`)
       }
@@ -53,5 +53,9 @@ export default class ConfigRpcSetCommand extends Command {
     writeJsonSync(path, config)
 
     this.log(`Selected RPC: ${selectedRpc.name} (${selectedRpc.url})`)
+
+    return {
+      name: selectedRpc.name,
+    }
   }
 }

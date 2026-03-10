@@ -16,7 +16,7 @@ export default class CoreCollectionTemplate extends BaseCommand<typeof CoreColle
     output: Args.string({ description: 'Destination for the template files' }),
   }
 
-  public async run(): Promise<unknown> {
+  public async run(): Promise<Record<string, unknown>> {
     const { flags, args } = await this.parse(CoreCollectionTemplate)
     const { output } = args
 
@@ -52,13 +52,15 @@ export default class CoreCollectionTemplate extends BaseCommand<typeof CoreColle
 
       spinner.text = 'Opening directory...'
       openDirectory(collectionPath)
-      
+
       spinner.succeed(`Collection template folder created at: ${collectionPath}`)
     } catch (error) {
       spinner.fail(`Failed to create collection template: ${error instanceof Error ? error.message : 'Unknown error'}`)
       throw error
     }
 
-    return
+    return {
+      directory: collectionPath,
+    }
   }
 }

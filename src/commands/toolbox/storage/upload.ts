@@ -35,7 +35,7 @@ export default class ToolboxStorageUpload extends TransactionCommand<typeof Tool
     }
 
 
-    public async run() {
+    public async run(): Promise<Record<string, unknown>> {
         const { args, flags } = await this.parse(ToolboxStorageUpload)
 
         const { umi } = this.context
@@ -68,10 +68,16 @@ export default class ToolboxStorageUpload extends TransactionCommand<typeof Tool
             this.logSuccess(
                 `--------------------------------
     Successfully uploaded ${files.length} files
-    
+
     Upload cache saved to uploadCache.json
 ---------------------------------`
             )
+
+            return {
+                uris: uploadCache.files.map(f => f.uri),
+                cachePath: 'uploadCache.json',
+                fileCount: files.length,
+            }
         } else {
             const spinner = ora('Checking storage balance and funding if needed...').start()
             const uploadResult = await uploadFile(umi, args.path)
@@ -83,6 +89,11 @@ export default class ToolboxStorageUpload extends TransactionCommand<typeof Tool
     URI: ${uploadResult.uri}
 ---------------------------------`
             )
+
+            return {
+                uri: uploadResult.uri,
+                path: args.path,
+            }
         }
     }
 }

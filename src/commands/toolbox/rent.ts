@@ -19,7 +19,7 @@ export default class ToolboxRent extends BaseCommand<typeof ToolboxRent> {
         bytes: Args.integer({ description: 'Number of bytes', required: true }),
     }
 
-    public async run() {
+    public async run(): Promise<Record<string, unknown>> {
         const { args, flags } = await this.parse(ToolboxRent)
 
         const { umi } = this.context
@@ -42,6 +42,12 @@ export default class ToolboxRent extends BaseCommand<typeof ToolboxRent> {
     Rent cost for ${args.bytes} bytes is ${amountToNumber(rent)} SOL
 --------------------------------`
             )
+        }
+
+        return {
+            bytes: args.bytes,
+            rentSol: amountToNumber(rent),
+            rentLamports: rent.basisPoints.toString(),
         }
     }
 }

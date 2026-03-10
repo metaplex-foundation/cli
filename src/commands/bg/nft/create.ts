@@ -141,7 +141,7 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<Record<string, unknown>> {
     const { args, flags } = await this.parse(BgNftCreate)
     const { umi, explorer } = this.context
 
@@ -218,6 +218,14 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
           owner: leafOwner.toString(),
           tree: resolvedTree.publicKey.toString(),
         })
+      }
+
+      return {
+        signature,
+        explorer: generateExplorerUrl(explorer, this.context.chain, signature, 'transaction'),
+        assetId,
+        owner: leafOwner.toString(),
+        tree: resolvedTree.publicKey.toString(),
       }
     } catch (error) {
       spinner.fail('Failed to create compressed NFT.')

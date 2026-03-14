@@ -1,10 +1,11 @@
-import { fetchAsset } from '@metaplex-foundation/mpl-core'
+import { fetchCollection } from '@metaplex-foundation/mpl-core'
 import { Args, Flags } from '@oclif/core'
 
 import mime from 'mime-types'
 import fetch from 'node-fetch'
 import fs from 'node:fs'
 import { basename } from 'node:path'
+import util from 'node:util'
 import ora from 'ora'
 import { BaseCommand } from '../../../BaseCommand.js'
 
@@ -35,7 +36,12 @@ export default class CoreCollectionFetch extends BaseCommand<typeof CoreCollecti
     const { args, flags } = await this.parse(CoreCollectionFetch)
 
     const { umi } = this.context
-    const asset = await fetchAsset(umi, args.collection)
+    const asset = await fetchCollection(umi, args.collection)
+
+    if (!flags.output) {
+      console.log(util.inspect(asset, false, null, true))
+      return asset
+    }
 
     if (flags.output) {
       this.log(`Downloading Collection ${args.collection}`)
@@ -104,7 +110,6 @@ export default class CoreCollectionFetch extends BaseCommand<typeof CoreCollecti
       fileWritingSpinner.succeed(`Files written to ${assetDirectory}`)
     }
 
-    // this.log(jsonStringify(asset, 2))
     return asset
   }
 }

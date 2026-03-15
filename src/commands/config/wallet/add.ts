@@ -54,17 +54,17 @@ export default class ConfigWalletAddCommand extends Command {
     } else {
       const existingName = config.wallets.find((wallet) => wallet.name === args.name)
       if (existingName) {
-        this.error(`A wallet named '${args.name}' already exists.\nUse a different name or run 'mplx config wallets remove ${args.name}' to remove the existing wallet first.`)
+        this.error(`A wallet named '${args.name}' already exists.\nUse a different name or run 'mplx config wallet remove ${args.name}' to remove the existing wallet first.`)
       }
 
       const existingPath = config.wallets.find((wallet) => wallet.path === args.path)
       if (existingPath) {
-        this.error(`This wallet file is already configured as '${existingPath.name}'.\nUse 'mplx config wallets set ${existingPath.name}' to switch to it.`)
+        this.error(`This wallet file is already configured as '${existingPath.name}'.\nUse 'mplx config wallet set ${existingPath.name}' to switch to it.`)
       }
 
       const existingAddress = config.wallets.find((wallet) => wallet.address === signer.publicKey.toString())
       if (existingAddress) {
-        this.error(`This wallet address (${shortenAddress(signer.publicKey)}) is already configured as '${existingAddress.name}'.\nUse 'mplx config wallets set ${existingAddress.name}' to switch to it.`)
+        this.error(`This wallet address (${shortenAddress(signer.publicKey)}) is already configured as '${existingAddress.name}'.\nUse 'mplx config wallet set ${existingAddress.name}' to switch to it.`)
       }
     }
 
@@ -78,6 +78,6 @@ export default class ConfigWalletAddCommand extends Command {
     ensureDirectoryExists(dir)
     writeJsonSync(path, config)
 
-    this.log(`✅ Wallet '${args.name}' successfully added to configuration!\n   Address: ${signer.publicKey}\n   Path: ${args.path}\n\nUse 'mplx config wallets set ${args.name}' to make this your active wallet.`)
+    this.log(`✅ Wallet '${args.name}' successfully added to configuration!\n   Address: ${signer.publicKey}\n   Path: ${args.path}\n\nUse 'mplx config wallet set ${args.name}' to make this your active wallet.`)
   }
 }

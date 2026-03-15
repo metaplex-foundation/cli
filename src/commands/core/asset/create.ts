@@ -223,27 +223,26 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
   }
 
   // TODO: Fix any typings
-  private formatAssetResult(result: any, explorer: ExplorerType): { display: string; json: Record<string, string> } {
-    const signature = txSignatureToString(result.signature as Uint8Array)
-    const explorerUrl = generateExplorerUrl(explorer, this.context.chain, signature, 'transaction')
+  private formatAssetResult(result: AssetCreationResult, explorer: ExplorerType): { display: string; json: Record<string, string> } {
+    const explorerUrl = generateExplorerUrl(explorer, this.context.chain, result.signature, 'transaction')
     const coreExplorerUrl = `https://core.metaplex.com/explorer/${result.asset}`
     return {
       display: `--------------------------------
   Asset: ${result.asset}
-  Signature: ${signature}
+  Signature: ${result.signature}
   Explorer: ${explorerUrl}
   Core Explorer: ${coreExplorerUrl}
 --------------------------------`,
       json: {
-        asset: String(result.asset),
-        signature,
+        asset: result.asset,
+        signature: result.signature,
         explorer: explorerUrl,
         coreExplorer: coreExplorerUrl,
       },
     }
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { flags } = await this.parse(AssetCreate)
     const { umi, explorer } = this.context
 

@@ -25,7 +25,7 @@ export default class ToolboxStorageBalance extends TransactionCommand<typeof Too
         this.log(jsonStringify(balance, 2))
 
         return {
-            balance: Number(balance.basisPoints),
+            balance: balance.basisPoints.toString(),
             balanceSol: Number(balance.basisPoints) / 1_000_000_000,
         }
     }

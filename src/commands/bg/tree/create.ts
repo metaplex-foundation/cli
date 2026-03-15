@@ -249,6 +249,7 @@ Tree Explorer: ${generateExplorerUrl(explorer, this.context.chain, treeAddress.t
         canopyDepth,
         signature,
         explorer: generateExplorerUrl(explorer, this.context.chain, signature, 'transaction'),
+        treeExplorer: generateExplorerUrl(explorer, this.context.chain, treeAddress.toString(), 'account'),
       }
 
     } catch (error) {

@@ -445,7 +445,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
         } else {
             this.error('You must provide one of the following combinations:\n' +
                       '  --wizard (interactive mode)\n' +
-                      '  --image and --json (file-based creation)\n' +
+                      '  --image and --metadata (file-based creation)\n' +
                       '  --name and --uri (use existing metadata)\n' +
                       '  --name and --image (create metadata from flags)')
         }

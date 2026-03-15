@@ -90,7 +90,7 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
 
       if (disabled) {
         this.log('Burning Assets from list coming soon')
-        return
+        return { success: false, reason: 'feature_disabled' }
       }
 
       this.log('Burning assets from list')

@@ -181,7 +181,7 @@ Funding Modes:
         quoteMint: String(quoteMint),
         name: flags.name,
         symbol: flags.symbol,
-        totalSupply: flags.totalSupply,
+        totalSupply: String(BigInt(flags.totalSupply)),
         decimals: flags.decimals,
         fundingMode: flags.fundingMode,
         signature,

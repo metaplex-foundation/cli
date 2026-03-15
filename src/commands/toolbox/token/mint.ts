@@ -12,7 +12,7 @@ const SUCCESS_MESSAGE = async (
     mint: string,
     recipient: string,
     amount: number,
-    signature: Uint8Array,
+    signature: string,
     options: { explorer: ExplorerType }
 ) => {
     return `--------------------------------
@@ -23,8 +23,8 @@ Mint Address: ${mint}
 Recipient: ${recipient}
 Amount Minted: ${amount}
 
-Transaction Signature: ${txSignatureToString(signature)}
-Explorer: ${generateExplorerUrl(options.explorer, chain, txSignatureToString(signature), 'transaction')}
+Transaction Signature: ${signature}
+Explorer: ${generateExplorerUrl(options.explorer, chain, signature, 'transaction')}
 --------------------------------`;
 }
 
@@ -124,7 +124,7 @@ Note: You must have mint authority for the specified token mint.`
                 args.mint,
                 recipientAddress,
                 args.amount,
-                result.transaction.signature as Uint8Array,
+                signature,
                 { explorer }
             ));
 

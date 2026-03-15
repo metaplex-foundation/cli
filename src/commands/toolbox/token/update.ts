@@ -193,7 +193,7 @@ export default class ToolboxTokenUpdate extends TransactionCommand<typeof Toolbo
         })
 
         const res = await umiSendAndConfirmTransaction(umi, updateIx).catch(err => {
-            updateTokenSpinner.fail(err)
+            updateTokenSpinner.fail(err instanceof Error ? err.message : String(err))
             throw err
         })
         updateTokenSpinner.succeed('Update transaction sent and confirmed.')
@@ -254,7 +254,7 @@ export default class ToolboxTokenUpdate extends TransactionCommand<typeof Toolbo
         })
 
         const res = await umiSendAndConfirmTransaction(umi, updateIx).catch(err => {
-            updateTokenSpinner.fail(err)
+            updateTokenSpinner.fail(err instanceof Error ? err.message : String(err))
             throw err
         })
         updateTokenSpinner.succeed('Update transaction sent and confirmed.')

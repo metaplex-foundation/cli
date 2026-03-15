@@ -56,7 +56,7 @@ export default class ToolboxStorageWithdraw extends TransactionCommand<typeof To
             withdrawSpinner.succeed(`Funds withdrawn from storage account. New balance: ${newBalance.basisPoints}`)
 
             return {
-                newBalance: Number(newBalance.basisPoints),
+                newBalance: newBalance.basisPoints.toString(),
                 newBalanceSol: Number(newBalance.basisPoints) / 1_000_000_000,
             }
         } catch (error) {

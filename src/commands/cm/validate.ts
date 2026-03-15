@@ -61,6 +61,7 @@ export default class CmValidate extends BaseCommand<typeof CmValidate> {
                     validationError = error.message;
                 });
 
+            if (!valid) process.exitCode = 1
             return { valid, error: validationError }
         } catch (error) {
             this.error(`Validation failed: ${error instanceof Error ? error.message : String(error)}`);

@@ -35,7 +35,7 @@ export default class ToolboxStorageFund extends TransactionCommand<typeof Toolbo
 
         return {
             amount: Number(args.amount),
-            newBalance: Number(balance.basisPoints),
+            newBalance: balance.basisPoints.toString(),
             newBalanceSol: Number(balance.basisPoints) / 1_000_000_000,
         }
     }

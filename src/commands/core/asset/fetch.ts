@@ -87,7 +87,7 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
         this.log(util.inspect(result.assetData, false, null, true))
       }
 
-      return result.assetData
+      return result
     }
     // Commented out batch fetch functionality for now
     /*

@@ -266,7 +266,10 @@ Launch types:
         mintAddress: result.mintAddress,
         launchId: result.launch.id,
         launchLink: result.launch.link,
-        signatures: result.signatures.map((sig: Uint8Array) => txSignatureToString(sig)),
+        signatures: result.signatures.map((sig: Uint8Array) => {
+          const sigStr = txSignatureToString(sig)
+          return { signature: sigStr, explorer: generateExplorerUrl(this.context.explorer, this.context.chain, sigStr, 'transaction') }
+        }),
       }
     } catch (error) {
       spinner.fail('Failed to create token launch')

@@ -86,6 +86,9 @@ Options:
 
       spinner.succeed('Authorities revoked successfully!')
 
+      const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+      const explorerUrl = generateExplorerUrl(this.context.explorer, this.context.chain, signature, 'transaction')
+
       this.log('')
       this.logSuccess('Authorities revoked')
       this.log('')
@@ -95,16 +98,9 @@ Options:
       this.log(`  Mint Authority Revoked: ${flags.revokeMint ? 'Yes' : 'No'}`)
       this.log(`  Freeze Authority Revoked: ${flags.revokeFreeze ? 'Yes' : 'No'}`)
       this.log('')
-      this.log(`Transaction: ${txSignatureToString(result.transaction.signature as Uint8Array)}`)
+      this.log(`Transaction: ${signature}`)
       this.log('')
-      this.log(
-        generateExplorerUrl(
-          this.context.explorer,
-          this.context.chain,
-          txSignatureToString(result.transaction.signature as Uint8Array),
-          'transaction'
-        )
-      )
+      this.log(explorerUrl)
       this.log('')
       this.log('WARNING: This action is irreversible. The revoked authorities cannot be restored.')
 
@@ -113,8 +109,8 @@ Options:
         baseMint: genesisAccount.baseMint.toString(),
         mintAuthorityRevoked: flags.revokeMint,
         freezeAuthorityRevoked: flags.revokeFreeze,
-        signature: txSignatureToString(result.transaction.signature as Uint8Array),
-        explorer: generateExplorerUrl(this.context.explorer, this.context.chain, txSignatureToString(result.transaction.signature as Uint8Array), 'transaction'),
+        signature,
+        explorer: explorerUrl,
       }
 
     } catch (error) {

@@ -286,7 +286,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
         this.error('You must provide an image --image and JSON --metadata file')
       }
 
-      return await this.handleFileBasedCreation(umi, flags.image, flags.metadata, flags.collection)
+      return await this.handleFileBasedCreation(umi, flags.image, flags.metadata, flags.collection, flags.owner)
     } else {
       // Create asset from name and uri flags
       if (!flags.name) {

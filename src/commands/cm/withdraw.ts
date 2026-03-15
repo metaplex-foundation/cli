@@ -3,6 +3,7 @@ import { deleteCandyMachine, fetchCandyMachine } from '@metaplex-foundation/mpl-
 import { publicKey } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
 import { TransactionCommand } from '../../TransactionCommand.js'
+import { generateExplorerUrl } from '../../explorers.js'
 import { terminalColors } from '../../lib/StandardColors.js'
 import { txSignatureToString } from '../../lib/util.js'
 import { readCmConfig } from '../../lib/cm/cm-utils.js'
@@ -49,9 +50,9 @@ export default class CmWithdraw extends TransactionCommand<typeof CmWithdraw> {
         })
     }
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(CmWithdraw)
-        const { umi } = this.context
+        const { umi, explorer, chain } = this.context
 
         try {
             let candyMachineId: string | undefined;
@@ -65,7 +66,6 @@ export default class CmWithdraw extends TransactionCommand<typeof CmWithdraw> {
 
             if (!candyMachineId) {
                 this.error('Candy machine ID not found');
-                return;
             }
 
             const candyMachinePk = publicKey(candyMachineId);
@@ -74,10 +74,10 @@ export default class CmWithdraw extends TransactionCommand<typeof CmWithdraw> {
                 const candyMachine = await fetchCandyMachine(umi, candyMachinePk);
                 const totalItemsRemaining = Number(candyMachine.items.length) - Number(candyMachine.itemsRedeemed);
 
-                console.log(`${terminalColors.BgRed}${terminalColors.FgWhite}You are about to withdraw a candy machine${terminalColors.FgDefault}${terminalColors.BgDefault}`);
-                console.log(`${terminalColors.BgRed}${terminalColors.FgWhite}Candy machine ID: ${candyMachineId}${terminalColors.FgDefault}${terminalColors.BgDefault}`);
-                console.log(`${terminalColors.BgRed}${terminalColors.FgWhite}There are still ${totalItemsRemaining} non-redeemed items remaining in the candy machine${terminalColors.FgDefault}${terminalColors.BgDefault}\n`);
-                console.log(`${terminalColors.BgRed}${terminalColors.FgWhite}This will remove the candy machine and all non-redeemed items from the blockchain. This action cannot be undone${terminalColors.FgDefault}${terminalColors.BgDefault}\n`);
+                this.log(`${terminalColors.BgRed}${terminalColors.FgWhite}You are about to withdraw a candy machine${terminalColors.FgDefault}${terminalColors.BgDefault}`);
+                this.log(`${terminalColors.BgRed}${terminalColors.FgWhite}Candy machine ID: ${candyMachineId}${terminalColors.FgDefault}${terminalColors.BgDefault}`);
+                this.log(`${terminalColors.BgRed}${terminalColors.FgWhite}There are still ${totalItemsRemaining} non-redeemed items remaining in the candy machine${terminalColors.FgDefault}${terminalColors.BgDefault}\n`);
+                this.log(`${terminalColors.BgRed}${terminalColors.FgWhite}This will remove the candy machine and all non-redeemed items from the blockchain. This action cannot be undone${terminalColors.FgDefault}${terminalColors.BgDefault}\n`);
 
                 await input({
                     message: `Type 'yes-withdraw' to confirm`,
@@ -91,9 +91,16 @@ export default class CmWithdraw extends TransactionCommand<typeof CmWithdraw> {
             }
 
             const res = await this.withdraw(candyMachinePk);
-            console.log(`${terminalColors.BgGreen}${terminalColors.FgWhite}Candy machine withdrawn successfully${terminalColors.FgDefault}${terminalColors.BgDefault}`);
-            console.log(`${terminalColors.BgGreen}${terminalColors.FgWhite}Candy machine ID: ${candyMachineId}${terminalColors.FgDefault}${terminalColors.BgDefault}`);
-            console.log(`${terminalColors.BgGreen}${terminalColors.FgWhite}Transaction hash: ${txSignatureToString(res.signature)}${terminalColors.FgDefault}${terminalColors.BgDefault}`);
+            const signature = txSignatureToString(res.signature)
+            this.log(`${terminalColors.BgGreen}${terminalColors.FgWhite}Candy machine withdrawn successfully${terminalColors.FgDefault}${terminalColors.BgDefault}`);
+            this.log(`${terminalColors.BgGreen}${terminalColors.FgWhite}Candy machine ID: ${candyMachineId}${terminalColors.FgDefault}${terminalColors.BgDefault}`);
+            this.log(`${terminalColors.BgGreen}${terminalColors.FgWhite}Transaction hash: ${signature}${terminalColors.FgDefault}${terminalColors.BgDefault}`);
+
+            return {
+                candyMachineId,
+                signature,
+                explorer: generateExplorerUrl(explorer, chain, signature, 'transaction'),
+            }
         } catch (error) {
             this.error(`Withdraw failed: ${error instanceof Error ? error.message : String(error)}`);
         }

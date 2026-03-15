@@ -24,7 +24,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
      Example: mplx core asset create --name "My NFT" --uri "https://example.com/metadata.json"
 
   2. File-based Creation: Create a single Asset by providing an image file and a JSON metadata file.
-     Example: mplx core asset create --files --image "./my-nft.png" --json "./metadata.json"
+     Example: mplx core asset create --files --image "./my-nft.png" --metadata "./metadata.json"
 
   3. Interactive Wizard: Create an Asset using the interactive wizard which guides you through the process.
      Example: mplx core asset create --wizard
@@ -38,9 +38,9 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
   static override examples = [
     '$ mplx core asset create --wizard',
     '$ mplx core asset create --name "My NFT" --uri "https://example.com/metadata.json"',
-    '$ mplx core asset create --files --image "./my-nft.png" --json "./metadata.json"',
+    '$ mplx core asset create --files --image "./my-nft.png" --metadata "./metadata.json"',
     '$ mplx core asset create --name "My NFT" --uri "https://example.com/metadata.json" --collection "collection_id_here"',
-    '$ mplx core asset create --files --image "./my-nft.png" --json "./metadata.json" --collection "collection_id_here"',
+    '$ mplx core asset create --files --image "./my-nft.png" --metadata "./metadata.json" --collection "collection_id_here"',
   ]
 
   static override usage = 'core asset create [FLAGS]'
@@ -54,8 +54,8 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     // File-based asset creation flags
     files: Flags.boolean({
       name: 'files',
-      summary: 'Signify that the files are being uploaded -i/--image and -j/--json are required',
-      dependsOn: ['image', 'json'],
+      summary: 'Signify that the files are being uploaded --image and --metadata are required',
+      dependsOn: ['image', 'metadata'],
       exclusive: ['wizard'],
     }),
     image: Flags.directory({
@@ -65,8 +65,9 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       exclusive: ['--name', '--uri', 'wizard'],
       hidden: true,
     }),
-    json: Flags.directory({
-      name: 'json',
+    metadata: Flags.directory({
+      name: 'metadata',
+      description: 'path to JSON metadata file to upload and assign to Asset',
       dependsOn: ['files'],
       exclusive: ['name', 'uri', 'wizard'],
       hidden: true,
@@ -269,11 +270,11 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       this.log(formatted.display)
       return formatted.json
     } else if (flags.files) {
-      if (!flags.image || !flags.json) {
-        this.error('You must provide an image --image and JSON --json file')
+      if (!flags.image || !flags.metadata) {
+        this.error('You must provide an image --image and JSON --metadata file')
       }
 
-      return await this.handleFileBasedCreation(umi, flags.image, flags.json, flags.collection)
+      return await this.handleFileBasedCreation(umi, flags.image, flags.metadata, flags.collection)
     } else {
       // Create asset from name and uri flags
       if (!flags.name) {

@@ -31,7 +31,7 @@ export default class CmValidate extends BaseCommand<typeof CmValidate> {
         })
     }
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(CmValidate)
 
         try {
@@ -49,13 +49,19 @@ export default class CmValidate extends BaseCommand<typeof CmValidate> {
             const validateSpinner = ora(`Validating ${validationType}`).start();
 
             const validationOption = flags.onchain ? ValidateCacheUploadsOptions.ONCHAIN : ValidateCacheUploadsOptions.STORAGE;
+            let valid = false;
+            let validationError: string | undefined;
             await validateCacheUploads(assetCache, validationOption)
                 .then(() => {
                     validateSpinner.succeed(`${validationType.charAt(0).toUpperCase() + validationType.slice(1)} validated successfully`);
+                    valid = true;
                 })
                 .catch((error: Error) => {
                     validateSpinner.fail(error.message);
+                    validationError = error.message;
                 });
+
+            return { valid, error: validationError }
         } catch (error) {
             this.error(`Validation failed: ${error instanceof Error ? error.message : String(error)}`);
         }

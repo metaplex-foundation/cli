@@ -35,7 +35,7 @@ export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNe
 
     static args = {}
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { flags } = await this.parse(ConfigWalletsNew)
         const { umi } = this.context
 
@@ -73,7 +73,7 @@ export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNe
         // Save wallet file
         const filePath = join(savePath, fileName)
         writeJsonSync(filePath, walletData)
-        console.log(`Wallet saved to: ${filePath}`)
+        this.log(`Wallet saved to: ${filePath}`)
 
         // Add to config if name provided
         if (flags.name) {
@@ -115,7 +115,13 @@ export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNe
             ensureDirectoryExists(configDir)
             writeJsonSync(configPath, config)
 
-            console.log(`Wallet ${shortenAddress(wallet.publicKey)} added to config.`)
+            this.log(`Wallet ${shortenAddress(wallet.publicKey)} added to config.`)
+        }
+
+        return {
+            name: flags.name ?? undefined,
+            address: wallet.publicKey.toString(),
+            path: filePath,
         }
     }
 }

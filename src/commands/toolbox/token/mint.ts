@@ -65,7 +65,7 @@ Note: You must have mint authority for the specified token mint.`
         }),
     }
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(ToolboxTokenMint)
         const { umi, explorer } = this.context
 
@@ -117,6 +117,8 @@ Note: You must have mint authority for the specified token mint.`
                 throw new Error('Transaction signature is missing');
             }
 
+            const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+
             this.logSuccess(await SUCCESS_MESSAGE(
                 this.context.chain,
                 args.mint,
@@ -126,7 +128,13 @@ Note: You must have mint authority for the specified token mint.`
                 { explorer }
             ));
 
-            return result;
+            return {
+                mint: args.mint,
+                recipient: recipientAddress,
+                amount: args.amount,
+                signature,
+                explorer: generateExplorerUrl(explorer, this.context.chain, signature, 'transaction'),
+            };
         } catch (error: unknown) {
             mintSpinner.fail('Token minting failed');
             if (error instanceof Error) {

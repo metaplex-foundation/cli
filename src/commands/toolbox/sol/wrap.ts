@@ -1,4 +1,4 @@
-import { 
+import {
   createAssociatedToken,
   findAssociatedTokenPda,
   syncNative,
@@ -8,6 +8,7 @@ import { publicKey, TransactionBuilder, sol } from '@metaplex-foundation/umi'
 import { Args } from '@oclif/core'
 import ora from 'ora'
 
+import { generateExplorerUrl } from '../../../explorers.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
@@ -31,9 +32,9 @@ export default class ToolboxSolWrap extends TransactionCommand<typeof ToolboxSol
 
     static override usage = 'toolbox sol wrap [AMOUNT]'
 
-    public async run(): Promise<string> {
+    public async run(): Promise<unknown> {
         const { args } = await this.parse(ToolboxSolWrap)
-        const { umi } = this.context
+        const { umi, explorer, chain } = this.context
 
         const amount = Number.parseFloat(args.amount)
         if (Number.isNaN(amount) || amount <= 0) {
@@ -48,11 +49,11 @@ export default class ToolboxSolWrap extends TransactionCommand<typeof ToolboxSol
                 owner: umi.identity.publicKey,
             })
 
-            const tokenAccount = await umi.rpc.getAccount(associatedTokenPda).catch(() => null)
-            
+            const accountInfo = await umi.rpc.getAccount(associatedTokenPda).catch(() => null)
+
             let transaction = new TransactionBuilder()
 
-            if (!tokenAccount || !tokenAccount.exists) {
+            if (!accountInfo || !accountInfo.exists) {
                 const createTokenInstruction = createAssociatedToken(umi, {
                     mint: NATIVE_MINT,
                     owner: umi.identity.publicKey,
@@ -79,15 +80,25 @@ export default class ToolboxSolWrap extends TransactionCommand<typeof ToolboxSol
 
             spinner.succeed('SOL wrapped successfully')
 
+            const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+            const tokenAccount = associatedTokenPda.toString()
+            const explorerUrl = generateExplorerUrl(explorer, chain, signature, 'transaction')
+
             this.logSuccess(
                 `--------------------------------
     Wrapped ${amount} SOL to wSOL
-    Token Account: ${associatedTokenPda}
-    Signature: ${txSignatureToString(result.transaction.signature as Uint8Array)}
+    Token Account: ${tokenAccount}
+    Signature: ${signature}
+    Explorer: ${explorerUrl}
 --------------------------------`
             )
 
-            return 'success'
+            return {
+                amount,
+                tokenAccount,
+                signature,
+                explorer: explorerUrl,
+            }
 
         } catch (error) {
             spinner.fail('Failed to wrap SOL')

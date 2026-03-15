@@ -22,10 +22,12 @@ export default class ConfigSetCommand extends Command {
     '<%= config.bin %> <%= command.id %> commitment confirmed',
   ]
 
+  static enableJsonFlag = true
+
   static override flags = {
     config: Flags.file({char: 'c', description: 'path to config file. Default is ~/.config/mplx/config.json'}),
   }
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const {flags, args} = await this.parse(ConfigSetCommand)
     const {key, value} = args
 
@@ -40,5 +42,7 @@ export default class ConfigSetCommand extends Command {
     writeJsonSync(path, config)
 
     this.log(`Configuration updated: ${path}`)
+
+    return { key, value }
   }
 }

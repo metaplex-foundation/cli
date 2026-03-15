@@ -52,10 +52,6 @@ export default class ToolboxLutFetch extends BaseCommand<typeof ToolboxLutFetch>
 
     static override flags = {
         ...BaseCommand.flags,
-        json: Flags.boolean({
-            description: 'Output in JSON format',
-            required: false,
-        }),
         verbose: Flags.boolean({
             description: 'Show additional details (deactivation slot, last extended slot)',
             required: false,
@@ -66,6 +62,7 @@ export default class ToolboxLutFetch extends BaseCommand<typeof ToolboxLutFetch>
         '<%= config.bin %> <%= command.id %> <lutAddress>',
         '<%= config.bin %> <%= command.id %> <lutAddress> --json',
         '<%= config.bin %> <%= command.id %> <lutAddress> --verbose',
+        '<%= config.bin %> <%= command.id %> <lutAddress> --json --verbose',
     ]
 
     static override usage = 'toolbox lut fetch <ADDRESS>'
@@ -76,7 +73,7 @@ export default class ToolboxLutFetch extends BaseCommand<typeof ToolboxLutFetch>
         }
     }
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(ToolboxLutFetch)
         const { umi } = this.context
 
@@ -100,27 +97,25 @@ export default class ToolboxLutFetch extends BaseCommand<typeof ToolboxLutFetch>
             const authorityStr = isSome(lut.authority) ? lut.authority.value.toString() : null
             const addressStrings = lut.addresses.map(addr => addr.toString())
 
-            // Output based on format preference
-            if (flags.json) {
-                const jsonOutput = {
-                    address: lutAddress.toString(),
-                    authority: authorityStr,
-                    addresses: addressStrings,
-                    deactivationSlot: lut.deactivationSlot.toString(),
-                    lastExtendedSlot: lut.lastExtendedSlot.toString(),
-                    totalAddresses: addressStrings.length,
-                }
-                this.log(JSON.stringify(jsonOutput, null, 2))
-            } else {
-                this.logSuccess(formatLutDisplay(
-                    lutAddress.toString(),
-                    authorityStr,
-                    addressStrings,
-                    lut.deactivationSlot,
-                    lut.lastExtendedSlot,
-                    flags.verbose
-                ))
+            const result = {
+                address: lutAddress.toString(),
+                authority: authorityStr,
+                addresses: addressStrings,
+                deactivationSlot: lut.deactivationSlot.toString(),
+                lastExtendedSlot: lut.lastExtendedSlot.toString(),
+                totalAddresses: addressStrings.length,
             }
+
+            this.logSuccess(formatLutDisplay(
+                lutAddress.toString(),
+                authorityStr,
+                addressStrings,
+                lut.deactivationSlot,
+                lut.lastExtendedSlot,
+                flags.verbose
+            ))
+
+            return result
 
         } catch (error) {
             if (!spinner.isSpinning) {

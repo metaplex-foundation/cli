@@ -6,6 +6,8 @@ import {ensureDirectoryExists, writeJsonSync} from '../../../lib/file.js'
 import {shortenAddress} from '../../../lib/util.js'
 
 export default class ConfigRPCAddCommand extends Command {
+  static enableJsonFlag = true
+
   static override description = 'Set a config value from a key'
 
   static override args = {
@@ -22,7 +24,7 @@ export default class ConfigRPCAddCommand extends Command {
     '<%= config.bin %> <%= command.id %> remove dev1',
   ]
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const {flags, args} = await this.parse(ConfigRPCAddCommand)
 
     // Validate name (removed character limit for MCP compatibility)
@@ -58,6 +60,11 @@ export default class ConfigRPCAddCommand extends Command {
     ensureDirectoryExists(dir)
     writeJsonSync(path, config)
 
-    this.log(`RPC ${''} added to config.`)
+    this.log(`RPC '${args.name}' added to config.`)
+
+    return {
+      name: args.name,
+      endpoint: args.endpoint,
+    }
   }
 }

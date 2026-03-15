@@ -46,7 +46,7 @@ The Bubblegum V2 plugin is required for collections that will contain compressed
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { flags } = await this.parse(BgCollectionCreate)
     const { umi, explorer } = this.context
 
@@ -116,16 +116,14 @@ This collection is ready for compressed NFTs!
 Use it with: mplx bg nft create <tree> --collection ${collectionAddress}
 `)
 
-      if (this.jsonEnabled()) {
-        this.logJson({
-          collection: collectionAddress.toString(),
-          signature,
-          explorer: generateExplorerUrl(explorer, this.context.chain, signature, 'transaction'),
-          name: flags.name,
-          uri: flags.uri,
-          royalties: flags.royalties,
-          updateAuthority: this.context.signer.publicKey.toString(),
-        })
+      return {
+        collection: collectionAddress.toString(),
+        signature,
+        explorer: generateExplorerUrl(explorer, this.context.chain, signature, 'transaction'),
+        name: flags.name,
+        uri: flags.uri,
+        royalties: flags.royalties,
+        updateAuthority: this.context.signer.publicKey.toString(),
       }
     } catch (error) {
       spinner.fail('Failed to create collection')

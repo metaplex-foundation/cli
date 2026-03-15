@@ -84,17 +84,19 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
         })
     }
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { flags, args } = await this.parse(CmCreate)
         const { umi, explorer } = this.context
 
         if (flags.wizard) {
-            await this.runWizard(umi);
+            return await this.runWizard(umi);
         } else if (flags.template) {
+            const templatePath = path.join(process.cwd(), 'cm-template')
             createCmTemplateFolder(undefined, true)
-            this.logSuccess(`Template created in ${path.join(process.cwd(), 'cm-template')}`)
+            this.logSuccess(`Template created in ${templatePath}`)
+            return { templatePath }
         } else {
-            await this.runDirectCreation(umi, args.directory);
+            return await this.runDirectCreation(umi, args.directory);
         }
     }
 
@@ -258,6 +260,8 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
         this.log(`- Candy Machine ID: ${candyMachineConfig.candyMachineId}`)
 
         this.logSuccess(`🎉 Candy machine created successfully!`)
+
+        return { candyMachineId: candyMachineConfig.candyMachineId?.toString() }
     }
 
     private async runDirectCreation(umi: Umi, directory?: string) {
@@ -268,7 +272,7 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
             const candyMachineSpinner = ora('Creating candy machine').start()
 
             const candyMachineId = generateSigner(umi)
-            
+
             // Check if guards are configured
             if (hasGuards(candyMachineConfig)) {
                 // Create candy machine with candy guard (existing behavior)
@@ -305,7 +309,11 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
             // Write candy machine id to config file
             candyMachineConfig.candyMachineId = candyMachineId.publicKey
             writeCmConfig(candyMachineConfig, directory)
+
+            return { candyMachineId: candyMachineId.publicKey.toString() }
         }
+
+        return { candyMachineId: candyMachineConfig.candyMachineId?.toString() }
     }
 
     private async uploadAssets(umi: Umi, assetCache: CandyMachineAssetCache, candyMachineDir: string, candyMachineConfig: CandyMachineConfig) {

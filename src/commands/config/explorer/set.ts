@@ -25,9 +25,11 @@ const explorers: ExplorerEndpoint[] = [
 ]
 
 export default class ConfigExplorerSetCommand extends Command {
+    static enableJsonFlag = true
+
     static override description = 'Set the preferred blockchain explorer'
 
-    public async run(): Promise<void> {
+    public async run(): Promise<unknown> {
         const { flags, args } = await this.parse(ConfigExplorerSetCommand)
         const path = flags.config ?? getDefaultConfigPath()
         const config = readConfig(path)
@@ -40,5 +42,7 @@ export default class ConfigExplorerSetCommand extends Command {
         writeJsonSync(path, config)
 
         this.log(`Explorer set to ${selectedExplorer.displayName}`)
+
+        return { explorer: selectedExplorer.name }
     }
 }

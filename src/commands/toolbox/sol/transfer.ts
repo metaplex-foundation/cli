@@ -3,6 +3,7 @@ import { Args } from '@oclif/core'
 import { transferSol } from '@metaplex-foundation/mpl-toolbox'
 import { publicKey, sol } from '@metaplex-foundation/umi'
 import ora from 'ora'
+import { generateExplorerUrl } from '../../../explorers.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
@@ -26,10 +27,10 @@ export default class ToolboxSolTransfer extends TransactionCommand<typeof Toolbo
     }
 
 
-    public async run(): Promise<string> {
+    public async run(): Promise<unknown> {
         const { args } = await this.parse(ToolboxSolTransfer)
 
-        const { umi } = this.context
+        const { umi, explorer, chain } = this.context
 
         const spinner = ora('Transferring SOL...').start()
 
@@ -45,20 +46,28 @@ export default class ToolboxSolTransfer extends TransactionCommand<typeof Toolbo
 
         const result = await umiSendAndConfirmTransaction(umi, tx).catch((err) => {
             spinner.fail('Failed to transfer SOL')
-            console.error(err)
             throw err
         })
 
         spinner.succeed('SOL transferred successfully')
 
+        const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+        const explorerUrl = generateExplorerUrl(explorer, chain, signature, 'transaction')
+
         this.logSuccess(
             `--------------------------------
     Transferred ${amountInSol} SOL to ${args.address}
-    Signature: ${txSignatureToString(result.transaction.signature as Uint8Array)}
+    Signature: ${signature}
+    Explorer: ${explorerUrl}
 --------------------------------`
         )
 
-        return 'success'
-
+        return {
+            from: umi.identity.publicKey.toString(),
+            to: args.address,
+            amount: amountInSol,
+            signature,
+            explorer: explorerUrl,
+        }
     }
 }

@@ -350,7 +350,7 @@ collection update authority (if part of a collection).`
     }
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { args, flags } = await this.parse(BgNftUpdate)
     const { explorer, chain } = this.context
 
@@ -391,12 +391,10 @@ collection update authority (if part of a collection).`
   Explorer: ${generateExplorerUrl(explorer, chain, signature, 'transaction')}
 --------------------------------`)
 
-    if (this.jsonEnabled()) {
-      this.logJson({
-        assetId: result.assetId,
-        signature,
-        explorer: generateExplorerUrl(explorer, chain, signature, 'transaction'),
-      })
+    return {
+      assetId: result.assetId,
+      signature,
+      explorer: generateExplorerUrl(explorer, chain, signature, 'transaction'),
     }
   }
 }

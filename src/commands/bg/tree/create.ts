@@ -242,7 +242,14 @@ Explorer: ${generateExplorerUrl(explorer, this.context.chain, signature, 'transa
 Tree Explorer: ${generateExplorerUrl(explorer, this.context.chain, treeAddress.toString(), 'account')}
 --------------------------------`)
 
-      return { treeAddress: treeAddress.toString(), maxDepth, maxBufferSize, canopyDepth, signature }
+      return {
+        treeAddress: treeAddress.toString(),
+        maxDepth,
+        maxBufferSize,
+        canopyDepth,
+        signature,
+        explorer: generateExplorerUrl(explorer, this.context.chain, signature, 'transaction'),
+      }
 
     } catch (error) {
       spinner.fail(`Failed to create tree: ${error}`)

@@ -31,7 +31,7 @@ export default class CmFetch extends TransactionCommand<typeof CmFetch> {
         }),
     }
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(CmFetch)
         const { umi } = this.context
 
@@ -77,6 +77,13 @@ export default class CmFetch extends TransactionCommand<typeof CmFetch> {
 
             if (flags.items) {
                 this.log(jsonStringify(items, 2));
+            }
+
+            return {
+                candyMachine,
+                candyGuard: candyGuard || null,
+                authorityOnlyMinting,
+                items: flags.items ? items : undefined,
             }
         } catch (error) {
             this.error(`Fetch failed: ${error instanceof Error ? error.message : String(error)}`);

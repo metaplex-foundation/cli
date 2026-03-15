@@ -8,9 +8,11 @@ import path from 'node:path'
 import os from 'node:os'
 import { spawnSync } from 'node:child_process'
 import mime from 'mime'
+import { generateExplorerUrl } from '../../../explorers.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import imageUploader from '../../../lib/uploader/imageUploader.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
+import { txSignatureToString } from '../../../lib/util.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 
 
@@ -48,7 +50,7 @@ export default class ToolboxTokenUpdate extends TransactionCommand<typeof Toolbo
     }
 
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(ToolboxTokenUpdate)
 
         const { umi } = this.context
@@ -63,13 +65,13 @@ export default class ToolboxTokenUpdate extends TransactionCommand<typeof Toolbo
 
         if (flags.editor) {
             // Editor mode: open JSON in editor
-            await this.interactiveUpdate(umi, args.mint)
+            return await this.interactiveUpdate(umi, args.mint)
         } else {
             if (!flags.name && !flags.description && !flags.image && !flags.symbol) {
                 this.error("Nothing to update. Please provide at least one flag: --name, --description, --symbol, --image, or --editor")
             }
 
-            await this.updateToken(umi, { mint: args.mint, name: flags.name, description: flags.description, image: flags.image, symbol: flags.symbol })
+            return await this.updateToken(umi, { mint: args.mint, name: flags.name, description: flags.description, image: flags.image, symbol: flags.symbol })
         }
     }
 
@@ -106,7 +108,7 @@ export default class ToolboxTokenUpdate extends TransactionCommand<typeof Toolbo
         return result.status === 0
     }
 
-    private async interactiveUpdate(umi: Umi, mint: string) {
+    private async interactiveUpdate(umi: Umi, mint: string): Promise<unknown> {
         // Fetch the digital asset
         const fetchSpinner = ora('Fetching token data...').start()
         const originalToken = await fetchDigitalAsset(umi, publicKey(mint)).catch((err) => {
@@ -190,19 +192,23 @@ export default class ToolboxTokenUpdate extends TransactionCommand<typeof Toolbo
             }
         })
 
-        await umiSendAndConfirmTransaction(umi, updateIx).then(
-            (res) => {
-                updateTokenSpinner.succeed('Update transaction sent and confirmed.')
-                this.logSuccess('Token successfully updated!')
-            }
-        ).catch(err => {
+        const res = await umiSendAndConfirmTransaction(umi, updateIx).catch(err => {
             updateTokenSpinner.fail(err)
+            throw err
         })
+        updateTokenSpinner.succeed('Update transaction sent and confirmed.')
+        this.logSuccess('Token successfully updated!')
+
+        const signature = txSignatureToString(res.transaction.signature as Uint8Array)
+        return {
+            mint,
+            signature,
+            explorer: generateExplorerUrl(this.context.explorer, this.context.chain, signature, 'transaction'),
+        }
     }
 
 
-    private async updateToken(umi: Umi, input: { mint: string, name?: string, description?: string, image?: string, symbol?: string }) {
-
+    private async updateToken(umi: Umi, input: { mint: string, name?: string, description?: string, image?: string, symbol?: string }): Promise<unknown> {
 
         const originalToken = await fetchDigitalAsset(umi, publicKey(input.mint))
 
@@ -247,15 +253,18 @@ export default class ToolboxTokenUpdate extends TransactionCommand<typeof Toolbo
             }
         })
 
-        //send transaction
-
-        await umiSendAndConfirmTransaction(umi, updateIx).then(
-            (res) => {
-                updateTokenSpinner.succeed('Update transaction sent and confirmed.')
-                this.logSuccess('Token successfully updated!')
-            }
-        ).catch(err => {
+        const res = await umiSendAndConfirmTransaction(umi, updateIx).catch(err => {
             updateTokenSpinner.fail(err)
+            throw err
         })
+        updateTokenSpinner.succeed('Update transaction sent and confirmed.')
+        this.logSuccess('Token successfully updated!')
+
+        const signature = txSignatureToString(res.transaction.signature as Uint8Array)
+        return {
+            mint: input.mint,
+            signature,
+            explorer: generateExplorerUrl(this.context.explorer, this.context.chain, signature, 'transaction'),
+        }
     }
 }

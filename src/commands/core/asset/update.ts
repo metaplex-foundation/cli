@@ -7,6 +7,7 @@ import mime from 'mime'
 import fs from 'node:fs'
 import { basename } from 'node:path'
 import ora from 'ora'
+import { generateExplorerUrl } from '../../../explorers.js'
 import { txSignatureToString } from '../../../lib/util.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 
@@ -33,17 +34,17 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
   static examples = [
     'Single Asset Update:',
     '<%= config.bin %> <%= command.id %> <assetId> --name "Updated Asset" --uri "https://example.com/metadata.json"',
-    '<%= config.bin %> <%= command.id %> <assetId> --json ./asset/metadata.json --image ./asset/image.jpg --sync',
+    '<%= config.bin %> <%= command.id %> <assetId> --metadata ./asset/metadata.json --image ./asset/image.jpg --sync',
     '<%= config.bin %> <%= command.id %> <assetId> --name "Updated Asset"',
     '<%= config.bin %> <%= command.id %> <assetId> --image ./asset/image.jpg',
-    '<%= config.bin %> <%= command.id %> <assetId> --json ./asset/metadata.json',
+    '<%= config.bin %> <%= command.id %> <assetId> --metadata ./asset/metadata.json',
   ]
 
   static override flags = {
-    name: Flags.string({ name: "name", description: 'Asset name', exclusive: ['json'] }),
-    uri: Flags.string({ name: "uri", description: 'URI of the Asset metadata', exclusive: ['json'] }),
+    name: Flags.string({ name: "name", description: 'Asset name', exclusive: ['metadata'] }),
+    uri: Flags.string({ name: "uri", description: 'URI of the Asset metadata', exclusive: ['metadata'] }),
     image: Flags.string({ name: "image", description: 'Path to image file' }),
-    json: Flags.string({ name: "json", description: 'Path to JSON file', exclusive: ['name', 'uri'] }),
+    metadata: Flags.string({ name: "metadata", description: 'Path to JSON metadata file', exclusive: ['name', 'uri'] }),
     collectionId: Flags.string({ description: 'Collection ID' }),
   }
 
@@ -51,14 +52,14 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
     assetId: Args.string({ name: 'Asset ID', description: 'Asset to update', required: true }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { args, flags } = await this.parse(AssetUpdate)
     const umi = this.context.umi
     const assetId = args.assetId
-    const { name, uri, image, json } = flags
+    const { name, uri, image, metadata: metadataFile } = flags
 
-    if (!name && !uri && !image && !json) {
-      this.error('You must provide at least one update flag: --name, --uri, --image, or --json')
+    if (!name && !uri && !image && !metadataFile) {
+      this.error('You must provide at least one update flag: --name, --uri, --image, or --metadata')
     }
 
     const asset = await fetchAsset(umi, publicKey(assetId))
@@ -67,30 +68,30 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
       // uri flag is seperate because it doesn't require modification of the original metadata.
       // we only sync from metadata json file to onchain name and not uri to onchain name.
 
-      if (json || image) {
-        throw new Error('--image and --json flags are not usable with --uri flag')
+      if (metadataFile || image) {
+        throw new Error('--image and --metadata flags are not usable with --uri flag')
       }
 
       // use the new uri name
       const assetName = name || asset.name
 
-      await this.updateAsset(umi, asset, assetName, uri)
+      return await this.updateAsset(umi, asset, assetName, uri)
     } else {
-      // name, image, and json flags require modification of the original metadata and a new metadata upload.
+      // name, image, and metadata flags require modification of the original metadata and a new metadata upload.
 
       //validations
-      if (name && json) {
-        throw new Error('when syncing name from --json metadata file, do not provide a --name flag')
+      if (name && metadataFile) {
+        throw new Error('when syncing name from --metadata file, do not provide a --name flag')
       }
 
       let metadata: JsonMetadata
 
-      if (json) {
+      if (metadataFile) {
         // Fetch metadata from JSON file
-        metadata = JSON.parse(fs.readFileSync(json, 'utf-8'))
+        metadata = JSON.parse(fs.readFileSync(metadataFile, 'utf-8'))
       } else {
         // Fetch metadata from asset's current URI
-        metadata = await this.getMetadata({ asset, uri, path: json })
+        metadata = await this.getMetadata({ asset, uri, path: metadataFile })
       }
 
       if (image) {
@@ -103,7 +104,7 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
 
       if (name) {
         updatedName = name
-      } else if (json) {
+      } else if (metadataFile) {
         updatedName = metadata.name || ''
       } else {
         updatedName = asset.name
@@ -111,7 +112,7 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
 
       const metadataUri = await this.uploadJson(umi, metadata)
 
-      await this.updateAsset(umi, asset, updatedName, metadataUri)
+      return await this.updateAsset(umi, asset, updatedName, metadataUri)
     }
   }
 
@@ -181,7 +182,7 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
     }
   }
 
-  private async updateAsset(umi: Umi, asset: AssetV1, name: string, uri: string): Promise<void> {
+  private async updateAsset(umi: Umi, asset: AssetV1, name: string, uri: string): Promise<unknown> {
     const spinner = ora('Updating Asset on-chain...').start()
     try {
       let collection
@@ -189,8 +190,14 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
         collection = await fetchCollection(umi, publicKey(asset.updateAuthority.address))
       }
       const tx = await update(umi, { asset, collection, name, uri }).sendAndConfirm(umi)
-      const txStr = txSignatureToString(tx.signature)
-      spinner.succeed(`Asset updated: ${asset.publicKey} (Tx: ${txStr})`)
+      const signature = txSignatureToString(tx.signature)
+      const explorerUrl = generateExplorerUrl(this.context.explorer, this.context.chain, signature, 'transaction')
+      spinner.succeed(`Asset updated: ${asset.publicKey} (Tx: ${signature})`)
+      return {
+        asset: asset.publicKey.toString(),
+        signature,
+        explorer: explorerUrl,
+      }
     } catch (error) {
       spinner.fail('Asset update failed')
       throw error

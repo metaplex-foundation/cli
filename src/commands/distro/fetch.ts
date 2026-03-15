@@ -31,16 +31,31 @@ You can use this to check the status, configuration, and details of any distribu
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const {args} = await this.parse(ResizeFetch)
     const spinner = ora('Fetching distribution...').start()
 
     try {
       const distributionAddress = publicKey(args.distribution)
-      
+
       const distribution = await fetchDistribution(this.context.umi, distributionAddress)
 
       spinner.succeed('Distribution fetched successfully!')
+
+      const distributionType = distribution.distributionType === DistributionType.Wallet ? 'Wallet' : 'Legacy NFT'
+      const allowedDistributor = distribution.allowedDistributor === AllowedDistributor.Permissionless
+        ? 'Permissionless'
+        : 'Recipient'
+      const startTime = new Date(Number(distribution.startTime) * 1000)
+      const endTime = new Date(Number(distribution.endTime) * 1000)
+      const now = new Date()
+      let status = 'Not Started'
+      if (now >= startTime && now <= endTime) {
+        status = 'Active'
+      } else if (now > endTime) {
+        status = 'Ended'
+      }
+      const merkleRoot = base58.deserialize(distribution.merkleRoot)[0]
 
       this.log('')
       this.logSuccess(`Distribution: ${distributionAddress}`)
@@ -51,37 +66,16 @@ You can use this to check the status, configuration, and details of any distribu
       this.log(`  Mint: ${distribution.mint}`)
       this.log(`  Total Claimants: ${distribution.totalClaimants}`)
       this.log(`  Tree Height: ${distribution.treeHeight}`)
-      
-      const distributionType = distribution.distributionType === DistributionType.Wallet ? 'Wallet' : 'Legacy NFT'
       this.log(`  Distribution Type: ${distributionType}`)
-      
-      const allowedDistributor = distribution.allowedDistributor === AllowedDistributor.Permissionless 
-        ? 'Permissionless' 
-        : 'Recipient'
       this.log(`  Allowed Distributor: ${allowedDistributor}`)
       this.log(`  Total Amount: ${amountToNumber(lamports(distribution.totalAmount))} SOL`)
       this.log(`  Claim Amount: ${amountToNumber(lamports(distribution.claimAmount))} SOL`)
       this.log(`  Claim Count: ${distribution.claimCount}`)
-      
       this.log(`  Subsidize Receipts: ${distribution.subsidizeReceipts}`)
-      
-      const startTime = new Date(Number(distribution.startTime) * 1000)
-      const endTime = new Date(Number(distribution.endTime) * 1000)
-      const now = new Date()
-      
       this.log(`  Start Time: ${startTime.toISOString()} (${startTime.toLocaleString()})`)
       this.log(`  End Time: ${endTime.toISOString()} (${endTime.toLocaleString()})`)
-      
-      let status = 'Not Started'
-      if (now >= startTime && now <= endTime) {
-        status = 'Active'
-      } else if (now > endTime) {
-        status = 'Ended'
-      }
       this.log(`  Status: ${status}`)
-      
-      this.log(`  Merkle Root: ${base58.deserialize(distribution.merkleRoot)[0]}`)
-      
+      this.log(`  Merkle Root: ${merkleRoot}`)
       this.log('')
       this.log('View on Explorer:')
       this.log(
@@ -92,6 +86,26 @@ You can use this to check the status, configuration, and details of any distribu
           'account',
         ),
       )
+
+      return {
+        address: distributionAddress.toString(),
+        name: distribution.name,
+        authority: distribution.authority.toString(),
+        mint: distribution.mint.toString(),
+        totalClaimants: Number(distribution.totalClaimants),
+        treeHeight: distribution.treeHeight,
+        distributionType,
+        allowedDistributor,
+        totalAmount: amountToNumber(lamports(distribution.totalAmount)),
+        claimAmount: amountToNumber(lamports(distribution.claimAmount)),
+        claimCount: Number(distribution.claimCount),
+        subsidizeReceipts: distribution.subsidizeReceipts,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        status,
+        merkleRoot,
+        explorer: generateExplorerUrl(this.context.explorer, this.context.chain, distributionAddress, 'account'),
+      }
     } catch (error) {
       spinner.fail('Failed to fetch distribution')
       if (error instanceof Error && error.message.includes('Account does not exist')) {

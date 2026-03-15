@@ -57,7 +57,7 @@ Withdrawals may be restricted during active distribution periods depending on th
 
   static override usage = 'distro withdraw [DISTRIBUTION] [FLAGS]'
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { args, flags } = await this.parse(DistroWithdraw)
     
     if (!flags.amount && !flags.basisAmount) {
@@ -164,16 +164,27 @@ Withdrawals may be restricted during active distribution periods depending on th
       const remainingFormatted = Number(remainingAvailable) / Math.pow(10, decimals)
       this.log(`Remaining available for withdrawal: ${remainingFormatted} tokens (${remainingAvailable} basis)`)
       this.log('')
-      this.log(`Transaction: ${txSignatureToString(result.transaction.signature as Uint8Array)}`)
+      const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+      this.log(`Transaction: ${signature}`)
       this.log('')
       this.log(
         generateExplorerUrl(
           this.context.explorer,
           this.context.chain,
-          txSignatureToString(result.transaction.signature as Uint8Array),
+          signature,
           'transaction'
         )
       )
+
+      return {
+        distribution: distributionAddress.toString(),
+        mint: mint.toString(),
+        amount: formattedAmount,
+        basisAmount: basisAmount.toString(),
+        recipient: recipient.toString(),
+        signature,
+        explorer: generateExplorerUrl(this.context.explorer, this.context.chain, signature, 'transaction'),
+      }
 
     } catch (error) {
       spinner.fail('Failed to withdraw tokens')

@@ -2,6 +2,8 @@ import { Command, Flags } from '@oclif/core'
 import { listTrees } from '../../../lib/treeStorage.js'
 
 export default class BgTreeListCommand extends Command {
+  static override enableJsonFlag = true
+
   static override description = 'List all saved Bubblegum trees'
 
   static override examples = [
@@ -18,7 +20,7 @@ export default class BgTreeListCommand extends Command {
     })
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { flags } = await this.parse(BgTreeListCommand)
 
     const trees = listTrees(flags.network as 'mainnet' | 'devnet' | 'testnet' | 'localnet')
@@ -29,27 +31,31 @@ export default class BgTreeListCommand extends Command {
       } else {
         this.log('No trees found. Create one with: mplx bg create --wizard')
       }
-      return
+      return { trees: [] }
     }
 
     this.log(`\nSaved Trees${flags.network ? ` (${flags.network})` : ''}:`)
-    
+
     // Format trees for display
     const formattedTrees = trees.map(tree => ({
       'Name': tree.name,
       'Address': tree.address,
       'Network': tree.network,
       'Max NFTs': tree.maxNfts.toLocaleString(),
-      'Public': tree.isPublic ? 'Yes ⚠️' : 'No',
+      'Public': tree.isPublic ? 'Yes' : 'No',
       'Created': new Date(tree.createdAt).toLocaleDateString()
     }))
 
-    console.table(formattedTrees)
+    this.log(formattedTrees.map(t =>
+      `  ${t.Name} | ${t.Address} | ${t.Network} | ${t['Max NFTs']} | Public: ${t.Public} | ${t.Created}`
+    ).join('\n'))
 
     this.log(`\nTotal: ${trees.length} tree${trees.length === 1 ? '' : 's'}`)
-    
+
     if (!flags.network) {
       this.log('\nTip: Use --network flag to filter by specific network')
     }
+
+    return { trees }
   }
 }

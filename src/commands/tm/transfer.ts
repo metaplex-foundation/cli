@@ -132,6 +132,7 @@ export default class TmTransfer extends TransactionCommand<typeof TmTransfer> {
             mint: args.mint,
             destination: args.destination,
             signature,
+            explorer: generateExplorerUrl(explorer, chain, signature, 'transaction'),
         }
     }
 }

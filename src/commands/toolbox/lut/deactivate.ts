@@ -6,6 +6,7 @@ import { isPublicKey, isSome, publicKey } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
 
+import { generateExplorerUrl } from '../../../explorers.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
@@ -47,7 +48,7 @@ export default class ToolboxLutDeactivate extends TransactionCommand<typeof Tool
         }
     }
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(ToolboxLutDeactivate)
         const { umi } = this.context
 
@@ -110,14 +111,20 @@ export default class ToolboxLutDeactivate extends TransactionCommand<typeof Tool
             )
 
             deactivateSpinner.succeed('Address Lookup Table deactivated successfully!')
-            
-            this.logSuccess(SUCCESS_MESSAGE(
-                lutAddress.toString(),
-                txSignatureToString(result.transaction.signature as Uint8Array)
-            ))
+
+            const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+            const explorerUrl = generateExplorerUrl(this.context.explorer, this.context.chain, signature, 'transaction')
+
+            this.logSuccess(SUCCESS_MESSAGE(lutAddress.toString(), signature))
 
             this.log('\nNote: You can close this LUT after approximately 512 slots (~5 minutes on mainnet)')
             this.log('Use: toolbox lut close <address>')
+
+            return {
+                lut: lutAddress.toString(),
+                signature,
+                explorer: explorerUrl,
+            }
 
         } catch (error) {
             if (!spinner.isSpinning) {

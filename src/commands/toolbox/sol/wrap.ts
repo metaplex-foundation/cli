@@ -72,10 +72,7 @@ export default class ToolboxSolWrap extends TransactionCommand<typeof ToolboxSol
             })
             transaction = transaction.add(syncInstruction)
 
-            const result = await umiSendAndConfirmTransaction(umi, transaction).catch((error) => {
-                spinner.fail('Failed to wrap SOL')
-                throw error
-            })
+            const result = await umiSendAndConfirmTransaction(umi, transaction)
 
             spinner.succeed('SOL wrapped successfully')
 

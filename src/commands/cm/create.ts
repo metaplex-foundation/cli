@@ -140,7 +140,7 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
                 this.log('   - Numbered JSON metadata files (0.json, 1.json, etc.)')
                 this.log('   - Corresponding image files (0.png, 1.png, etc.)')
                 this.log('   - Optional: collection.json and collection image file')
-                return
+                return { cancelled: true }
             }
 
             // Get candy machine name for project folder

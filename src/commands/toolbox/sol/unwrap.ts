@@ -53,7 +53,6 @@ export default class ToolboxSolUnwrap extends TransactionCommand<typeof ToolboxS
 
             const result = await umiSendAndConfirmTransaction(umi, tx).catch((error) => {
                 spinner.fail('Failed to unwrap wSOL')
-                console.error(error)
                 throw error
             })
 

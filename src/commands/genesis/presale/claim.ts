@@ -6,7 +6,8 @@ import {
   safeFetchPresaleBucketV2,
   safeFetchPresaleDepositV2,
 } from '@metaplex-foundation/genesis'
-import { publicKey } from '@metaplex-foundation/umi'
+import { createAssociatedToken, findAssociatedTokenPda } from '@metaplex-foundation/mpl-toolbox'
+import { publicKey, TransactionBuilder } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
 
@@ -101,17 +102,38 @@ Requirements:
         this.error(`No presale deposit found for recipient ${recipientAddress}. Make sure you have deposited into this presale bucket.`)
       }
 
-      // Build the claim transaction
+      // Presale claim fees are taken in base tokens, so the fee wallet needs
+      // a base-mint ATA. Create it if it doesn't exist yet.
       spinner.text = 'Claiming presale tokens...'
-      const transaction = claimPresaleV2(this.context.umi, {
-        genesisAccount: genesisAddress,
-        bucket: bucketPda,
-        baseMint: genesisAccount.baseMint,
-        quoteMint: genesisAccount.quoteMint,
-        depositPda,
-        recipient: recipientAddress,
-        payer: this.context.payer,
+      const FEE_WALLET = publicKey('9kFjQsxtpBsaw8s7aUyiY3wazYDNgFP4Lj5rsBVVF8tb')
+      const [feeBaseTokenAccount] = findAssociatedTokenPda(this.context.umi, {
+        mint: genesisAccount.baseMint,
+        owner: FEE_WALLET,
       })
+
+      let transaction = new TransactionBuilder()
+      const feeAccount = await this.context.umi.rpc.getAccount(feeBaseTokenAccount)
+      if (!feeAccount || !feeAccount.exists) {
+        transaction = transaction.add(
+          createAssociatedToken(this.context.umi, {
+            mint: genesisAccount.baseMint,
+            owner: FEE_WALLET,
+          })
+        )
+      }
+
+      transaction = transaction.add(
+        claimPresaleV2(this.context.umi, {
+          genesisAccount: genesisAddress,
+          bucket: bucketPda,
+          baseMint: genesisAccount.baseMint,
+          quoteMint: genesisAccount.quoteMint,
+          feeQuoteTokenAccount: feeBaseTokenAccount,
+          depositPda,
+          recipient: recipientAddress,
+          payer: this.context.payer,
+        })
+      )
 
       const result = await umiSendAndConfirmTransaction(this.context.umi, transaction)
 

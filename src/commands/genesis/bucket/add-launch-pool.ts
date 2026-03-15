@@ -1,9 +1,17 @@
 import {
-  addLaunchPoolBucketV2,
-  safeFetchGenesisAccountV2,
+  addLaunchPoolBucketV2Base,
+  addLaunchPoolBucketV2Extensions,
+  AllowlistInitArgsArgs,
+  ClaimScheduleArgs,
+  createClaimSchedule,
+  createTimeAbsoluteCondition,
   findLaunchPoolBucketV2Pda,
+  LaunchPoolV2ExtensionArgs,
+  LinearBpsScheduleV2Args,
+  safeFetchGenesisAccountV2,
+  setLaunchPoolBucketV2Behaviors,
 } from '@metaplex-foundation/genesis'
-import { publicKey, some, none } from '@metaplex-foundation/umi'
+import { publicKey } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
 
@@ -132,39 +140,21 @@ Use Unix timestamps for absolute times.`
       const claimStart = BigInt(flags.claimStart)
       const claimEnd = BigInt(flags.claimEnd)
 
+      if (depositEnd < depositStart) {
+        throw new Error('"depositEnd" must be greater than or equal to "depositStart"')
+      }
+      if (claimEnd < claimStart) {
+        throw new Error('"claimEnd" must be greater than or equal to "claimStart"')
+      }
+
       // Parse allocation
       const allocation = BigInt(flags.allocation)
 
-      // Build conditions (padding must be 47 bytes as required by the Genesis program)
-      const conditionPadding = new Array(47).fill(0)
-
-      const depositStartCondition = {
-        __kind: 'TimeAbsolute' as const,
-        padding: conditionPadding,
-        time: depositStart,
-        triggeredTimestamp: BigInt(0),
-      }
-
-      const depositEndCondition = {
-        __kind: 'TimeAbsolute' as const,
-        padding: conditionPadding,
-        time: depositEnd,
-        triggeredTimestamp: BigInt(0),
-      }
-
-      const claimStartCondition = {
-        __kind: 'TimeAbsolute' as const,
-        padding: conditionPadding,
-        time: claimStart,
-        triggeredTimestamp: BigInt(0),
-      }
-
-      const claimEndCondition = {
-        __kind: 'TimeAbsolute' as const,
-        padding: conditionPadding,
-        time: claimEnd,
-        triggeredTimestamp: BigInt(0),
-      }
+      // Build conditions using SDK helper
+      const depositStartCondition = createTimeAbsoluteCondition(depositStart)
+      const depositEndCondition = createTimeAbsoluteCondition(depositEnd)
+      const claimStartCondition = createTimeAbsoluteCondition(claimStart)
+      const claimEndCondition = createTimeAbsoluteCondition(claimEnd)
 
       // Parse end behaviors
       const endBehaviors = (flags.endBehavior ?? []).map((behavior: string) => {
@@ -172,38 +162,49 @@ Use Unix timestamps for absolute times.`
         if (!destinationBucketAddr || !percentageBpsStr) {
           throw new Error(`Invalid end behavior format: "${behavior}". Expected format: <destinationBucketAddress>:<percentageBps>`)
         }
+        const percentageBps = Number(percentageBpsStr)
+        if (!Number.isInteger(percentageBps) || percentageBps < 0 || percentageBps > 10000) {
+          throw new Error(
+            `Invalid percentageBps "${percentageBpsStr}" in "${behavior}". Expected an integer between 0 and 10000`
+          )
+        }
         return {
           __kind: 'SendQuoteTokenPercentage' as const,
           processed: false,
-          percentageBps: Number(percentageBpsStr),
+          percentageBps,
           padding: new Array(4).fill(0),
           destinationBucket: publicKey(destinationBucketAddr),
         }
       })
 
-      // Parse optional LinearBpsSchedule fields
+      // Parse optional LinearBpsScheduleV2 fields (updated for V2 format)
       const parseLinearBpsSchedule = (json: string) => {
         const parsed = JSON.parse(json)
+        const startTime = BigInt(parsed.startTime)
+        const endTime = BigInt(parsed.endTime)
+        if (endTime < startTime) {
+          throw new Error('"endTime" must be greater than or equal to "startTime" in schedule')
+        }
         return {
-          slopeBps: BigInt(parsed.slopeBps),
+          duration: endTime - startTime,
           interceptBps: BigInt(parsed.interceptBps),
           maxBps: BigInt(parsed.maxBps),
-          startTime: BigInt(parsed.startTime),
-          endTime: BigInt(parsed.endTime),
+          reserved: new Uint8Array(64),
+          slopeBps: BigInt(parsed.slopeBps),
+          startCondition: createTimeAbsoluteCondition(startTime),
         }
       }
 
       // Parse optional ClaimSchedule
       const parseClaimSchedule = (json: string) => {
         const parsed = JSON.parse(json)
-        return {
+        return createClaimSchedule({
           startTime: BigInt(parsed.startTime),
           endTime: BigInt(parsed.endTime),
           period: BigInt(parsed.period),
           cliffTime: BigInt(parsed.cliffTime),
           cliffAmountBps: Number(parsed.cliffAmountBps),
-          reserved: new Array(7).fill(0),
-        }
+        })
       }
 
       // Parse optional Allowlist
@@ -219,9 +220,18 @@ Use Unix timestamps for absolute times.`
         }
       }
 
-      // Build the add bucket transaction
-      spinner.text = 'Adding launch pool bucket...'
-      const transaction = addLaunchPoolBucketV2(this.context.umi, {
+      // Compute bucket PDA once for reuse
+      const [bucketPda] = findLaunchPoolBucketV2Pda(this.context.umi, {
+        genesisAccount: genesisAddress,
+        bucketIndex,
+      })
+
+      // Parse extensions before any on-chain write so invalid JSON fails fast
+      const extensions = buildExtensions(flags, parseLinearBpsSchedule, parseClaimSchedule, parseAllowlist)
+
+      // Transaction 1: Create the bucket with base fields only (fits in tx size limit)
+      spinner.text = 'Creating launch pool bucket...'
+      const baseTx = addLaunchPoolBucketV2Base(this.context.umi, {
         genesisAccount: genesisAddress,
         baseMint: genesisAccount.baseMint,
         quoteMint: genesisAccount.quoteMint,
@@ -233,46 +243,80 @@ Use Unix timestamps for absolute times.`
         depositEndCondition,
         claimStartCondition,
         claimEndCondition,
-        backendSigner: none(),
-        depositPenalty: flags.depositPenalty
-          ? some(parseLinearBpsSchedule(flags.depositPenalty))
-          : none(),
-        withdrawPenalty: flags.withdrawPenalty
-          ? some(parseLinearBpsSchedule(flags.withdrawPenalty))
-          : none(),
-        bonusSchedule: flags.bonusSchedule
-          ? some(parseLinearBpsSchedule(flags.bonusSchedule))
-          : none(),
-        depositLimit: flags.depositLimit
-          ? some({ limit: BigInt(flags.depositLimit) })
-          : none(),
-        allowlist: flags.allowlist
-          ? some(parseAllowlist(flags.allowlist))
-          : none(),
-        claimSchedule: flags.claimSchedule
-          ? some(parseClaimSchedule(flags.claimSchedule))
-          : none(),
-        minimumDepositAmount: flags.minimumDeposit
-          ? some({ amount: BigInt(flags.minimumDeposit) })
-          : none(),
-        minimumQuoteTokenThreshold: flags.minimumQuoteTokenThreshold
-          ? some({ amount: BigInt(flags.minimumQuoteTokenThreshold) })
-          : none(),
-        endBehaviors,
       })
 
-      const result = await umiSendAndConfirmTransaction(this.context.umi, transaction)
+      const result = await umiSendAndConfirmTransaction(this.context.umi, baseTx)
 
-      // Get the bucket PDA
-      const [bucketPda] = findLaunchPoolBucketV2Pda(this.context.umi, {
-        genesisAccount: genesisAddress,
-        bucketIndex,
-      })
+      // Transaction 2: Add extensions if any optional fields were provided
 
-      spinner.succeed('Launch pool bucket added successfully!')
+      let extensionsSignature: string | undefined
+      let extensionsError: unknown
+      if (extensions.length > 0) {
+        try {
+          spinner.text = 'Setting extensions...'
+          const extensionsTx = addLaunchPoolBucketV2Extensions(this.context.umi, {
+            authority: this.context.signer,
+            bucket: bucketPda,
+            extensions,
+            genesisAccount: genesisAddress,
+            padding: Array.from({ length: 3 }, () => 0),
+            payer: this.context.payer,
+          })
+          const extensionsResult = await umiSendAndConfirmTransaction(this.context.umi, extensionsTx)
+          extensionsSignature = txSignatureToString(extensionsResult.transaction.signature as Uint8Array)
+        } catch (error) {
+          extensionsError = error
+        }
+      }
+
+      // Transaction 3: Set end behaviors in a separate transaction if provided
+      let behaviorsSignature: string | undefined
+      let behaviorsError: unknown
+      if (endBehaviors.length > 0) {
+        try {
+          spinner.text = 'Setting end behaviors...'
+          const setBehaviorsTx = setLaunchPoolBucketV2Behaviors(this.context.umi, {
+            genesisAccount: genesisAddress,
+            bucket: bucketPda,
+            authority: this.context.signer,
+            payer: this.context.payer,
+            padding: new Array(3).fill(0),
+            endBehaviors,
+          })
+
+          const behaviorsResult = await umiSendAndConfirmTransaction(this.context.umi, setBehaviorsTx)
+          behaviorsSignature = txSignatureToString(behaviorsResult.transaction.signature as Uint8Array)
+        } catch (error) {
+          behaviorsError = error
+        }
+      }
+
+      if (extensionsError) {
+        spinner.warn('Bucket created but failed to set extensions')
+        this.warn(
+          `Extensions were not set for bucket ${bucketPda}.\n` +
+          `Error: ${extensionsError instanceof Error ? extensionsError.message : String(extensionsError)}`
+        )
+      }
+
+      if (behaviorsError) {
+        spinner.warn('Bucket created but failed to set end behaviors')
+        this.warn(
+          `End behaviors were not set. Run setLaunchPoolBucketV2Behaviors manually for bucket ${bucketPda}.\n` +
+          `Error: ${behaviorsError instanceof Error ? behaviorsError.message : String(behaviorsError)}`
+        )
+      }
+
+      if (!extensionsError && !behaviorsError) {
+        spinner.succeed('Launch pool bucket added successfully!')
+      }
 
       this.log('')
-      this.logSuccess(`Launch Pool Bucket Added`)
+      if (!extensionsError && !behaviorsError) {
+        this.logSuccess(`Launch Pool Bucket Added`)
+      } else {
+        this.log('Launch Pool Bucket Added (with warnings)')
+      }
       this.log('')
       this.log('Bucket Details:')
       this.log(`  Genesis Account: ${genesisAddress}`)
@@ -297,9 +341,92 @@ Use Unix timestamps for absolute times.`
         )
       )
 
+      if (extensionsSignature) {
+        this.log('')
+        this.log(`Extensions Transaction: ${extensionsSignature}`)
+        this.log(
+          generateExplorerUrl(
+            this.context.explorer,
+            this.context.chain,
+            extensionsSignature,
+            'transaction'
+          )
+        )
+      }
+
+      if (behaviorsSignature) {
+        this.log('')
+        this.log(`Behaviors Transaction: ${behaviorsSignature}`)
+        this.log(
+          generateExplorerUrl(
+            this.context.explorer,
+            this.context.chain,
+            behaviorsSignature,
+            'transaction'
+          )
+        )
+      }
+
+      if (extensionsError || behaviorsError) {
+        process.exitCode = 1
+        return
+      }
+
     } catch (error) {
       spinner.fail('Failed to add launch pool bucket')
       throw error
     }
   }
+}
+
+function buildExtensions(
+  flags: {
+    allowlist?: string
+    bonusSchedule?: string
+    claimSchedule?: string
+    depositLimit?: string
+    depositPenalty?: string
+    minimumDeposit?: string
+    minimumQuoteTokenThreshold?: string
+    withdrawPenalty?: string
+  },
+  parseLinearBpsSchedule: (json: string) => LinearBpsScheduleV2Args,
+  parseClaimSchedule: (json: string) => ClaimScheduleArgs,
+  parseAllowlist: (json: string) => AllowlistInitArgsArgs,
+): LaunchPoolV2ExtensionArgs[] {
+  const extensions: LaunchPoolV2ExtensionArgs[] = []
+
+  if (flags.depositPenalty) {
+    extensions.push({ __kind: 'DepositPenalty', depositPenalty: parseLinearBpsSchedule(flags.depositPenalty) })
+  }
+
+  if (flags.withdrawPenalty) {
+    extensions.push({ __kind: 'WithdrawPenalty', withdrawPenalty: parseLinearBpsSchedule(flags.withdrawPenalty) })
+  }
+
+  if (flags.bonusSchedule) {
+    extensions.push({ __kind: 'BonusSchedule', bonusSchedule: parseLinearBpsSchedule(flags.bonusSchedule) })
+  }
+
+  if (flags.depositLimit) {
+    extensions.push({ __kind: 'DepositLimit', depositLimit: { limit: BigInt(flags.depositLimit) } })
+  }
+
+  if (flags.allowlist) {
+    extensions.push({ __kind: 'Allowlist', allowlist: parseAllowlist(flags.allowlist) })
+  }
+
+  if (flags.claimSchedule) {
+    extensions.push({ __kind: 'ClaimSchedule', claimSchedule: parseClaimSchedule(flags.claimSchedule) })
+  }
+
+  if (flags.minimumDeposit) {
+    extensions.push({ __kind: 'MinimumDepositAmount', minimumDepositAmount: { amount: BigInt(flags.minimumDeposit) } })
+  }
+
+  if (flags.minimumQuoteTokenThreshold) {
+    extensions.push({ __kind: 'MinimumQuoteTokenThreshold', minimumQuoteTokenThreshold: { amount: BigInt(flags.minimumQuoteTokenThreshold) } })
+  }
+
+  return extensions
 }

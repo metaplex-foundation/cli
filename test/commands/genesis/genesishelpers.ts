@@ -106,7 +106,7 @@ const addLaunchPoolBucket = async (
     const allocation = options?.allocation ?? '500000000'
     const depositStart = options?.depositStart ?? (now - 3600).toString()
     const depositEnd = options?.depositEnd ?? (now + 86400).toString()
-    const claimStart = options?.claimStart ?? (now + 86400).toString()
+    const claimStart = options?.claimStart ?? (now + 86400 + 1).toString()
     const claimEnd = options?.claimEnd ?? (now + 86400 * 365).toString()
 
     const cliInput = [
@@ -165,7 +165,7 @@ const addPresaleBucket = async (
     const quoteCap = options?.quoteCap ?? '1000000000'
     const depositStart = options?.depositStart ?? (now - 3600).toString()
     const depositEnd = options?.depositEnd ?? (now + 86400).toString()
-    const claimStart = options?.claimStart ?? (now + 86400).toString()
+    const claimStart = options?.claimStart ?? (now + 86400 + 1).toString()
     const claimEnd = options?.claimEnd ?? (now + 86400 * 365).toString()
     const bucketIndex = (options?.bucketIndex ?? 0).toString()
 

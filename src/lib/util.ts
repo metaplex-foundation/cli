@@ -112,6 +112,10 @@ export enum RpcChain {
   Localnet
 }
 
+export function detectSvmNetwork(chain: RpcChain): 'solana-mainnet' | 'solana-devnet' {
+  return chain === RpcChain.Mainnet ? 'solana-mainnet' : 'solana-devnet'
+}
+
 const GENESIS_HASH_MAP = new Map<string, RpcChain>([
   ['5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d', RpcChain.Mainnet], // Solana Mainnet (current)
   ['EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG', RpcChain.Devnet], // Solana Devnet (current)

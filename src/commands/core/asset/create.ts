@@ -3,10 +3,9 @@ import { Flags } from '@oclif/core'
 import fs from 'node:fs'
 import ora from 'ora'
 
-import { generateSigner, Umi } from '@metaplex-foundation/umi'
-import { base58 } from '@metaplex-foundation/umi/serializers'
+import { generateSigner, publicKey, Umi } from '@metaplex-foundation/umi'
 import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
-import createAssetFromArgs from '../../../lib/core/create/createAssetFromArgs.js'
+import createAssetFromArgs, { AssetCreationResult } from '../../../lib/core/create/createAssetFromArgs.js'
 import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
 import uploadFile from '../../../lib/uploader/uploadFile.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
@@ -14,7 +13,6 @@ import pluginConfigurator from '../../../prompts/pluginInquirer.js'
 import { PluginFilterType, pluginSelector } from '../../../prompts/pluginSelector.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import createAssetPrompt, { NftType } from '../../../prompts/createAssetPrompt.js'
-import { txSignatureToString } from '../../../lib/util.js'
 
 
 export default class AssetCreate extends TransactionCommand<typeof AssetCreate> {
@@ -31,6 +29,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
   Additional Options:
   - Use --collection to specify a collection ID for the asset
+  - Use --owner to mint the asset directly to a specific wallet address (defaults to the signer)
   - Use --plugins to interactively select and configure plugins
   - Use --pluginsFile to provide plugin configuration from a JSON file
   `
@@ -51,6 +50,18 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     name: Flags.string({ name: 'name', description: 'Asset name', exclusive: ['wizard'] }),
     uri: Flags.string({ name: 'uri', description: 'URI of the Asset metadata', exclusive: ['wizard'] }),
     collection: Flags.string({ name: 'collection', description: 'Collection ID' }),
+    owner: Flags.string({
+      name: 'owner',
+      description: 'Public key of the owner the Asset will be minted to. Defaults to the signer.',
+      parse: async (value) => {
+        try {
+          publicKey(value)
+        } catch {
+          throw new Error(`Invalid public key for --owner: "${value}". Must be a valid base58 public key.`)
+        }
+        return value
+      },
+    }),
     // File-based asset creation flags
     files: Flags.boolean({
       name: 'files',
@@ -73,13 +84,13 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       hidden: true,
     }),
     // Plugin configuration flags
-    plugins: Flags.boolean({ 
+    plugins: Flags.boolean({
       name: 'plugins',
       required: false,
       summary: 'Use interactive plugin selection',
     }),
-    pluginsFile: Flags.directory({ 
-      name: 'pluginsFile', 
+    pluginsFile: Flags.directory({
+      name: 'pluginsFile',
       required: false,
       exclusive: ['plugins'],
       summary: 'Path to a json file with plugin data',
@@ -88,7 +99,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
   private async getPluginData(): Promise<PluginData | undefined> {
     const { flags } = await this.parse(AssetCreate)
-    
+
     if (flags.plugins) {
       const selectedPlugins = await pluginSelector({ filter: PluginFilterType.Asset })
       if (selectedPlugins) {
@@ -104,7 +115,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     return undefined
   }
 
-  private async handleFileBasedCreation(umi: any, imagePath: string, jsonPath: string, collection?: string) {
+  private async handleFileBasedCreation(umi: any, imagePath: string, jsonPath: string, collection?: string, owner?: string) {
     const imageSpinner = ora('Uploading image...').start()
     const imageUri = await uploadFile(umi, imagePath).catch((err) => {
       imageSpinner.fail(`Failed to upload image. ${err}`)
@@ -138,6 +149,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       name: jsonFile.name,
       uri: jsonUri,
       collection,
+      owner,
       plugins: pluginData,
     }).catch((err) => {
       assetSpinner.fail(`Failed to create asset: ${err}`)
@@ -231,7 +243,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     }
   }
 
-  public async run(): Promise<unknown> {
+  public async run(): Promise<void> {
     const { flags } = await this.parse(AssetCreate)
     const { umi, explorer } = this.context
 
@@ -260,6 +272,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
         uri: jsonUri,
         plugins: pluginData,
         collection: wizardData.collection,
+        owner: flags.owner,
       }).catch((err) => {
         spinner.fail(`Failed to create Asset. ${err}`)
         throw err
@@ -293,6 +306,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
         name: flags.name,
         uri: flags.uri,
         collection: flags.collection,
+        owner: flags.owner,
         plugins: pluginData,
       }).catch((err) => {
         spinner.fail(`Failed to create Asset. ${err}`)

@@ -39,7 +39,7 @@ export default class CoreCollectionFetch extends BaseCommand<typeof CoreCollecti
     const asset = await fetchCollection(umi, args.collection)
 
     if (!flags.output) {
-      console.log(util.inspect(asset, false, null, true))
+      this.log(util.inspect(asset, false, null, true))
       return asset
     }
 

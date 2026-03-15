@@ -124,7 +124,7 @@ Launch types:
 
   static override usage = 'genesis launch create [FLAGS]'
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { flags } = await this.parse(GenesisLaunchCreate)
 
     const isMemecoin = flags.launchType === 'memecoin'
@@ -260,6 +260,14 @@ Launch types:
 
       this.log('')
       this.log('Your token launch is live! Share the launch link with your community.')
+
+      return {
+        genesisAccount: result.genesisAccount,
+        mintAddress: result.mintAddress,
+        launchId: result.launch.id,
+        launchLink: result.launch.link,
+        signatures: result.signatures.map((sig: Uint8Array) => txSignatureToString(sig)),
+      }
     } catch (error) {
       spinner.fail('Failed to create token launch')
       if (error && typeof error === 'object' && 'responseBody' in error) {

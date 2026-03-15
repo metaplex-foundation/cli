@@ -127,7 +127,7 @@ The proof is required for any write operations (transfer, burn, etc.).`
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { args, flags } = await this.parse(BgNftFetch)
     const { umi } = this.context
 
@@ -142,9 +142,9 @@ The proof is required for any write operations (transfer, burn, etc.).`
     const rpcUrl = umi.rpc.getEndpoint()
 
     if (flags['proof-only']) {
-      await this.fetchProofOnly(rpcUrl, args.assetId, flags)
+      return await this.fetchProofOnly(rpcUrl, args.assetId, flags)
     } else {
-      await this.fetchAssetAndProof(rpcUrl, args.assetId, flags)
+      return await this.fetchAssetAndProof(rpcUrl, args.assetId, flags)
     }
   }
 
@@ -152,7 +152,7 @@ The proof is required for any write operations (transfer, burn, etc.).`
     rpcUrl: string,
     assetId: string,
     flags: CommandFlags<typeof BgNftFetch>,
-  ): Promise<void> {
+  ): Promise<unknown> {
     const spinner = ora('Fetching asset proof...').start()
 
     try {
@@ -171,8 +171,10 @@ The proof is required for any write operations (transfer, burn, etc.).`
         this.log(`\nProof saved to: ${baseDirectory}/${assetId}-proof.json`)
       } else {
         this.log('\nAsset Proof:')
-        console.log(util.inspect(proof, false, null, true))
+        this.log(util.inspect(proof, false, null, true))
       }
+
+      return proof
     } catch (error) {
       spinner.fail('Failed to fetch asset proof')
       throw error
@@ -183,7 +185,7 @@ The proof is required for any write operations (transfer, burn, etc.).`
     rpcUrl: string,
     assetId: string,
     flags: CommandFlags<typeof BgNftFetch>,
-  ): Promise<void> {
+  ): Promise<unknown> {
     const spinner = ora('Fetching compressed NFT data...').start()
 
     try {
@@ -221,9 +223,7 @@ The proof is required for any write operations (transfer, burn, etc.).`
         this.printAssetSummary(asset, proof)
       }
 
-      if (this.jsonEnabled()) {
-        this.logJson({ asset, proof })
-      }
+      return { asset, proof }
     } catch (error) {
       spinner.fail('Failed to fetch compressed NFT')
       throw error

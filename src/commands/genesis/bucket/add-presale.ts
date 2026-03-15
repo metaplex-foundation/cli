@@ -78,7 +78,7 @@ Use Unix timestamps for absolute times.`
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { args, flags } = await this.parse(AddPresale)
     const spinner = ora('Adding presale bucket...').start()
 
@@ -210,6 +210,14 @@ Use Unix timestamps for absolute times.`
           'transaction'
         )
       )
+
+      return {
+        genesisAccount: genesisAddress.toString(),
+        bucket: bucketPda.toString(),
+        bucketIndex,
+        signature: txSignatureToString(result.transaction.signature as Uint8Array),
+        explorer: generateExplorerUrl(this.context.explorer, this.context.chain, txSignatureToString(result.transaction.signature as Uint8Array), 'transaction'),
+      }
 
     } catch (error) {
       spinner.fail('Failed to add presale bucket')

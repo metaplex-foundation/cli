@@ -126,7 +126,7 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
           }
         }
 
-        console.log({ cacheItem: cache.items[index].tx })
+        this.log(JSON.stringify({ cacheItem: cache.items[index].tx }))
         fs.writeFileSync(currentDirectory + '/burn-cache.json', JSON.stringify(cache, null, 2))
         return response
       })
@@ -137,7 +137,7 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
           confirmation: response
         }
 
-        console.log({ cacheItem: cache.items[index].tx })
+        this.log(JSON.stringify({ cacheItem: cache.items[index].tx }))
         fs.writeFileSync(currentDirectory + '/burn-cache.json', JSON.stringify(cache, null, 2))
       })
 

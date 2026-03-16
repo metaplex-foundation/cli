@@ -34,17 +34,17 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
   static examples = [
     'Single Asset Update:',
     '<%= config.bin %> <%= command.id %> <assetId> --name "Updated Asset" --uri "https://example.com/metadata.json"',
-    '<%= config.bin %> <%= command.id %> <assetId> --metadata ./asset/metadata.json --image ./asset/image.jpg --sync',
+    '<%= config.bin %> <%= command.id %> <assetId> --offchain ./asset/metadata.json --image ./asset/image.jpg --sync',
     '<%= config.bin %> <%= command.id %> <assetId> --name "Updated Asset"',
     '<%= config.bin %> <%= command.id %> <assetId> --image ./asset/image.jpg',
-    '<%= config.bin %> <%= command.id %> <assetId> --metadata ./asset/metadata.json',
+    '<%= config.bin %> <%= command.id %> <assetId> --offchain ./asset/metadata.json',
   ]
 
   static override flags = {
-    name: Flags.string({ name: "name", description: 'Asset name', exclusive: ['metadata'] }),
-    uri: Flags.string({ name: "uri", description: 'URI of the Asset metadata', exclusive: ['metadata'] }),
+    name: Flags.string({ name: "name", description: 'Asset name', exclusive: ['offchain'] }),
+    uri: Flags.string({ name: "uri", description: 'URI of the Asset metadata', exclusive: ['offchain'] }),
     image: Flags.string({ name: "image", description: 'Path to image file' }),
-    metadata: Flags.string({ name: "metadata", description: 'Path to JSON metadata file', exclusive: ['name', 'uri'] }),
+    offchain: Flags.string({ name: "offchain", description: 'Path to JSON offchain metadata file', exclusive: ['name', 'uri'] }),
     collectionId: Flags.string({ description: 'Collection ID' }),
   }
 
@@ -56,10 +56,10 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
     const { args, flags } = await this.parse(AssetUpdate)
     const umi = this.context.umi
     const assetId = args.assetId
-    const { name, uri, image, metadata: metadataFile } = flags
+    const { name, uri, image, offchain: metadataFile } = flags
 
     if (!name && !uri && !image && !metadataFile) {
-      this.error('You must provide at least one update flag: --name, --uri, --image, or --metadata')
+      this.error('You must provide at least one update flag: --name, --uri, --image, or --offchain')
     }
 
     const asset = await fetchAsset(umi, publicKey(assetId))
@@ -69,7 +69,7 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
       // we only sync from metadata json file to onchain name and not uri to onchain name.
 
       if (metadataFile || image) {
-        throw new Error('--image and --metadata flags are not usable with --uri flag')
+        throw new Error('--image and --offchain flags are not usable with --uri flag')
       }
 
       // use the new uri name
@@ -81,7 +81,7 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
 
       //validations
       if (name && metadataFile) {
-        throw new Error('when syncing name from --metadata file, do not provide a --name flag')
+        throw new Error('when syncing name from --offchain file, do not provide a --name flag')
       }
 
       let metadata: JsonMetadata

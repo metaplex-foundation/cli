@@ -50,7 +50,7 @@ describe('core asset commands', () => {
     })
 
     // Skipping for now because you can't upload files on localnet
-    it.skip('creates a new asset with --files flag while uploading --image and --metadata files', async () => {
+    it.skip('creates a new asset with --files flag while uploading --image and --offchain files', async () => {
 
         //make sure to upload files under 100b to get free uploads for testing.
 
@@ -61,7 +61,7 @@ describe('core asset commands', () => {
             '--files',
             '--image',
             'test-assets/0.png',
-            '--metadata',
+            '--offchain',
             'test-assets/0.json'
         ]
         const cliStdin = ['\n']

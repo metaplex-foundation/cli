@@ -25,9 +25,9 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
     '<%= config.bin %> <%= command.id %> <assetId> --download',
     '<%= config.bin %> <%= command.id %> <assetId> --download --output ./assets',
     '<%= config.bin %> <%= command.id %> <assetId> --download --image',
-    '<%= config.bin %> <%= command.id %> <assetId> --download --metadata',
+    '<%= config.bin %> <%= command.id %> <assetId> --download --offchain',
     '<%= config.bin %> <%= command.id %> <assetId> --download --asset',
-    '<%= config.bin %> <%= command.id %> <assetId> --download --image --metadata',
+    '<%= config.bin %> <%= command.id %> <assetId> --download --image --offchain',
   ]
 
   static flags = {
@@ -47,8 +47,8 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
       required: false,
       dependsOn: ['download'],
     }),
-    metadata: Flags.boolean({
-      description: 'Download the metadata file (requires --download)',
+    offchain: Flags.boolean({
+      description: 'Download the offchain metadata file (requires --download)',
       required: false,
       dependsOn: ['download'],
     }),
@@ -74,7 +74,7 @@ export default class AssetFetch extends BaseCommand<typeof AssetFetch> {
         outputPath: flags.download ? flags.output : undefined,
         // Pass the flags directly to let fetch.ts handle the downloadAll logic
         image: flags.download && flags.image,
-        metadata: flags.download && flags.metadata,
+        metadata: flags.download && flags.offchain,
         asset: flags.download && flags.asset,
       })
 

@@ -20,7 +20,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
      Example: mplx core collection create --name "My Collection" --uri "https://example.com/metadata.json"
 
   2. File-based Creation: Create a single Collection by providing an image file and a JSON metadata file.
-     Example: mplx core collection create --files --image "./my-collection.png" --metadata "./metadata.json"
+     Example: mplx core collection create --files --image "./my-collection.png" --offchain "./metadata.json"
 
   3. Interactive Wizard: Create a Collection using the interactive wizard which guides you through the process.
      Example: mplx core collection create --wizard
@@ -33,7 +33,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
   static override examples = [
     '$ mplx core collection create --wizard',
     '$ mplx core collection create --name "My Collection" --uri "https://example.com/metadata.json"',
-    '$ mplx core collection create --files --image "./my-collection.png" --metadata "./metadata.json"',
+    '$ mplx core collection create --files --image "./my-collection.png" --offchain "./metadata.json"',
   ]
 
   static override usage = 'core collection create [FLAGS]'
@@ -47,9 +47,9 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
     files: Flags.boolean({
       name: 'files',
       char: 'f',
-      summary: 'Signify that the files are being uploaded --image and --metadata are required',
+      summary: 'Signify that the files are being uploaded --image and --offchain are required',
       description:
-        'The --files -f flag allows the user to create a Core Digital Collection by providing both an image and metadata file.',
+        'The --files -f flag allows the user to create a Core Digital Collection by providing both an image and offchain metadata file.',
       exclusive: ['wizard'],
     }),
     image: Flags.string({
@@ -60,10 +60,10 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       exclusive: ['--name', '-n', '--uri', '-u', 'wizard'],
       hidden: true,
     }),
-    metadata: Flags.string({
-      name: 'metadata',
+    offchain: Flags.string({
+      name: 'offchain',
       char: 'j',
-      description: 'path to JSON metadata file to upload and assign to Collection',
+      description: 'path to JSON offchain metadata file to upload and assign to Collection',
       dependsOn: ['files'],
       exclusive: ['name', 'uri', 'wizard'],
       hidden: true,
@@ -257,11 +257,11 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       this.log(display)
       return this.buildJsonResult(collection.publicKey, txStr, explorer)
     } else if (flags.files) {
-      if (!flags.image || !flags.metadata) {
-        this.error('You must provide an image --image and JSON --metadata file')
+      if (!flags.image || !flags.offchain) {
+        this.error('You must provide an image --image and JSON --offchain file')
       }
 
-      return await this.handleFileBasedCreation(umi, flags.image, flags.metadata, explorer)
+      return await this.handleFileBasedCreation(umi, flags.image, flags.offchain, explorer)
     } else {
       // Create collection from name and uri flags
       if (!flags.name) {

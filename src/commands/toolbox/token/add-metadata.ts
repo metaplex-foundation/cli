@@ -87,7 +87,7 @@ IMPORTANT: You must be the mint authority of the token to add metadata.`
         })(),
     }
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(ToolboxTokenAddMetadata)
         const { umi, explorer, chain } = this.context
 
@@ -118,7 +118,13 @@ IMPORTANT: You must be the mint authority of the token to add metadata.`
             this.log(`  Symbol: ${existingMetadata.symbol}`)
             this.log(`  URI: ${existingMetadata.uri}`)
             this.log(`\nUse "mplx toolbox token update" to update existing metadata.`)
-            return
+            return {
+                mint: args.mint,
+                name: existingMetadata.name,
+                symbol: existingMetadata.symbol,
+                uri: existingMetadata.uri,
+                alreadyExists: true,
+            }
         }
 
         checkSpinner.succeed('No existing metadata found')
@@ -130,18 +136,13 @@ IMPORTANT: You must be the mint authority of the token to add metadata.`
 
         if (!isSome(mintAccount.mintAuthority)) {
             authoritySpinner.fail('Mint authority has been revoked')
-            this.log(`\nThis token's mint authority has been revoked. Metadata cannot be added.`)
-            return
+            this.error(`This token's mint authority has been revoked. Metadata cannot be added.`)
         }
 
         const mintAuthority = mintAccount.mintAuthority.value
         if (mintAuthority !== umi.identity.publicKey) {
             authoritySpinner.fail('You are not the mint authority')
-            this.log(`\nMint authority mismatch:`)
-            this.log(`  Required: ${mintAuthority}`)
-            this.log(`  Your wallet: ${umi.identity.publicKey}`)
-            this.log(`\nYou must be the mint authority to add metadata to this token.`)
-            return
+            this.error(`Mint authority mismatch. Required: ${mintAuthority}, your wallet: ${umi.identity.publicKey}`)
         }
 
         authoritySpinner.succeed('Mint authority verified')
@@ -210,6 +211,9 @@ IMPORTANT: You must be the mint authority of the token to add metadata.`
                 throw new Error('Transaction signature is missing')
             }
 
+            const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+            const explorerUrl = generateExplorerUrl(explorer, chain, signature, 'transaction')
+
             this.logSuccess(
                 SUCCESS_MESSAGE(
                     chain,
@@ -219,6 +223,14 @@ IMPORTANT: You must be the mint authority of the token to add metadata.`
                     { explorer }
                 )
             )
+
+            return {
+                mint: args.mint,
+                name,
+                symbol,
+                signature,
+                explorer: explorerUrl,
+            }
         } catch (error) {
             createSpinner.fail('Failed to create metadata account')
             throw error

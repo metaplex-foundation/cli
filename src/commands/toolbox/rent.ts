@@ -19,7 +19,7 @@ export default class ToolboxRent extends BaseCommand<typeof ToolboxRent> {
         bytes: Args.integer({ description: 'Number of bytes', required: true }),
     }
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(ToolboxRent)
 
         const { umi } = this.context
@@ -29,19 +29,28 @@ export default class ToolboxRent extends BaseCommand<typeof ToolboxRent> {
             rent = subtractAmounts(rent, await umi.rpc.getRent(0));
         }
 
+        const rentSol = amountToNumber(rent)
+        const rentLamports = Number(rent.basisPoints)
+
         if (flags.lamports) {
             this.logSuccess(
                 `--------------------------------
-    Rent cost for ${args.bytes} bytes is ${rent.basisPoints} lamports
+    Rent cost for ${args.bytes} bytes is ${rentLamports} lamports
 --------------------------------`
             )
         }
         else {
             this.logSuccess(
                 `--------------------------------
-    Rent cost for ${args.bytes} bytes is ${amountToNumber(rent)} SOL
+    Rent cost for ${args.bytes} bytes is ${rentSol} SOL
 --------------------------------`
             )
+        }
+
+        return {
+            bytes: args.bytes,
+            rentSol,
+            rentLamports,
         }
     }
 }

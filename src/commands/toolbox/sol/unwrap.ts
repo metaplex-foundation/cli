@@ -1,4 +1,4 @@
-import { 
+import {
   closeToken,
   findAssociatedTokenPda,
   fetchToken
@@ -6,6 +6,7 @@ import {
 import { publicKey } from '@metaplex-foundation/umi'
 import ora from 'ora'
 
+import { generateExplorerUrl } from '../../../explorers.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
@@ -21,9 +22,9 @@ export default class ToolboxSolUnwrap extends TransactionCommand<typeof ToolboxS
 
     static override usage = 'toolbox sol unwrap'
 
-    public async run(): Promise<string> {
+    public async run(): Promise<unknown> {
         await this.parse(ToolboxSolUnwrap)
-        const { umi } = this.context
+        const { umi, explorer, chain } = this.context
 
         const spinner = ora('Unwrapping all wSOL...').start()
 
@@ -33,9 +34,9 @@ export default class ToolboxSolUnwrap extends TransactionCommand<typeof ToolboxS
                 owner: umi.identity.publicKey,
             })
 
-            const tokenAccount = await umi.rpc.getAccount(associatedTokenPda).catch(() => null)
-            
-            if (!tokenAccount || !tokenAccount.exists) {
+            const accountInfo = await umi.rpc.getAccount(associatedTokenPda).catch(() => null)
+
+            if (!accountInfo || !accountInfo.exists) {
                 spinner.fail('No wrapped SOL token account found')
                 throw new Error('No wrapped SOL token account found for this wallet')
             }
@@ -50,23 +51,29 @@ export default class ToolboxSolUnwrap extends TransactionCommand<typeof ToolboxS
                 owner: umi.identity,
             })
 
-            const result = await umiSendAndConfirmTransaction(umi, tx).catch((error) => {
-                spinner.fail('Failed to unwrap wSOL')
-                console.error(error)
-                throw error
-            })
+            const result = await umiSendAndConfirmTransaction(umi, tx)
 
             spinner.succeed('wSOL unwrapped successfully')
+
+            const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+            const tokenAccount = associatedTokenPda.toString()
+            const explorerUrl = generateExplorerUrl(explorer, chain, signature, 'transaction')
 
             this.logSuccess(
                 `--------------------------------
     Unwrapped ${amountInSol} SOL
-    Token Account Closed: ${associatedTokenPda}
-    Signature: ${txSignatureToString(result.transaction.signature as Uint8Array)}
+    Token Account Closed: ${tokenAccount}
+    Signature: ${signature}
+    Explorer: ${explorerUrl}
 --------------------------------`
             )
 
-            return 'success'
+            return {
+                amount: amountInSol,
+                tokenAccount,
+                signature,
+                explorer: explorerUrl,
+            }
 
         } catch (error) {
             spinner.fail('Failed to unwrap wSOL')

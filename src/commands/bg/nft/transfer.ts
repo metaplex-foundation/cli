@@ -34,7 +34,7 @@ Note: The current owner (or their delegate) must be the signer.`
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { args } = await this.parse(BgNftTransfer)
     const { umi, explorer } = this.context
 
@@ -104,15 +104,13 @@ Note: The current owner (or their delegate) must be the signer.`
         tree: assetWithProof.merkleTree.toString(),
       })
 
-      if (this.jsonEnabled()) {
-        this.logJson({
-          signature,
-          explorer: generateExplorerUrl(explorer, this.context.chain, signature, 'transaction'),
-          assetId: args.assetId,
-          from: leafOwner.toString(),
-          to: args.newOwner,
-          tree: assetWithProof.merkleTree.toString(),
-        })
+      return {
+        signature,
+        explorer: generateExplorerUrl(explorer, this.context.chain, signature, 'transaction'),
+        assetId: args.assetId,
+        from: leafOwner.toString(),
+        to: args.newOwner,
+        tree: assetWithProof.merkleTree.toString(),
       }
     } catch (error) {
       spinner.fail('Failed to transfer compressed NFT')

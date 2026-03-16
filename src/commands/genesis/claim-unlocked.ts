@@ -51,7 +51,7 @@ Requirements:
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { args, flags } = await this.parse(GenesisClaimUnlocked)
     const spinner = ora('Processing claim...').start()
 
@@ -120,6 +120,15 @@ Requirements:
           'transaction'
         )
       )
+
+      return {
+        genesisAccount: genesisAddress.toString(),
+        bucket: bucketPda.toString(),
+        bucketIndex: flags.bucketIndex,
+        recipient: recipientAddress.toString(),
+        signature: txSignatureToString(result.transaction.signature as Uint8Array),
+        explorer: generateExplorerUrl(this.context.explorer, this.context.chain, txSignatureToString(result.transaction.signature as Uint8Array), 'transaction'),
+      }
 
     } catch (error) {
       spinner.fail('Failed to claim tokens')

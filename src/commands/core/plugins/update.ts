@@ -29,7 +29,7 @@ export default class CorePluginsUpdate extends BaseCommand<typeof CorePluginsUpd
         json: Args.file({ description: 'path to a plugin data JSON file', required: false }),
     }
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(CorePluginsUpdate)
 
         // Fetch current asset or collection to validate it exists
@@ -71,16 +71,13 @@ export default class CorePluginsUpdate extends BaseCommand<typeof CorePluginsUpd
                 throw new Error('At least one plugin must be selected')
             }
 
-            console.log(selectedPlugins)
             const wizardPluginData = await pluginConfigurator(selectedPlugins)
-            console.log(wizardPluginData)
 
             const pluginsArray = Object.values(wizardPluginData) as (UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin)[]
-            await this.updatePluginsBatch(args.id, pluginsArray, {
+            return await this.updatePluginsBatch(args.id, pluginsArray, {
                 isCollection: flags.collection,
                 collectionId
             })
-            return
         }
 
         if (args.json) {
@@ -94,23 +91,19 @@ export default class CorePluginsUpdate extends BaseCommand<typeof CorePluginsUpd
                 throw new Error('Plugin data array is empty')
             }
 
-            await this.updatePluginsBatch(args.id, jsonData as (UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin)[], {
+            return await this.updatePluginsBatch(args.id, jsonData as (UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin)[], {
                 isCollection: flags.collection,
                 collectionId
             })
-            return
         }
 
         throw new Error('Either --wizard flag or JSON file argument is required')
     }
 
 
-    private async updatePluginsBatch(assetOrCollection: string, pluginsData: (UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin)[], options: { isCollection: boolean, collectionId?: string }) {
+    private async updatePluginsBatch(assetOrCollection: string, pluginsData: (UpdatePluginArgsPlugin | UpdateCollectionPluginArgsPlugin)[], options: { isCollection: boolean, collectionId?: string }): Promise<unknown> {
         const { umi, explorer } = this.context
         const { isCollection, collectionId } = options
-
-        console.log("generating batch transaction")
-        console.log(`Updating ${pluginsData.length} plugins`)
 
         // Build a single transaction with all plugin instructions
         let transaction = transactionBuilder()
@@ -144,7 +137,7 @@ export default class CorePluginsUpdate extends BaseCommand<typeof CorePluginsUpd
                 .map(r => txSignatureToString(r.transaction.signature as Uint8Array))
                 .join(', ')
 
-            console.log(
+            this.log(
                 `--------------------------------
 ${isCollection ? 'Collection' : 'Asset'}: ${assetOrCollection}
 Plugins Updated: ${pluginsData.length}
@@ -154,7 +147,13 @@ Core Explorer: https://core.metaplex.com/explorer/${assetOrCollection}
 --------------------------------`
             )
 
-            return results[0]
+            return {
+                asset: assetOrCollection,
+                pluginsUpdated: pluginsData.length,
+                transactions: transactions.length,
+                signatures: signatures.split(', ').filter(Boolean),
+                coreExplorer: `https://core.metaplex.com/explorer/${assetOrCollection}`,
+            }
         } catch (error: unknown) {
             transactionSpinner.fail(`Failed to update plugins: ${error instanceof Error ? error.message : 'Unknown error'}`)
             throw error

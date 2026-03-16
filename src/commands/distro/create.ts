@@ -106,17 +106,17 @@ You can either provide all required flags individually or use a distro config JS
 
   static override usage = 'distro create [FLAGS]'
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { flags } = await this.parse(DistroCreate)
 
     if (flags.wizard) {
       this.log(
         `--------------------------------
-    
+
     Welcome to the Distribution Creator Wizard!
 
-    This wizard will guide you through the process of creating a new distribution.                
-                
+    This wizard will guide you through the process of creating a new distribution.
+
 --------------------------------`
       )
 
@@ -128,6 +128,7 @@ You can either provide all required flags individually or use a distro config JS
         const distributionResult = await this.createDistributionFromConfig(wizardData)
         spinner.succeed('Distribution created successfully!')
         this.displayDistributionResults(distributionResult)
+        return this.formatDistributionResult(distributionResult)
 
       } catch (error) {
         spinner.fail('Failed to create distribution')
@@ -171,11 +172,29 @@ You can either provide all required flags individually or use a distro config JS
         const distributionResult = await this.createDistributionFromConfig(config)
         spinner.succeed('Distribution created successfully!')
         this.displayDistributionResults(distributionResult)
+        return this.formatDistributionResult(distributionResult)
 
       } catch (error) {
         spinner.fail('Failed to create distribution')
         throw error
       }
+    }
+  }
+
+  private formatDistributionResult(distributionResult: any) {
+    const signature = txSignatureToString(distributionResult.result.transaction.signature as Uint8Array)
+    return {
+      distribution: distributionResult.distributionPda.toString(),
+      mint: distributionResult.mint.toString(),
+      name: distributionResult.config.name,
+      totalClaimants: Number(distributionResult.totalClaimants),
+      signature,
+      explorer: generateExplorerUrl(
+        this.context.explorer,
+        this.context.chain,
+        signature,
+        'transaction'
+      ),
     }
   }
 

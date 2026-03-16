@@ -22,7 +22,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
      Example: mplx core asset create --name "My NFT" --uri "https://example.com/metadata.json"
 
   2. File-based Creation: Create a single Asset by providing an image file and a JSON metadata file.
-     Example: mplx core asset create --files --image "./my-nft.png" --json "./metadata.json"
+     Example: mplx core asset create --files --image "./my-nft.png" --offchain "./metadata.json"
 
   3. Interactive Wizard: Create an Asset using the interactive wizard which guides you through the process.
      Example: mplx core asset create --wizard
@@ -37,10 +37,9 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
   static override examples = [
     '$ mplx core asset create --wizard',
     '$ mplx core asset create --name "My NFT" --uri "https://example.com/metadata.json"',
-    '$ mplx core asset create --files --image "./my-nft.png" --json "./metadata.json"',
+    '$ mplx core asset create --files --image "./my-nft.png" --offchain "./metadata.json"',
     '$ mplx core asset create --name "My NFT" --uri "https://example.com/metadata.json" --collection "collection_id_here"',
-    '$ mplx core asset create --files --image "./my-nft.png" --json "./metadata.json" --collection "collection_id_here"',
-    '$ mplx core asset create --name "My NFT" --uri "https://example.com/metadata.json" --owner "recipient_address_here"',
+    '$ mplx core asset create --files --image "./my-nft.png" --offchain "./metadata.json" --collection "collection_id_here"',
   ]
 
   static override usage = 'core asset create [FLAGS]'
@@ -66,8 +65,8 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     // File-based asset creation flags
     files: Flags.boolean({
       name: 'files',
-      summary: 'Signify that the files are being uploaded -i/--image and -j/--json are required',
-      dependsOn: ['image', 'json'],
+      summary: 'Signify that the files are being uploaded --image and --offchain are required',
+      dependsOn: ['image', 'offchain'],
       exclusive: ['wizard'],
     }),
     image: Flags.directory({
@@ -77,8 +76,9 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       exclusive: ['--name', '--uri', 'wizard'],
       hidden: true,
     }),
-    json: Flags.directory({
-      name: 'json',
+    offchain: Flags.directory({
+      name: 'offchain',
+      description: 'path to JSON offchain metadata file to upload and assign to Asset',
       dependsOn: ['files'],
       exclusive: ['name', 'uri', 'wizard'],
       hidden: true,
@@ -157,7 +157,9 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     })
 
     assetSpinner.succeed('Asset created successfully')
-    return result
+    const formatted = this.formatAssetResult(result, this.context.explorer)
+    this.log(formatted.display)
+    return formatted.json
   }
 
   // TODO: Fix any typings
@@ -221,16 +223,26 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
   }
 
   // TODO: Fix any typings
-  private formatAssetResult(result: AssetCreationResult, explorer: ExplorerType): string {
-    return `--------------------------------
+  private formatAssetResult(result: AssetCreationResult, explorer: ExplorerType): { display: string; json: Record<string, string> } {
+    const explorerUrl = generateExplorerUrl(explorer, this.context.chain, result.signature, 'transaction')
+    const coreExplorerUrl = `https://core.metaplex.com/explorer/${result.asset}`
+    return {
+      display: `--------------------------------
   Asset: ${result.asset}
   Signature: ${result.signature}
-  Explorer: ${generateExplorerUrl(explorer, this.context.chain, result.signature, 'transaction')}
-  Core Explorer: https://core.metaplex.com/explorer/${result.asset}
---------------------------------`
+  Explorer: ${explorerUrl}
+  Core Explorer: ${coreExplorerUrl}
+--------------------------------`,
+      json: {
+        asset: result.asset,
+        signature: result.signature,
+        explorer: explorerUrl,
+        coreExplorer: coreExplorerUrl,
+      },
+    }
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { flags } = await this.parse(AssetCreate)
     const { umi, explorer } = this.context
 
@@ -266,14 +278,15 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       })
 
       spinner.succeed('Asset created successfully')
-      this.log(this.formatAssetResult(result, explorer))
+      const formatted = this.formatAssetResult(result, explorer)
+      this.log(formatted.display)
+      return formatted.json
     } else if (flags.files) {
-      if (!flags.image || !flags.json) {
-        this.error('You must provide an image --image and JSON --json file')
+      if (!flags.image || !flags.offchain) {
+        this.error('You must provide an image --image and JSON --offchain file')
       }
 
-      const result = await this.handleFileBasedCreation(umi, flags.image, flags.json, flags.collection, flags.owner)
-      this.log(this.formatAssetResult(result, explorer))
+      return await this.handleFileBasedCreation(umi, flags.image, flags.offchain, flags.collection, flags.owner)
     } else {
       // Create asset from name and uri flags
       if (!flags.name) {
@@ -300,7 +313,9 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       })
 
       spinner.succeed('Asset created successfully')
-      this.log(this.formatAssetResult(result, explorer))
+      const formatted = this.formatAssetResult(result, explorer)
+      this.log(formatted.display)
+      return formatted.json
     }
   }
 }

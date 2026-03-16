@@ -86,7 +86,7 @@ Funding Modes:
 
   static override usage = 'genesis create [FLAGS]'
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { flags } = await this.parse(GenesisCreate)
 
     const spinner = ora('Creating Genesis account...').start()
@@ -146,6 +146,14 @@ Funding Modes:
         genesisIndex: flags.genesisIndex,
       })
 
+      const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+      const explorerUrl = generateExplorerUrl(
+        this.context.explorer,
+        this.context.chain,
+        signature,
+        'transaction'
+      )
+
       spinner.succeed('Genesis account created successfully!')
 
       this.log('')
@@ -158,21 +166,27 @@ Funding Modes:
       this.log(`Decimals: ${flags.decimals}`)
       this.log(`Funding Mode: ${flags.fundingMode}`)
       this.log('')
-      this.log(`Transaction: ${txSignatureToString(result.transaction.signature as Uint8Array)}`)
+      this.log(`Transaction: ${signature}`)
       this.log('')
-      this.log(
-        generateExplorerUrl(
-          this.context.explorer,
-          this.context.chain,
-          txSignatureToString(result.transaction.signature as Uint8Array),
-          'transaction'
-        )
-      )
+      this.log(explorerUrl)
       this.log('')
       this.log('Next steps:')
       this.log('  1. Add buckets to your Genesis account (launch pool, auction, presale, etc.)')
       this.log('  2. Configure your launch parameters')
       this.log('  3. Finalize the launch when ready')
+
+      return {
+        genesisAccount: String(genesisAccountPda),
+        baseMint: String(baseMintPubkey),
+        quoteMint: String(quoteMint),
+        name: flags.name,
+        symbol: flags.symbol,
+        totalSupply: String(BigInt(flags.totalSupply)),
+        decimals: flags.decimals,
+        fundingMode: flags.fundingMode,
+        signature,
+        explorer: explorerUrl,
+      }
 
     } catch (error) {
       spinner.fail('Failed to create Genesis account')

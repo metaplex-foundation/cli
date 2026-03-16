@@ -39,7 +39,7 @@ Requirements:
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { args } = await this.parse(GenesisFinalize)
     const spinner = ora('Finalizing Genesis launch...').start()
 
@@ -120,6 +120,13 @@ Requirements:
           'transaction'
         )
       )
+
+      return {
+        genesisAccount: genesisAddress.toString(),
+        baseMint: genesisAccount.baseMint.toString(),
+        signature: txSignatureToString(result.transaction.signature as Uint8Array),
+        explorer: generateExplorerUrl(this.context.explorer, this.context.chain, txSignatureToString(result.transaction.signature as Uint8Array), 'transaction'),
+      }
 
     } catch (error) {
       spinner.fail('Failed to finalize Genesis launch')

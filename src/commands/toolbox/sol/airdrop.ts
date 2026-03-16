@@ -37,7 +37,7 @@ export default class ToolboxSolAirdrop extends TransactionCommand<typeof Toolbox
     }
 
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(ToolboxSolAirdrop)
 
         const { umi } = this.context
@@ -46,16 +46,22 @@ export default class ToolboxSolAirdrop extends TransactionCommand<typeof Toolbox
 
         await umiAirdrop(umi, args.amount, args.address).catch((err) => {
             spinner.fail('Failed to airdrop SOL')
-            console.error(err)
             throw err
         })
+
+        const address = (args.address ?? umi.payer.publicKey).toString()
 
         spinner.succeed('Airdropped SOL successfully')
 
         this.logSuccess(
             `--------------------------------
-    Airdropped ${args.amount} SOL to ${args.address ?? umi.payer.publicKey}
+    Airdropped ${args.amount} SOL to ${address}
 --------------------------------`
         )
+
+        return {
+            address,
+            amount: args.amount,
+        }
     }
 }

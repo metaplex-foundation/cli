@@ -47,7 +47,7 @@ Requirements:
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { args, flags } = await this.parse(GenesisTransition)
     const spinner = ora('Processing transition...').start()
 
@@ -133,6 +133,14 @@ Requirements:
           'transaction'
         )
       )
+
+      return {
+        genesisAccount: genesisAddress.toString(),
+        bucket: primaryBucketPda.toString(),
+        bucketIndex: flags.bucketIndex,
+        signature: txSignatureToString(result.transaction.signature as Uint8Array),
+        explorer: generateExplorerUrl(this.context.explorer, this.context.chain, txSignatureToString(result.transaction.signature as Uint8Array), 'transaction'),
+      }
 
     } catch (error) {
       spinner.fail('Failed to execute transition')

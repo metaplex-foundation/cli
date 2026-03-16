@@ -7,6 +7,7 @@ import { publicKey, TransactionBuilder } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
 
+import { generateExplorerUrl } from '../../../explorers.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
@@ -66,7 +67,7 @@ export default class ToolboxLutCreate extends TransactionCommand<typeof ToolboxL
         }
     }
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(ToolboxLutCreate)
         const { umi } = this.context
 
@@ -116,11 +117,12 @@ export default class ToolboxLutCreate extends TransactionCommand<typeof ToolboxL
             )
 
             spinner.succeed('Address Lookup Table created successfully!')
-            
-            this.logSuccess(SUCCESS_MESSAGE(
-                lutPda[0].toString(),
-                txSignatureToString(result.transaction.signature as Uint8Array)
-            ))
+
+            const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+            const lutAddress = lutPda[0].toString()
+            const explorerUrl = generateExplorerUrl(this.context.explorer, this.context.chain, signature, 'transaction')
+
+            this.logSuccess(SUCCESS_MESSAGE(lutAddress, signature))
 
             // If addresses were added, show them
             if (addresses.length > 0) {
@@ -128,6 +130,13 @@ export default class ToolboxLutCreate extends TransactionCommand<typeof ToolboxL
                 addresses.forEach((addr, index) => {
                     this.log(`  ${index + 1}. ${addr}`)
                 })
+            }
+
+            return {
+                lut: lutAddress,
+                addresses,
+                signature,
+                explorer: explorerUrl,
             }
 
         } catch (error) {

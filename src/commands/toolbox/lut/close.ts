@@ -6,6 +6,7 @@ import { isPublicKey, isSome, publicKey } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
 
+import { generateExplorerUrl } from '../../../explorers.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
@@ -58,7 +59,7 @@ export default class ToolboxLutClose extends TransactionCommand<typeof ToolboxLu
         }
     }
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(ToolboxLutClose)
         const { umi } = this.context
 
@@ -137,13 +138,20 @@ export default class ToolboxLutClose extends TransactionCommand<typeof ToolboxLu
             )
 
             closeSpinner.succeed('Address Lookup Table closed successfully!')
-            
-            this.logSuccess(SUCCESS_MESSAGE(
-                lutAddress.toString(),
-                txSignatureToString(result.transaction.signature as Uint8Array)
-            ))
+
+            const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+            const explorerUrl = generateExplorerUrl(this.context.explorer, this.context.chain, signature, 'transaction')
+
+            this.logSuccess(SUCCESS_MESSAGE(lutAddress.toString(), signature))
 
             this.log(`\nRent reclaimed to: ${recipient.toString()}`)
+
+            return {
+                lut: lutAddress.toString(),
+                signature,
+                explorer: explorerUrl,
+                rentReclaimed: recipient.toString(),
+            }
 
         } catch (error) {
             if (!spinner.isSpinning) {

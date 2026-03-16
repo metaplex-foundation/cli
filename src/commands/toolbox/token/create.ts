@@ -240,7 +240,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
             this.error('Failed to upload token metadata');
         }
 
-        await this.createToken(umi, {
+        return await this.createToken(umi, {
             name: input.name,
             symbol: input.symbol,
             description: input.description,
@@ -250,7 +250,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
         }, explorer, startTime);
     }
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const startTime = Date.now();
         const { flags } = await this.parse(ToolboxTokenCreate)
         const { umi, explorer } = this.context
@@ -264,7 +264,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                     throw new Error('Missing required fields in wizard response')
                 }
 
-                await this.createTokenWithMetadata(umi, {
+                return await this.createTokenWithMetadata(umi, {
                     name: wizard.name,
                     symbol: wizard.symbol,
                     description: wizard.description || '',
@@ -274,7 +274,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                 }, explorer, startTime);
             } else {
                 const validatedFlags = await this.validateFlags(flags);
-                await this.createTokenWithMetadata(umi, {
+                return await this.createTokenWithMetadata(umi, {
                     name: validatedFlags.name,
                     symbol: validatedFlags.symbol,
                     description: validatedFlags.description,
@@ -322,6 +322,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
             }
 
             const executionTime = Date.now() - startTime;
+            const signature = txSignatureToString(result.transaction.signature as Uint8Array)
 
             this.logSuccess(await SUCCESS_MESSAGE(
                 this.context.chain,
@@ -336,7 +337,15 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                 { explorer, executionTime }
             ))
 
-            return result
+            return {
+                mint: mint.publicKey.toString(),
+                signature,
+                name: input.name,
+                symbol: input.symbol,
+                decimals: input.decimals || 0,
+                mintAmount: input.mintAmount,
+                explorer: generateExplorerUrl(explorer, this.context.chain, signature, 'transaction'),
+            }
         } catch (error: unknown) {
             createSpinner.fail('Token creation failed')
             if (error instanceof Error) {

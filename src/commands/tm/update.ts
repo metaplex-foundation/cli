@@ -384,6 +384,7 @@ export default class TmUpdate extends TransactionCommand<typeof TmUpdate> {
         return {
             mint: args.mint,
             signature,
+            explorer: generateExplorerUrl(explorer, chain, signature, 'transaction'),
         }
     }
 }

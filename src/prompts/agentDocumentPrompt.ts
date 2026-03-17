@@ -25,6 +25,7 @@ export interface AgentRegistrationDocument {
 }
 
 const SERVICE_TYPES = [
+  { name: 'Other (custom)', value: 'other' },
   { name: 'Web', value: 'web' },
   { name: 'A2A (Agent-to-Agent)', value: 'A2A' },
   { name: 'MCP (Model Context Protocol)', value: 'MCP' },
@@ -39,7 +40,12 @@ const TRUST_MODELS = [
   { name: 'TEE Attestation', value: 'tee-attestation' },
 ]
 
-const agentDocumentPrompt = async (): Promise<AgentRegistrationDocument> => {
+export interface AgentDocumentPromptResult {
+  document: AgentRegistrationDocument
+  collection?: string
+}
+
+const agentDocumentPrompt = async (): Promise<AgentDocumentPromptResult> => {
   const doc: AgentRegistrationDocument = {
     type: 'agent-registration-v1',
     name: '',
@@ -57,10 +63,25 @@ const agentDocumentPrompt = async (): Promise<AgentRegistrationDocument> => {
     validate: (value) => value ? true : 'Description is required',
   })
 
-  doc.image = await input({
-    message: 'Agent Image URI? (URL to avatar/logo)',
-    validate: (value) => value ? true : 'Image URI is required',
+  const imageSource = await select({
+    message: 'Agent Image — is it a local file or a URI?',
+    choices: [
+      { name: 'Local file (will be uploaded)', value: 'file' },
+      { name: 'URI / URL (already hosted)', value: 'uri' },
+    ],
   })
+
+  if (imageSource === 'file') {
+    doc.image = await input({
+      message: 'Agent Image File Path?',
+      validate: (value) => value ? true : 'File path is required',
+    })
+  } else {
+    doc.image = await input({
+      message: 'Agent Image URI? (URL to avatar/logo)',
+      validate: (value) => value ? true : 'Image URI is required',
+    })
+  }
 
   // Services
   const addServices = await confirm({
@@ -72,10 +93,17 @@ const agentDocumentPrompt = async (): Promise<AgentRegistrationDocument> => {
     let continueAdding = true
 
     while (continueAdding) {
-      const serviceType = await select({
+      const serviceTypeSelection = await select({
         message: 'Service Type?',
         choices: SERVICE_TYPES,
       })
+
+      const serviceType = serviceTypeSelection === 'other'
+        ? await input({
+            message: 'Custom Service Type Name?',
+            validate: (value) => value ? true : 'Service type name is required',
+          })
+        : serviceTypeSelection
 
       const endpoint = await input({
         message: 'Service Endpoint URL?',
@@ -186,7 +214,20 @@ const agentDocumentPrompt = async (): Promise<AgentRegistrationDocument> => {
     }
   }
 
-  return doc
+  // Collection
+  const inCollection = await confirm({
+    message: 'Is this agent part of a collection?',
+    default: false,
+  })
+
+  const collection = inCollection
+    ? await input({
+        message: 'Collection Address?',
+        validate: (value) => value ? true : 'Collection address is required',
+      })
+    : undefined
+
+  return { document: doc, collection }
 }
 
 export default agentDocumentPrompt

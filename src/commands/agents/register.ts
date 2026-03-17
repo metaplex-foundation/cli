@@ -9,8 +9,8 @@ import { txSignatureToString } from '../../lib/util.js'
 import { registerIdentityV1 } from '@metaplex-foundation/mpl-agent-registry/dist/src/generated/identity/index.js'
 import createAssetFromArgs from '../../lib/core/create/createAssetFromArgs.js'
 import uploadJson from '../../lib/uploader/uploadJson.js'
-import uploadFile from '../../lib/uploader/uploadFile.js'
-import agentDocumentPrompt, { type AgentRegistrationDocument } from '../../prompts/agentDocumentPrompt.js'
+import { isUrl, resolveImageUri } from '../../lib/uploader/resolveImageUri.js'
+import agentDocumentPrompt, { type AgentRegistrationDocument, type AgentService } from '../../prompts/agentDocumentPrompt.js'
 
 export default class AgentsRegister extends TransactionCommand<typeof AgentsRegister> {
   static override description = `Register an agent identity on a Core asset.
@@ -25,6 +25,7 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
 
   2. New asset with flags (creates asset + document + registers):
      mplx agents register --new --name "My Agent" --description "..." --image "./avatar.png"
+     mplx agents register --new --name "My Agent" --description "..." --image "./avatar.png" --services '[{"name":"MCP","endpoint":"https://..."}]'
 
   3. Existing asset with new document:
      mplx agents register <asset> --name "My Agent" --description "..." --image "./avatar.png"
@@ -41,6 +42,8 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
   static override examples = [
     '$ mplx agents register --new --wizard',
     '$ mplx agents register --new --name "My Agent" --description "An AI agent" --image "./avatar.png"',
+    '$ mplx agents register --new --name "My Agent" --description "An AI agent" --image "./avatar.png" --services \'[{"name":"MCP","endpoint":"https://myagent.com/mcp","version":"1.0"}]\'',
+    '$ mplx agents register --new --name "My Agent" --description "An AI agent" --image "./avatar.png" --supported-trust \'["reputation","tee-attestation"]\'',
     '$ mplx agents register --new --name "My Agent" --description "An AI agent" --image "./avatar.png" --collection <collection>',
     '$ mplx agents register <asset> --uri "https://arweave.net/..."',
     '$ mplx agents register <asset> --name "My Agent" --description "An AI agent" --image "https://arweave.net/..."',
@@ -98,41 +101,24 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
       description: 'Set agent as active in the document (only used with --name)',
       default: true,
     }),
-    'service-web': Flags.string({
-      description: 'Web service endpoint URL',
+    services: Flags.string({
+      description: 'Service endpoints as a JSON array, e.g. \'[{"name":"MCP","endpoint":"https://...","version":"1.0","skills":["search"]}]\'',
       dependsOn: ['name'],
     }),
-    'service-a2a': Flags.string({
-      description: 'A2A (Agent-to-Agent) service endpoint URL',
+    'supported-trust': Flags.string({
+      description: 'Supported trust models as a JSON array, e.g. \'["reputation","tee-attestation"]\'',
       dependsOn: ['name'],
     }),
-    'service-mcp': Flags.string({
-      description: 'MCP (Model Context Protocol) service endpoint URL',
+    registrations: Flags.string({
+      description: 'On-chain registration records as a JSON array, e.g. \'[{"agentId":"...","agentRegistry":"solana:mainnet:..."}]\'',
       dependsOn: ['name'],
     }),
+
 
     // Output
     'save-document': Flags.string({
       description: 'Save the generated document JSON to a local file path',
     }),
-  }
-
-  private isUrl(value: string): boolean {
-    return value.startsWith('http://') || value.startsWith('https://')
-  }
-
-  private async resolveImageUri(imageInput: string): Promise<string> {
-    if (this.isUrl(imageInput)) {
-      return imageInput
-    }
-
-    const spinner = ora('Uploading image...').start()
-    const result = await uploadFile(this.context.umi, imageInput).catch((err) => {
-      spinner.fail(`Failed to upload image: ${err}`)
-      throw err
-    })
-    spinner.succeed(`Image uploaded to ${result.uri}`)
-    return result.uri
   }
 
   private async resolveDocumentUri(flags: Record<string, any>): Promise<{ uri: string; document?: AgentRegistrationDocument }> {
@@ -147,10 +133,14 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
 
     // 2. Wizard
     if (flags.wizard) {
-      doc = await agentDocumentPrompt()
+      const result = await agentDocumentPrompt()
+      doc = result.document
+      if (result.collection && !flags.collection) {
+        flags.collection = result.collection
+      }
 
-      if (doc.image && !this.isUrl(doc.image)) {
-        doc.image = await this.resolveImageUri(doc.image)
+      if (doc.image && !isUrl(doc.image)) {
+        doc.image = await resolveImageUri(this.context.umi, doc.image)
       }
     }
     // 3. From file
@@ -175,12 +165,35 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
         this.error('--image is required when using --name')
       }
 
-      const imageUri = await this.resolveImageUri(flags.image)
+      const imageUri = await resolveImageUri(this.context.umi, flags.image)
 
-      const services: AgentRegistrationDocument['services'] = []
-      if (flags['service-web']) services.push({ name: 'web', endpoint: flags['service-web'] })
-      if (flags['service-a2a']) services.push({ name: 'A2A', endpoint: flags['service-a2a'] })
-      if (flags['service-mcp']) services.push({ name: 'MCP', endpoint: flags['service-mcp'] })
+      // Parse --services JSON or fall back to deprecated individual flags
+      let services: AgentService[] = []
+      if (flags.services) {
+        try {
+          services = JSON.parse(flags.services) as AgentService[]
+        } catch {
+          this.error('--services must be a valid JSON array, e.g. \'[{"name":"MCP","endpoint":"https://..."}]\'')
+        }
+      }
+
+      let supportedTrust: AgentRegistrationDocument['supportedTrust']
+      if (flags['supported-trust']) {
+        try {
+          supportedTrust = JSON.parse(flags['supported-trust']) as string[]
+        } catch {
+          this.error('--supported-trust must be a valid JSON array, e.g. \'["reputation","tee-attestation"]\'')
+        }
+      }
+
+      let registrations: AgentRegistrationDocument['registrations']
+      if (flags.registrations) {
+        try {
+          registrations = JSON.parse(flags.registrations) as AgentRegistrationDocument['registrations']
+        } catch {
+          this.error('--registrations must be a valid JSON array, e.g. \'[{"agentId":"...","agentRegistry":"..."}]\'')
+        }
+      }
 
       doc = {
         type: 'agent-registration-v1',
@@ -189,6 +202,8 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
         image: imageUri,
         active: flags.active,
         services: services.length > 0 ? services : undefined,
+        supportedTrust,
+        registrations,
       }
     } else {
       this.error('Provide --wizard, --uri, --from-file, or --name to specify the registration document.')

@@ -1,5 +1,8 @@
 import { expect } from 'chai'
 import { runCli } from '../../runCli.js'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 
 export const stripAnsi = (str: string) => str.replace(/\u001b\[\d+m/g, '')
 
@@ -13,18 +16,19 @@ export const extractExecutiveProfile = (str: string): string | null => {
     return match ? match[1] : null
 }
 
-// A pre-uploaded agent registration document for use in tests that cannot upload
-export const TEST_AGENT_DOC_URI = 'https://gateway.irys.xyz/6oLffDXxbZ3g1TvTg4kApvkkWmEWNpY1ev3Uig4geCsF'
+// A generic URI used as a placeholder for core asset metadata in tests that don't upload
+export const TEST_ASSET_URI = 'https://example.com/asset.json'
 
 /**
- * Creates a Core asset then registers it as an agent using a pre-existing document URI.
- * Uses the `agents register <asset> --uri` path to avoid any Irys upload on localnet.
+ * Creates a Core asset then registers it as an agent.
+ * Writes a minimal registration document to a temp file and uses --from-file.
+ * NOTE: Requires Irys upload — tests using this helper must be marked .skip on localnet.
  */
 export const createRegisteredAgent = async (collectionId?: string): Promise<{ assetId: string }> => {
     const { stdout: createStdout, stderr: createStderr, code: createCode } = await runCli([
         'core', 'asset', 'create',
         '--name', 'Test Agent Asset',
-        '--uri', TEST_AGENT_DOC_URI,
+        '--uri', TEST_ASSET_URI,
         ...(collectionId ? ['--collection', collectionId] : []),
     ], ['\n'])
 
@@ -33,13 +37,29 @@ export const createRegisteredAgent = async (collectionId?: string): Promise<{ as
     const assetId = extractAssetId(stripAnsi(createStdout + createStderr))
     if (!assetId) throw new Error(`Could not extract asset ID from create output`)
 
-    const { code: registerCode } = await runCli([
-        'agents', 'register',
-        assetId,
-        '--uri', TEST_AGENT_DOC_URI,
-    ])
+    // Write a minimal agent registration document to a temp file
+    const doc = {
+        type: 'https://eips.ethereum.org/EIPS/eip-8004#registration-v1',
+        name: 'Test Agent',
+        description: 'A test agent for integration tests',
+        image: 'https://placehold.co/400.png',
+        active: true,
+    }
 
-    expect(registerCode).to.equal(0)
+    const tmpFile = path.join(os.tmpdir(), `agent-doc-${Date.now()}.json`)
+    fs.writeFileSync(tmpFile, JSON.stringify(doc, null, 2))
+
+    try {
+        const { code: registerCode } = await runCli([
+            'agents', 'register',
+            assetId,
+            '--from-file', tmpFile,
+        ])
+
+        expect(registerCode).to.equal(0)
+    } finally {
+        fs.unlinkSync(tmpFile)
+    }
 
     return { assetId }
 }

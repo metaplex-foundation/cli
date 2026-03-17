@@ -13,8 +13,10 @@ export interface AgentRegistration {
   agentRegistry: string
 }
 
+export const AGENT_REGISTRATION_TYPE = 'https://eips.ethereum.org/EIPS/eip-8004#registration-v1'
+
 export interface AgentRegistrationDocument {
-  type: 'agent-registration-v1'
+  type: typeof AGENT_REGISTRATION_TYPE
   name: string
   description: string
   image: string
@@ -47,7 +49,7 @@ export interface AgentDocumentPromptResult {
 
 const agentDocumentPrompt = async (): Promise<AgentDocumentPromptResult> => {
   const doc: AgentRegistrationDocument = {
-    type: 'agent-registration-v1',
+    type: AGENT_REGISTRATION_TYPE,
     name: '',
     description: '',
     image: '',

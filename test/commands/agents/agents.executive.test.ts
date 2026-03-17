@@ -42,7 +42,8 @@ describe('agents executive register', () => {
 
 describe('agents executive delegate', () => {
 
-    it('delegates a registered agent to an executive wallet', async () => {
+    // Requires Irys upload (createRegisteredAgent uses --from-file) — skip on localnet
+    it.skip('delegates a registered agent to an executive wallet (requires Irys)', async () => {
         const { assetId } = await createRegisteredAgent()
 
         const { stdout, stderr, code } = await runCli([

@@ -48,14 +48,11 @@ export default class AgentsFetch extends BaseCommand<typeof AgentsFetch> {
     const result: Record<string, unknown> = {
       registered: true,
       asset: args.asset,
+      owner: asset.owner.toString(),
       identityPda: identityPda.toString(),
       wallet: walletPda.toString(),
-      owner: asset.owner.toString(),
-    }
-
-    if (agentPlugin) {
-      result.uri = agentPlugin.uri
-      result.lifecycleChecks = agentPlugin.lifecycleChecks
+      registrationUri: agentPlugin?.uri ?? null,
+      lifecycleChecks: agentPlugin?.lifecycleChecks ?? null,
     }
 
     this.log(util.inspect(result, false, null, true))

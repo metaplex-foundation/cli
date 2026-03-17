@@ -1,6 +1,7 @@
 import { Args, Flags } from '@oclif/core'
 import fs from 'node:fs'
 import ora from 'ora'
+import { select, input } from '@inquirer/prompts'
 
 import { generateSigner, publicKey } from '@metaplex-foundation/umi'
 import { generateExplorerUrl } from '../../explorers.js'
@@ -10,7 +11,7 @@ import { registerIdentityV1 } from '@metaplex-foundation/mpl-agent-registry/dist
 import createAssetFromArgs from '../../lib/core/create/createAssetFromArgs.js'
 import uploadJson from '../../lib/uploader/uploadJson.js'
 import { isUrl, resolveImageUri } from '../../lib/uploader/resolveImageUri.js'
-import agentDocumentPrompt, { type AgentRegistrationDocument, type AgentService } from '../../prompts/agentDocumentPrompt.js'
+import agentDocumentPrompt, { AGENT_REGISTRATION_TYPE, type AgentRegistrationDocument, type AgentService } from '../../prompts/agentDocumentPrompt.js'
 
 export default class AgentsRegister extends TransactionCommand<typeof AgentsRegister> {
   static override description = `Register an agent identity on a Core asset.
@@ -30,10 +31,7 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
   3. Existing asset with new document:
      mplx agents register <asset> --name "My Agent" --description "..." --image "./avatar.png"
 
-  4. Existing asset with existing document URI:
-     mplx agents register <asset> --uri "https://arweave.net/..."
-
-  5. Existing asset with local document file:
+  4. Existing asset with local document file:
      mplx agents register <asset> --from-file "./agent-doc.json"
 
   Registration is a one-time operation per asset. Already-registered assets cannot re-register.
@@ -45,7 +43,6 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
     '$ mplx agents register --new --name "My Agent" --description "An AI agent" --image "./avatar.png" --services \'[{"name":"MCP","endpoint":"https://myagent.com/mcp","version":"1.0"}]\'',
     '$ mplx agents register --new --name "My Agent" --description "An AI agent" --image "./avatar.png" --supported-trust \'["reputation","tee-attestation"]\'',
     '$ mplx agents register --new --name "My Agent" --description "An AI agent" --image "./avatar.png" --collection <collection>',
-    '$ mplx agents register <asset> --uri "https://arweave.net/..."',
     '$ mplx agents register <asset> --name "My Agent" --description "An AI agent" --image "https://arweave.net/..."',
     '$ mplx agents register <asset> --from-file "./agent-doc.json"',
   ]
@@ -73,15 +70,11 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
     // Document source: wizard, uri, from-file, or inline flags
     wizard: Flags.boolean({
       description: 'Use interactive wizard to build the registration document',
-      exclusive: ['uri', 'from-file', 'name'],
-    }),
-    uri: Flags.string({
-      description: 'Existing URI pointing to the agent registration JSON document',
-      exclusive: ['wizard', 'from-file', 'name'],
+      exclusive: ['from-file', 'name'],
     }),
     'from-file': Flags.string({
       description: 'Path to a local agent registration JSON file to upload',
-      exclusive: ['wizard', 'uri', 'name'],
+      exclusive: ['wizard', 'name'],
     }),
 
     // Inline document creation flags
@@ -119,14 +112,9 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
   private async resolveDocumentUri(flags: Record<string, any>, assetAddress?: string): Promise<{ uri: string; document?: AgentRegistrationDocument }> {
     const { umi } = this.context
 
-    // 1. Existing URI — nothing to do
-    if (flags.uri) {
-      return { uri: flags.uri }
-    }
-
     let doc: AgentRegistrationDocument
 
-    // 2. Wizard
+    // 1. Wizard
     if (flags.wizard) {
       const result = await agentDocumentPrompt()
       doc = result.document
@@ -147,8 +135,8 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
         this.error(`Failed to read file: ${err}`)
       }
 
-      if (doc.type !== 'agent-registration-v1') {
-        this.error('Invalid document: "type" must be "agent-registration-v1"')
+      if (doc.type !== AGENT_REGISTRATION_TYPE) {
+        this.error(`Invalid document: "type" must be "${AGENT_REGISTRATION_TYPE}"`)
       }
     }
     // 4. Inline flags
@@ -182,7 +170,7 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
       }
 
       doc = {
-        type: 'agent-registration-v1',
+        type: AGENT_REGISTRATION_TYPE,
         name: flags.name,
         description: flags.description,
         image: imageUri,
@@ -191,7 +179,7 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
         supportedTrust,
       }
     } else {
-      this.error('Provide --wizard, --uri, --from-file, or --name to specify the registration document.')
+      this.error('Provide --wizard, --from-file, or --name to specify the registration document.')
     }
 
     // Auto-populate registrations from the known asset address
@@ -221,6 +209,26 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
     const { umi, explorer, chain } = this.context
 
     // Step 1: Determine the asset address upfront so it can be embedded in the document
+    // If using the wizard with no asset info supplied, ask interactively
+    if (flags.wizard && !flags.new && !args.asset) {
+      const assetMode = await select({
+        message: 'Register a new asset or an existing one?',
+        choices: [
+          { name: 'Create a new Core asset', value: 'new' },
+          { name: 'Use an existing Core asset', value: 'existing' },
+        ],
+      })
+
+      if (assetMode === 'new') {
+        flags.new = true
+      } else {
+        args.asset = await input({
+          message: 'Existing Asset Address?',
+          validate: (value) => value ? true : 'Asset address is required',
+        })
+      }
+    }
+
     let assetAddress: string
     let assetSigner = flags.new ? generateSigner(umi) : undefined
 
@@ -283,7 +291,8 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
 
     return {
       asset: assetAddress,
-      uri,
+      registrationUri: uri,
+      collection: flags.collection ?? null,
       signature,
       explorer: explorerUrl,
     }

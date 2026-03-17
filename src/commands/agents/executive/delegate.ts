@@ -68,8 +68,8 @@ export default class AgentsExecutiveDelegate extends TransactionCommand<typeof A
 
     return {
       agentAsset: args.asset,
+      executiveWallet: flags.executive,
       executiveProfile: executiveProfile.toString(),
-      agentIdentity: agentIdentity.toString(),
       signature,
       explorer: explorerUrl,
     }

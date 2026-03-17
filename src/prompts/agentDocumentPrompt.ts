@@ -161,35 +161,6 @@ const agentDocumentPrompt = async (): Promise<AgentDocumentPromptResult> => {
     default: true,
   })
 
-  // Registrations
-  const addRegistrations = await confirm({
-    message: 'Add on-chain registration records?',
-    default: false,
-  })
-
-  if (addRegistrations) {
-    doc.registrations = []
-    let continueAdding = true
-
-    while (continueAdding) {
-      const agentId = await input({
-        message: 'Agent Asset Public Key?',
-        validate: (value) => value ? true : 'Agent ID is required',
-      })
-
-      const agentRegistry = await input({
-        message: 'Agent Registry (e.g. solana:mainnet:1DREGFgysWYxLnRnKQnwrxnJQeSMk2HmGaC6whw2B2p)?',
-        validate: (value) => value ? true : 'Agent registry is required',
-      })
-
-      doc.registrations.push({ agentId, agentRegistry })
-
-      continueAdding = await confirm({
-        message: 'Add another registration?',
-      })
-    }
-  }
-
   // Trust models
   const addTrust = await confirm({
     message: 'Add supported trust models?',

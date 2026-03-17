@@ -10,7 +10,6 @@ export default class Agents extends Command {
   Commands:
     register      Register an agent identity on a Core asset (can also create asset + document)
     fetch         Fetch and display agent identity data
-    document      Create and upload a registration document standalone
     executive     Manage executive profiles and execution delegation
   `
 

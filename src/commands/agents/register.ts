@@ -109,11 +109,6 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
       description: 'Supported trust models as a JSON array, e.g. \'["reputation","tee-attestation"]\'',
       dependsOn: ['name'],
     }),
-    registrations: Flags.string({
-      description: 'On-chain registration records as a JSON array, e.g. \'[{"agentId":"...","agentRegistry":"solana:mainnet:..."}]\'',
-      dependsOn: ['name'],
-    }),
-
 
     // Output
     'save-document': Flags.string({
@@ -121,7 +116,7 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
     }),
   }
 
-  private async resolveDocumentUri(flags: Record<string, any>): Promise<{ uri: string; document?: AgentRegistrationDocument }> {
+  private async resolveDocumentUri(flags: Record<string, any>, assetAddress?: string): Promise<{ uri: string; document?: AgentRegistrationDocument }> {
     const { umi } = this.context
 
     // 1. Existing URI — nothing to do
@@ -186,15 +181,6 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
         }
       }
 
-      let registrations: AgentRegistrationDocument['registrations']
-      if (flags.registrations) {
-        try {
-          registrations = JSON.parse(flags.registrations) as AgentRegistrationDocument['registrations']
-        } catch {
-          this.error('--registrations must be a valid JSON array, e.g. \'[{"agentId":"...","agentRegistry":"..."}]\'')
-        }
-      }
-
       doc = {
         type: 'agent-registration-v1',
         name: flags.name,
@@ -203,10 +189,14 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
         active: flags.active,
         services: services.length > 0 ? services : undefined,
         supportedTrust,
-        registrations,
       }
     } else {
       this.error('Provide --wizard, --uri, --from-file, or --name to specify the registration document.')
+    }
+
+    // Auto-populate registrations from the known asset address
+    if (assetAddress) {
+      doc.registrations = [{ agentId: assetAddress, agentRegistry: 'solana:101:metaplex' }]
     }
 
     // Save locally if requested
@@ -230,12 +220,23 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
     const { args, flags } = await this.parse(AgentsRegister)
     const { umi, explorer, chain } = this.context
 
-    // Step 1: Resolve the registration document URI
-    const { uri, document } = await this.resolveDocumentUri(flags)
-
-    // Step 2: Create or resolve the asset
+    // Step 1: Determine the asset address upfront so it can be embedded in the document
     let assetAddress: string
+    let assetSigner = flags.new ? generateSigner(umi) : undefined
 
+    if (flags.new) {
+      assetAddress = assetSigner!.publicKey.toString()
+    } else {
+      if (!args.asset) {
+        this.error('Asset address is required. Provide an asset address or use --new to create one.')
+      }
+      assetAddress = args.asset
+    }
+
+    // Step 2: Resolve the registration document URI (registrations auto-populated from assetAddress)
+    const { uri, document } = await this.resolveDocumentUri(flags, assetAddress)
+
+    // Step 3: Create the asset if --new
     if (flags.new) {
       const assetName = document?.name ?? flags.name
       if (!assetName) {
@@ -244,8 +245,7 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
 
       const assetSpinner = ora('Creating Core asset...').start()
 
-      const assetSigner = generateSigner(umi)
-      const assetResult = await createAssetFromArgs(umi, {
+      await createAssetFromArgs(umi, {
         assetSigner,
         name: assetName,
         uri,
@@ -256,13 +256,7 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
         throw err
       })
 
-      assetAddress = assetResult.asset
       assetSpinner.succeed(`Core asset created: ${assetAddress}`)
-    } else {
-      if (!args.asset) {
-        this.error('Asset address is required. Provide an asset address or use --new to create one.')
-      }
-      assetAddress = args.asset
     }
 
     // Step 3: Register the agent identity

@@ -25,6 +25,7 @@ import initStorageProvider from './uploader/initStorageProvider.js'
 import { DUMMY_UMI, RpcChain, chain as getChain } from './util.js'
 import { ExplorerType } from '../explorers.js'
 import { mplCandyMachine } from '@metaplex-foundation/mpl-core-candy-machine'
+import { mplAgentIdentity, mplAgentTools } from '@metaplex-foundation/mpl-agent-registry'
 import { dasApi, type DasApiInterface } from '@metaplex-foundation/digital-asset-standard-api'
 
 export type ConfigJson = {
@@ -167,6 +168,8 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
     .use(mplDistro())
     .use(mplCandyMachine())
     .use(genesis())
+    .use(mplAgentIdentity())
+    .use(mplAgentTools())
     .use(dasApi())
 
   const storageProvider = await initStorageProvider(config)

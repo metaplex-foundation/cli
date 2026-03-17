@@ -57,6 +57,16 @@ module.exports = {
         programId: 'GNS1S5J5AspKXgpjz6SvKL66kPaKWAhaGRhCqPRxii2B',
         deployPath: './.amman/genesis.so',
       },
+      {
+        label: 'MPL Agent Identity',
+        programId: '1DREGFgysWYxLnRnKQnwrxnJQeSMk2HmGaC6whw2B2p',
+        deployPath: './.amman/mpl_agent_identity.so',
+      },
+      {
+        label: 'MPL Agent Tools',
+        programId: 'TLREGni9ZEyGC3vnPZtqUh95xQ8oPqJSvNjvB7FGK8S',
+        deployPath: './.amman/mpl_agent_tools.so',
+      },
     ],
     commitment: 'processed',
   },

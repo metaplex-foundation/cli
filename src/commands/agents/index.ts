@@ -15,10 +15,11 @@ export default class Agents extends Command {
   `
 
   static override examples = [
+    '<%= config.bin %> agents register --new --wizard',
     '<%= config.bin %> agents register <asset> --uri "https://arweave.net/..."',
     '<%= config.bin %> agents fetch <asset>',
     '<%= config.bin %> agents executive register',
-    '<%= config.bin %> agents executive delegate <asset>',
+    '<%= config.bin %> agents executive delegate <asset> --executive <wallet>',
   ]
 
   static override flags = {

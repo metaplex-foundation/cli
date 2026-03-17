@@ -5,16 +5,16 @@ export default class AgentsExecutive extends Command {
 
   Manage executive profiles for agent execution delegation.
   An executive profile is a one-time on-chain PDA linked to your wallet
-  that enables you to sign transactions on behalf of registered agents.
+  that enables you to be authorized to act on behalf of registered agents.
 
   Commands:
     register    Create an executive profile for the current wallet
-    delegate    Delegate execution of a registered agent to your executive profile
+    delegate    Authorize an executive wallet to act on behalf of a registered agent (asset owner only)
   `
 
   static override examples = [
     '<%= config.bin %> agents executive register',
-    '<%= config.bin %> agents executive delegate <asset>',
+    '<%= config.bin %> agents executive delegate <asset> --executive <wallet>',
   ]
 
   static override flags = {

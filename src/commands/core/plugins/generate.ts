@@ -51,6 +51,6 @@ export default class CorePluginsGenerate extends BaseCommand<typeof CorePluginsG
 
     fs.writeFileSync(destination + '/plugins.json', JSON.stringify(mapPluginDataToArray(pluginData), null, 2))
 
-    return
+    return { path: destination + '/plugins.json' }
   }
 }

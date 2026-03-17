@@ -11,7 +11,7 @@ export default class ToolboxStorageBalance extends TransactionCommand<typeof Too
 
     static override usage = 'toolbox storage balance'
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(ToolboxStorageBalance)
 
         const { umi, } = this.context
@@ -24,5 +24,9 @@ export default class ToolboxStorageBalance extends TransactionCommand<typeof Too
 
         this.log(jsonStringify(balance, 2))
 
+        return {
+            balance: balance.basisPoints.toString(),
+            balanceSol: Number(balance.basisPoints) / 1_000_000_000,
+        }
     }
 }

@@ -64,6 +64,6 @@ export default class AssetTemplate extends BaseCommand<typeof AssetTemplate> {
 
     // this.log('Asset template folder created at:', directory + '/asset')
 
-    return
+    return { directory: directory + '/asset' }
   }
 }

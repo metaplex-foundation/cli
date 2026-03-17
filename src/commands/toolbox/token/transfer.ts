@@ -2,8 +2,8 @@ import { Args } from '@oclif/core'
 
 import { createTokenIfMissing, findAssociatedTokenPda, transferTokens } from '@metaplex-foundation/mpl-toolbox'
 import { publicKey, TransactionBuilder } from '@metaplex-foundation/umi'
-import { base58 } from '@metaplex-foundation/umi/serializers'
 import ora from 'ora'
+import { generateExplorerUrl } from '../../../explorers.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { txSignatureToString } from '../../../lib/util.js'
@@ -29,10 +29,10 @@ export default class ToolboxTokenTransfer extends TransactionCommand<typeof Tool
     }
 
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(ToolboxTokenTransfer)
 
-        const { umi } = this.context
+        const { umi, explorer, chain } = this.context
 
 
 
@@ -66,13 +66,27 @@ export default class ToolboxTokenTransfer extends TransactionCommand<typeof Tool
             })
         transferSpinner.succeed('Tokens Transferred Successfully!')
 
+        const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+        const explorerUrl = generateExplorerUrl(explorer, chain, signature, 'transaction')
+
         this.logSuccess(
             `--------------------------------
-    'Tokens Transferred Successfully!'
-    Signature: ${txSignatureToString(result.transaction.signature as Uint8Array)}
+    Tokens Transferred Successfully!
+    Mint: ${args.mintAddress}
+    Destination: ${args.destination}
+    Amount: ${args.amount}
+    Signature: ${signature}
+    Explorer: ${explorerUrl}
 --------------------------------`
         )
 
+        return {
+            mint: args.mintAddress,
+            destination: args.destination,
+            amount: args.amount,
+            signature,
+            explorer: explorerUrl,
+        }
     }
 
 

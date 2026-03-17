@@ -4,6 +4,7 @@ import { TransactionBuilder } from '@metaplex-foundation/umi'
 import { base58 } from '@metaplex-foundation/umi/serializers'
 import { readFileSync } from 'node:fs'
 import ora from 'ora'
+import { generateExplorerUrl } from '../../../explorers.js'
 import burnAssetTx from '../../../lib/core/burn/burnAssetTx.js'
 import confirmAllTransactions from '../../../lib/umi/confirmAllTransactions.js'
 import umiSendAllTransactions from '../../../lib/umi/sendAllTransactions.js'
@@ -80,7 +81,7 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
   public async run(): Promise<unknown> {
     const { args, flags } = await this.parse(AssetBurn)
 
-    const { umi, explorer } = this.context
+    const { umi, explorer, chain } = this.context
 
     if (flags.list) {
       // Burn all assets in list
@@ -89,7 +90,7 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
 
       if (disabled) {
         this.log('Burning Assets from list coming soon')
-        return
+        return { success: false, reason: 'feature_disabled' }
       }
 
       this.log('Burning assets from list')
@@ -125,7 +126,7 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
           }
         }
 
-        console.log({ cacheItem: cache.items[index].tx })
+        this.log(JSON.stringify({ cacheItem: cache.items[index].tx }))
         fs.writeFileSync(currentDirectory + '/burn-cache.json', JSON.stringify(cache, null, 2))
         return response
       })
@@ -136,23 +137,31 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
           confirmation: response
         }
 
-        console.log({ cacheItem: cache.items[index].tx })
+        this.log(JSON.stringify({ cacheItem: cache.items[index].tx }))
         fs.writeFileSync(currentDirectory + '/burn-cache.json', JSON.stringify(cache, null, 2))
       })
 
       const failedTransactions = cache.items.filter((item) => item.tx?.transaction?.err || !item.tx?.confirmation?.confirmed)
+      const cacheFile = `${currentDirectory}/burn-cache.json`
 
       if (failedTransactions.length > 0) {
         this.error(`All transactions did not confirm successfully, please check the cache file for more details\n
           Failed transactions: ${failedTransactions.length} of ${assetsList.length}\n
           Failed transactions: ${failedTransactions.map((item) => item.asset).join(', ')}\n
-          Cache file: ${currentDirectory}/burn-cache.json
+          Cache file: ${cacheFile}
           `)
       } else {
         this.logSuccess(`--------------------------------
   Assets burned: ${cache.items.length} of ${assetsList.length}
-  Cache file: ${currentDirectory}/burn-cache.json
+  Cache file: ${cacheFile}
 --------------------------------`)
+      }
+
+      return {
+        burned: cache.items.length - failedTransactions.length,
+        failed: failedTransactions.length,
+        total: assetsList.length,
+        cacheFile,
       }
     } else {
       // Burn single asset
@@ -166,7 +175,6 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
       if (!burnTx) {
         transactionSpinner.fail('Failed to build transaction')
         this.error('Failed to build transaction')
-        return
       }
 
       const result = await umiSendAndConfirmTransaction(umi, burnTx)
@@ -176,15 +184,20 @@ export default class AssetBurn extends TransactionCommand<typeof AssetBurn> {
         this.error(result.transaction.err)
       } else {
         const signature = txSignatureToString(result.transaction.signature! as Uint8Array)
+        const explorerUrl = generateExplorerUrl(explorer, chain, signature, 'transaction')
         transactionSpinner.succeed(`Asset burned: ${args.asset}`)
         this.logSuccess(`--------------------------------
   Asset burned: ${args.asset}
   Signature: ${signature}
+  Explorer: ${explorerUrl}
 --------------------------------`)
+        return {
+          asset: args.asset,
+          signature,
+          explorer: explorerUrl,
+        }
       }
     }
-
-    return
   }
 }
 

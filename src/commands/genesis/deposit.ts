@@ -53,7 +53,7 @@ Launch pools use a pro-rata allocation model where:
     }),
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { args, flags } = await this.parse(GenesisDeposit)
     const spinner = ora('Processing deposit...').start()
 
@@ -142,6 +142,15 @@ Launch pools use a pro-rata allocation model where:
       this.log('')
       this.log('Note: Your token allocation will be calculated pro-rata based on total contributions.')
       this.log('Use "mplx genesis claim" to claim your tokens after the launch is finalized.')
+
+      return {
+        genesisAccount: genesisAddress.toString(),
+        bucket: bucketPda.toString(),
+        bucketIndex: flags.bucketIndex,
+        amount: flags.amount,
+        signature: txSignatureToString(result.transaction.signature as Uint8Array),
+        explorer: generateExplorerUrl(this.context.explorer, this.context.chain, txSignatureToString(result.transaction.signature as Uint8Array), 'transaction'),
+      }
 
     } catch (error) {
       spinner.fail('Failed to deposit')

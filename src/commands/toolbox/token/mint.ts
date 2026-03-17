@@ -12,7 +12,7 @@ const SUCCESS_MESSAGE = async (
     mint: string,
     recipient: string,
     amount: number,
-    signature: Uint8Array,
+    signature: string,
     options: { explorer: ExplorerType }
 ) => {
     return `--------------------------------
@@ -23,8 +23,8 @@ Mint Address: ${mint}
 Recipient: ${recipient}
 Amount Minted: ${amount}
 
-Transaction Signature: ${txSignatureToString(signature)}
-Explorer: ${generateExplorerUrl(options.explorer, chain, txSignatureToString(signature), 'transaction')}
+Transaction Signature: ${signature}
+Explorer: ${generateExplorerUrl(options.explorer, chain, signature, 'transaction')}
 --------------------------------`;
 }
 
@@ -65,7 +65,7 @@ Note: You must have mint authority for the specified token mint.`
         }),
     }
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(ToolboxTokenMint)
         const { umi, explorer } = this.context
 
@@ -117,16 +117,24 @@ Note: You must have mint authority for the specified token mint.`
                 throw new Error('Transaction signature is missing');
             }
 
+            const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+
             this.logSuccess(await SUCCESS_MESSAGE(
                 this.context.chain,
                 args.mint,
                 recipientAddress,
                 args.amount,
-                result.transaction.signature as Uint8Array,
+                signature,
                 { explorer }
             ));
 
-            return result;
+            return {
+                mint: args.mint,
+                recipient: recipientAddress,
+                amount: args.amount,
+                signature,
+                explorer: generateExplorerUrl(explorer, this.context.chain, signature, 'transaction'),
+            };
         } catch (error: unknown) {
             mintSpinner.fail('Token minting failed');
             if (error instanceof Error) {

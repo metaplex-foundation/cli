@@ -51,7 +51,7 @@ The distribution must be active and you must have the tokens in your wallet.`
 
   static override usage = 'distro deposit [DISTRIBUTION] [FLAGS]'
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { args, flags } = await this.parse(DistroDeposit)
     
     if (!flags.amount && !flags.basisAmount) {
@@ -135,16 +135,26 @@ The distribution must be active and you must have the tokens in your wallet.`
       const newTotalFormatted = Number(newTotal) / Math.pow(10, decimals)
       this.log(`New total deposited: ${newTotalFormatted} tokens (${newTotal} basis)`)
       this.log('')
-      this.log(`Transaction: ${txSignatureToString(result.transaction.signature as Uint8Array)}`)
+      const signature = txSignatureToString(result.transaction.signature as Uint8Array)
+      this.log(`Transaction: ${signature}`)
       this.log('')
       this.log(
         generateExplorerUrl(
           this.context.explorer,
           this.context.chain,
-          txSignatureToString(result.transaction.signature as Uint8Array),
+          signature,
           'transaction'
         )
       )
+
+      return {
+        distribution: distributionAddress.toString(),
+        mint: mint.toString(),
+        amount: formattedAmount,
+        basisAmount: basisAmount.toString(),
+        signature,
+        explorer: generateExplorerUrl(this.context.explorer, this.context.chain, signature, 'transaction'),
+      }
 
     } catch (error) {
       spinner.fail('Failed to deposit tokens')

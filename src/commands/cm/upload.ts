@@ -37,17 +37,17 @@ export default class CmUpload extends TransactionCommand<typeof CmUpload> {
         }),
     }
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args } = await this.parse(CmUpload)
         const { umi } = this.context
 
         try {
             validateCmDirectory(args.directory);
-            
+
             // Try to read existing asset cache, or create initial one
             let assetCache;
             const { assetCachePath } = getCmPaths(args.directory);
-            
+
             if (fs.existsSync(assetCachePath)) {
                 this.log('📁 Found existing asset cache, using it...');
                 assetCache = readAssetCache(args.directory);
@@ -59,9 +59,9 @@ export default class CmUpload extends TransactionCommand<typeof CmUpload> {
             }
 
             const uploadResult = await uploadCandyMachineItems(
-                umi, 
-                assetCache, 
-                args.directory || process.cwd(), 
+                umi,
+                assetCache,
+                args.directory || process.cwd(),
                 createUploadProgressHandler()
             );
 
@@ -72,8 +72,11 @@ export default class CmUpload extends TransactionCommand<typeof CmUpload> {
             const validationSpinner = ora('Validating uploads...').start();
             await validateCacheUploads(uploadResult.assetCache, ValidateCacheUploadsOptions.STORAGE);
             validationSpinner.succeed('Upload validation completed');
-            
+
             this.logSuccess('Upload completed successfully');
+
+            const itemsUploaded = Object.keys(uploadResult.assetCache.assetItems).length
+            return { itemsUploaded }
         } catch (error) {
             this.error(`Upload failed: ${error instanceof Error ? error.message : String(error)}`);
         }

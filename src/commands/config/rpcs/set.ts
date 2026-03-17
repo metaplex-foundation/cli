@@ -6,6 +6,8 @@ import { ensureDirectoryExists, writeJsonSync } from '../../../lib/file.js'
 import rpcSelector from '../../../prompts/rpcSelectorPrompt.js'
 
 export default class ConfigRpcSetCommand extends Command {
+  static enableJsonFlag = true
+
   static override description = 'Set a new active RPC configuration from a list of RPCs. If no name is provided, opens interactive RPC selector.'
 
   static override args = {
@@ -15,7 +17,7 @@ export default class ConfigRpcSetCommand extends Command {
     })
   }
 
-  public async run(): Promise<void> {
+  public async run(): Promise<unknown> {
     const { flags, args } = await this.parse(ConfigRpcSetCommand)
 
     const path = flags.config ?? getDefaultConfigPath()
@@ -24,7 +26,7 @@ export default class ConfigRpcSetCommand extends Command {
 
     if (!config.rpcs || config.rpcs.length === 0) {
       this.log('No RPCs found')
-      return
+      return {}
     }
 
     const availableRpcs = config.rpcs.map(rpc => ({
@@ -53,5 +55,10 @@ export default class ConfigRpcSetCommand extends Command {
     writeJsonSync(path, config)
 
     this.log(`Selected RPC: ${selectedRpc.name} (${selectedRpc.url})`)
+
+    return {
+      name: selectedRpc.name,
+      endpoint: selectedRpc.url,
+    }
   }
 }

@@ -28,23 +28,23 @@ export default class CmInsert extends TransactionCommand<typeof CmInsert> {
         })
     }
 
-    public async run() {
+    public async run(): Promise<unknown> {
         const { args } = await this.parse(CmInsert)
         const { umi } = this.context
 
         try {
             const config = readCmConfig(args.directory);
-            
+
             // Check if candy machine exists
             if (!config.candyMachineId) {
                 this.error('No candy machine ID found in config. Please run "mplx cm create" first to create a candy machine.');
             }
-            
+
             const { assetCachePath } = getCmPaths(args.directory);
             if (!fs.existsSync(assetCachePath)) {
                 this.error(`Asset cache file not found at ${assetCachePath}. Please run "mplx cm upload" first to upload your assets.`);
             }
-            
+
             const assetCache = readAssetCache(args.directory);
 
             const res = await insertItems(umi, config, assetCache);
@@ -52,6 +52,12 @@ export default class CmInsert extends TransactionCommand<typeof CmInsert> {
             writeAssetCache(res.assetCache, args.directory);
 
             this.logSuccess(`Asset cache updated successfully`);
+
+            const itemsInserted = Object.keys(res.assetCache.assetItems).length
+            return {
+                candyMachineId: config.candyMachineId?.toString(),
+                itemsInserted,
+            }
         } catch (error) {
             this.error(`Insert failed: ${error instanceof Error ? error.message : String(error)}`);
         }

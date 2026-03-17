@@ -37,7 +37,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
      Example: mplx tm create --wizard
 
   2. File-based Creation: Create an NFT by providing an image file and a JSON metadata file.
-     Example: mplx tm create --image "./my-nft.png" --json "./metadata.json"
+     Example: mplx tm create --image "./my-nft.png" --offchain "./metadata.json"
 
   3. URI Creation: Create an NFT using existing metadata that's already online.
      Example: mplx tm create --name "My NFT" --uri "https://example.com/metadata.json"
@@ -53,7 +53,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
 
     static override examples = [
         '$ mplx tm create --wizard',
-        '$ mplx tm create --image "./my-nft.png" --json "./metadata.json"',
+        '$ mplx tm create --image "./my-nft.png" --offchain "./metadata.json"',
         '$ mplx tm create --name "My NFT" --uri "https://example.com/metadata.json"',
         '$ mplx tm create --name "My NFT" --image "./my-nft.png" --attributes "trait1:value1,trait2:value2" --royalties 5',
         '$ mplx tm create --name "My NFT" --image "./my-nft.png" --project-url "https://myproject.com" --royalties 10',
@@ -68,20 +68,20 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
             required: false 
         }),
         // Manual creation flags
-        name: Flags.string({ 
-            name: 'name', 
-            description: 'NFT name', 
-            exclusive: ['wizard', 'json'] 
+        name: Flags.string({
+            name: 'name',
+            description: 'NFT name',
+            exclusive: ['wizard', 'offchain']
         }),
-        uri: Flags.string({ 
-            name: 'uri', 
-            description: 'URI of the NFT metadata (alternative to creating metadata from other flags)', 
-            exclusive: ['wizard', 'json', 'image', 'attributes', 'description', 'animation', 'project-url'] 
+        uri: Flags.string({
+            name: 'uri',
+            description: 'URI of the NFT metadata (alternative to creating metadata from other flags)',
+            exclusive: ['wizard', 'offchain', 'image', 'attributes', 'description', 'animation', 'project-url']
         }),
         // File-based creation with JSON metadata file
-        json: Flags.string({ 
-            name: 'json', 
-            description: 'path to JSON metadata file', 
+        offchain: Flags.string({
+            name: 'offchain',
+            description: 'path to JSON offchain metadata file',
             exclusive: ['wizard', 'name', 'uri', 'attributes', 'description', 'project-url', 'animation'],
             dependsOn: ['image']
         }),
@@ -94,27 +94,27 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
         attributes: Flags.string({ 
             name: 'attributes', 
             description: 'Attributes of the NFT "trait1:value1,trait2:value2"',
-            exclusive: ['wizard', 'uri', 'json']
+            exclusive: ['wizard', 'uri', 'offchain']
         }),
         description: Flags.string({ 
             name: 'description', 
             description: 'description of the NFT',
-            exclusive: ['wizard', 'uri', 'json']
+            exclusive: ['wizard', 'uri', 'offchain']
         }),
         animation: Flags.string({ 
             name: 'animation', 
             description: 'path to animation file to upload and assign to NFT',
-            exclusive: ['wizard', 'uri', 'json']
+            exclusive: ['wizard', 'uri', 'offchain']
         }),
         'project-url': Flags.string({ 
             name: 'project-url', 
             description: 'external URL of the project',
-            exclusive: ['wizard', 'uri', 'json']
+            exclusive: ['wizard', 'uri', 'offchain']
         }),
         royalties: Flags.integer({
             name: 'royalties',
             description: 'royalty percentage for secondary sales (0-100)',
-            exclusive: ['wizard', 'uri', 'json'],
+            exclusive: ['wizard', 'uri', 'offchain'],
             min: 0,
             max: 100
         }),
@@ -170,7 +170,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
 
         nftSpinner.succeed('NFT created successfully')
         this.log(formatNftResult(result, this.context.explorer, this.context.chain))
-        return result
+        return result  // caller (run) will call formatResult on this
     }
 
     private parseAttributes(attributesString?: string) {
@@ -345,15 +345,24 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
         const { flags } = await this.parse(TmCreate)
         const { umi, explorer } = this.context
 
+        const formatResult = (result: { mint: string; signature: Uint8Array }) => {
+            const sig = txSignatureToString(result.signature)
+            return {
+                mint: result.mint,
+                signature: sig,
+                explorer: generateExplorerUrl(explorer, this.context.chain, sig, 'transaction'),
+            }
+        }
+
         if (flags.wizard) {
             // Wizard mode: Interactive creation
             this.log(
                 `--------------------------------
-    
+
     Welcome to the NFT Creator Wizard!
 
-    This wizard will guide you through the process of creating a new NFT.                
-                
+    This wizard will guide you through the process of creating a new NFT.
+
 --------------------------------`
             )
 
@@ -377,16 +386,16 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
 
             spinner.succeed('NFT created successfully')
             this.log(formatNftResult(result, explorer, this.context.chain))
-            return result
+            return formatResult(result)
 
-        } else if (flags.json) {
-            // File-based creation: Use existing JSON metadata file with image
+        } else if (flags.offchain) {
+            // File-based creation: Use existing JSON offchain metadata file with image
             if (!flags.image) {
-                this.error('You must provide --image when using --json')
+                this.error('You must provide --image when using --offchain')
             }
 
-            const result = await this.handleFileBasedCreation(umi, flags.image, flags.json, flags.collection, flags.type === 'pnft')
-            return result
+            const result = await this.handleFileBasedCreation(umi, flags.image, flags.offchain, flags.collection, flags.type === 'pnft')
+            return formatResult(result)
 
         } else if (flags.name && flags.uri) {
             // URI flow: Use existing metadata URI (simplest case)
@@ -408,7 +417,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
 
             spinner.succeed('NFT created successfully')
             this.log(formatNftResult(result, explorer, this.context.chain))
-            return result
+            return formatResult(result)
 
         } else if (flags.name && flags.image) {
             // Manual flow: Create metadata from individual flags
@@ -431,12 +440,12 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
 
             spinner.succeed('NFT created successfully')
             this.log(formatNftResult(result, explorer, this.context.chain))
-            return result
+            return formatResult(result)
 
         } else {
             this.error('You must provide one of the following combinations:\n' +
                       '  --wizard (interactive mode)\n' +
-                      '  --image and --json (file-based creation)\n' +
+                      '  --image and --offchain (file-based creation)\n' +
                       '  --name and --uri (use existing metadata)\n' +
                       '  --name and --image (create metadata from flags)')
         }

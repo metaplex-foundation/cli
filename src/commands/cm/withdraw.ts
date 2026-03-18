@@ -7,6 +7,7 @@ import { generateExplorerUrl } from '../../explorers.js'
 import { terminalColors } from '../../lib/StandardColors.js'
 import { txSignatureToString } from '../../lib/util.js'
 import { readCmConfig } from '../../lib/cm/cm-utils.js'
+import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 
 export default class CmWithdraw extends TransactionCommand<typeof CmWithdraw> {
     static override description = `Withdraw a candy machine and recover funds
@@ -91,7 +92,7 @@ export default class CmWithdraw extends TransactionCommand<typeof CmWithdraw> {
             }
 
             const res = await this.withdraw(candyMachinePk);
-            const signature = txSignatureToString(res.signature)
+            const signature = txSignatureToString(res.transaction.signature as Uint8Array)
             this.log(`${terminalColors.BgGreen}${terminalColors.FgWhite}Candy machine withdrawn successfully${terminalColors.FgDefault}${terminalColors.BgDefault}`);
             this.log(`${terminalColors.BgGreen}${terminalColors.FgWhite}Candy machine ID: ${candyMachineId}${terminalColors.FgDefault}${terminalColors.BgDefault}`);
             this.log(`${terminalColors.BgGreen}${terminalColors.FgWhite}Transaction hash: ${signature}${terminalColors.FgDefault}${terminalColors.BgDefault}`);
@@ -108,10 +109,10 @@ export default class CmWithdraw extends TransactionCommand<typeof CmWithdraw> {
 
     private async withdraw(candyMachinePk: ReturnType<typeof publicKey>) {
         const { umi } = this.context;
-        const res = await deleteCandyMachine(umi, {
+        const tx = deleteCandyMachine(umi, {
             candyMachine: candyMachinePk,
-        }).sendAndConfirm(umi);
+        });
 
-        return res;
+        return await umiSendAndConfirmTransaction(umi, tx);
     }
 }

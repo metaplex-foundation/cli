@@ -5,7 +5,7 @@ import ora from 'ora'
 
 import { TransactionCommand } from '../../../../TransactionCommand.js'
 
-export default class ExecuteSigner extends TransactionCommand<typeof ExecuteSigner> {
+export default class ExecuteInfo extends TransactionCommand<typeof ExecuteInfo> {
   static override description = 'Show the asset signer PDA address and its SOL balance'
 
   static override examples = [
@@ -17,7 +17,7 @@ export default class ExecuteSigner extends TransactionCommand<typeof ExecuteSign
   }
 
   public async run(): Promise<unknown> {
-    const { args } = await this.parse(ExecuteSigner)
+    const { args } = await this.parse(ExecuteInfo)
     const { umi } = this.context
 
     const spinner = ora('Fetching asset signer info...').start()

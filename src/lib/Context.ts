@@ -24,8 +24,17 @@ import { readJsonSync } from './file.js'
 import initStorageProvider from './uploader/initStorageProvider.js'
 import { DUMMY_UMI, RpcChain, chain as getChain } from './util.js'
 import { ExplorerType } from '../explorers.js'
+import { assetSignerPlugin } from './umi/assetSignerPlugin.js'
 import { mplCandyMachine } from '@metaplex-foundation/mpl-core-candy-machine'
 import { dasApi, type DasApiInterface } from '@metaplex-foundation/digital-asset-standard-api'
+
+export type WalletEntry = {
+  name: string
+  address: string
+} & (
+  | { type?: 'file'; path: string }
+  | { type: 'asset-signer'; asset: string; payer?: string }
+)
 
 export type ConfigJson = {
   commitment?: Commitment
@@ -36,16 +45,18 @@ export type ConfigJson = {
     name: 'irys' | 'cascade' | 'turbo'
     options: IrysUploaderOptions
   }
-  wallets?: {
-    name: string
-    path: string
-    address: string
-  }[]
+  wallets?: WalletEntry[]
   rpcs?: {
     name: string
     endpoint: string
   }[]
   explorer?: ExplorerType
+  activeWallet?: string
+}
+
+export type AssetSignerInfo = {
+  asset: string
+  signerPda: string
 }
 
 export type Context = {
@@ -77,6 +88,7 @@ export const CONFIG_KEYS: Array<keyof ConfigJson> = [
   'wallets',
   'rpcs',
   'explorer',
+  'activeWallet',
 ]
 
 export const getDefaultConfigPath = (): string => {
@@ -142,17 +154,62 @@ export function consolidateConfigs<T>(...configs: Partial<ConfigJson>[]): Config
   }, {} as ConfigJson)
 }
 
+/**
+ * Resolves the active wallet from config. Returns the wallet entry if an
+ * asset-signer wallet is active, or undefined for standard wallets.
+ */
+const resolveActiveWallet = (config: ConfigJson): WalletEntry | undefined => {
+  if (!config.activeWallet || !config.wallets) return undefined
+  return config.wallets.find(w => w.name === config.activeWallet)
+}
+
 export const createContext = async (configPath: string, overrides: ConfigJson, isTransactionContext: boolean = false): Promise<Context> => {
   const config: ConfigJson = consolidateConfigs(DEFAULT_CONFIG, readConfig(configPath), overrides)
 
+  // Check if the active wallet is an asset-signer.
+  // An explicit --keypair flag overrides the asset-signer wallet.
+  const activeWallet = overrides.keypair ? undefined : resolveActiveWallet(config)
+  const isAssetSigner = activeWallet?.type === 'asset-signer'
+
   let signer: Signer
-  if (isTransactionContext) {
-    signer = await createSignerFromPath(config.keypair)
+  let assetSigner: AssetSignerInfo | undefined
+  let payerPath: string | undefined = config.payer
+
+  if (isAssetSigner) {
+    // For asset-signer wallets, umi.identity is the real wallet (required for
+    // correct mpl-core CPI account layout). The asset-signer plugin stores
+    // PDA info on umi; use getEffectiveOwner(umi) for address derivation.
+    const walletPayerName = activeWallet.payer
+    if (!payerPath && walletPayerName && config.wallets) {
+      const payerWallet = config.wallets.find(w => w.name === walletPayerName)
+      if (payerWallet && payerWallet.type !== 'asset-signer' && 'path' in payerWallet) {
+        payerPath = payerWallet.path
+      }
+    }
+
+    if (!payerPath) {
+      payerPath = config.keypair
+    }
+
+    if (!payerPath && isTransactionContext) {
+      throw new Error(
+        `Asset-signer wallet '${activeWallet.name}' requires a payer wallet for gas fees.\n` +
+        `Set a default payer with: mplx config wallet add --asset <assetId> --payer <walletName>\n` +
+        `Or use the --payer flag.`
+      )
+    }
+
+    // Identity is the real wallet — commands build instructions normally.
+    // The asset-signer plugin on umi tells the send layer to wrap in execute().
+    signer = await createSignerFromPath(payerPath)
+    assetSigner = { asset: activeWallet.asset, signerPda: activeWallet.address }
+  } else if (isTransactionContext) {
+    signer = await createSignerFromPath(overrides.keypair || config.keypair)
   } else {
     signer = config.keypair ? await createSignerFromPath(config.keypair) : createNoopSigner()
   }
 
-  const payer = config.payer ? await createSignerFromPath(config.payer) : signer
+  const payer = payerPath ? await createSignerFromPath(payerPath) : signer
 
   const umi = createUmi(config.rpcUrl!, {
     commitment: config.commitment!,
@@ -168,6 +225,10 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
     .use(mplCandyMachine())
     .use(genesis())
     .use(dasApi())
+
+  if (assetSigner) {
+    umi.use(assetSignerPlugin({ info: assetSigner, authority: signer }))
+  }
 
   const storageProvider = await initStorageProvider(config)
   storageProvider && umi.use(storageProvider)

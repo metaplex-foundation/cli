@@ -12,6 +12,7 @@ import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
 import createAssetPrompt, { CreateAssetPromptResult } from '../../../prompts/createAssetPrompt.js'
 import uploadFile from '../../../lib/uploader/uploadFile.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
+import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 
 export default class CoreCollectionCreate extends TransactionCommand<typeof CoreCollectionCreate> {
   static override description = `Create an MPL Core Collection using 3 different methods:
@@ -144,19 +145,20 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
     const spinner = ora('Creating Collection...').start()
     const collection = generateSigner(umi)
 
-    const tx = await createCollection(umi, {
+    const txBuilder = createCollection(umi, {
       collection,
       name: collectionName,
       uri: metadataUri,
       plugins: pluginData ? mapPluginDataToArray(pluginData) : undefined,
     })
-      .sendAndConfirm(umi)
+
+    const tx = await umiSendAndConfirmTransaction(umi, txBuilder)
       .catch((error) => {
         spinner.fail(`Error creating Collection: ${error}`)
         throw error
       })
 
-    const txStr = txSignatureToString(tx.signature)
+    const txStr = txSignatureToString(tx.transaction.signature as Uint8Array)
     spinner.succeed('Collection created successfully')
     const display = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
     this.log(display)
@@ -239,19 +241,20 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       const spinner = ora('Creating Collection...').start()
       const collection = generateSigner(umi)
 
-      const tx = await createCollection(umi, {
+      const txBuilder = createCollection(umi, {
         collection,
         name: collectionName,
         uri: metadataUri,
         plugins: wizardData.plugins ? mapPluginDataToArray(wizardData.plugins) : undefined,
       })
-        .sendAndConfirm(umi)
+
+      const tx = await umiSendAndConfirmTransaction(umi, txBuilder)
         .catch((error) => {
           spinner.fail(`Error creating Collection: ${error}`)
           throw error
         })
 
-      const txStr = txSignatureToString(tx.signature)
+      const txStr = txSignatureToString(tx.transaction.signature as Uint8Array)
       spinner.succeed('Collection created successfully')
       const display = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
       this.log(display)
@@ -275,19 +278,20 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       const spinner = ora('Creating Collection...').start()
       const collection = generateSigner(umi)
 
-      const tx = await createCollection(umi, {
+      const txBuilder = createCollection(umi, {
         collection,
         name: flags.name,
         uri: flags.uri,
         plugins: pluginData ? mapPluginDataToArray(pluginData) : undefined,
       })
-        .sendAndConfirm(umi)
+
+      const tx = await umiSendAndConfirmTransaction(umi, txBuilder)
         .catch((error) => {
           spinner.fail(`Error creating Collection: ${error}`)
           throw error
         })
 
-      const txStr = txSignatureToString(tx.signature)
+      const txStr = txSignatureToString(tx.transaction.signature as Uint8Array)
       spinner.succeed('Collection created successfully')
       const display = await this.formatCollectionResult(collection.publicKey, txStr, explorer)
       this.log(display)

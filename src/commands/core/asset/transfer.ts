@@ -5,6 +5,8 @@ import ora from 'ora'
 
 import { generateExplorerUrl } from '../../../explorers.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
+import { getAssetSigner } from '../../../lib/umi/assetSignerPlugin.js'
+import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
 
 export default class AssetTransfer extends TransactionCommand<typeof AssetTransfer> {
@@ -38,30 +40,36 @@ export default class AssetTransfer extends TransactionCommand<typeof AssetTransf
         this.error('Cannot transfer: asset is frozen')
       }
 
-      const transferError = await validateTransfer(umi, {
-        authority: umi.identity.publicKey,
-        asset,
-        collection,
-        recipient: publicKey(args.newOwner),
-      })
+      // Skip client-side validation for asset-signer wallets — the execute
+      // instruction handles authorization on-chain via the PDA.
+      if (!getAssetSigner(umi)) {
+        const transferError = await validateTransfer(umi, {
+          authority: umi.identity.publicKey,
+          asset,
+          collection,
+          recipient: publicKey(args.newOwner),
+        })
 
-      if (transferError) {
-        spinner.fail('Asset transfer failed')
-        const message = transferError === LifecycleValidationError.NoAuthority
-          ? 'Cannot transfer: you are not the owner or an authorized delegate of this asset'
-          : `Cannot transfer: ${transferError}`
-        this.error(message)
+        if (transferError) {
+          spinner.fail('Asset transfer failed')
+          const message = transferError === LifecycleValidationError.NoAuthority
+            ? 'Cannot transfer: you are not the owner or an authorized delegate of this asset'
+            : `Cannot transfer: ${transferError}`
+          this.error(message)
+        }
       }
 
       spinner.text = 'Transferring asset...'
 
-      const result = await transfer(umi, {
+      const tx = transfer(umi, {
         asset,
         collection,
         newOwner: publicKey(args.newOwner),
-      }).sendAndConfirm(umi)
+      })
 
-      const signature = txSignatureToString(result.signature)
+      const result = await umiSendAndConfirmTransaction(umi, tx)
+
+      const signature = txSignatureToString(result.transaction.signature as Uint8Array)
       const explorerUrl = generateExplorerUrl(explorer, this.context.chain, signature, 'transaction')
 
       spinner.succeed(`Asset transferred: ${args.assetId}`)

@@ -1,6 +1,7 @@
 import { amountToNumber, isPublicKey, publicKey } from '@metaplex-foundation/umi';
 import { Args } from '@oclif/core';
 import { TransactionCommand } from '../../../TransactionCommand.js';
+import { getEffectiveOwner } from '../../../lib/umi/assetSignerPlugin.js';
 import { shortenAddress } from '../../../lib/util.js';
 
 const SUCCESS_MESSAGE = (address: string, balance: number) => `--------------------------------
@@ -41,7 +42,7 @@ export default class ToolboxSolBalance extends TransactionCommand<typeof Toolbox
         const { umi } = this.context
 
         const validatedInput = await this.validateInput(args.address)
-        const targetAddress = validatedInput.address ? publicKey(validatedInput.address) : umi.identity.publicKey
+        const targetAddress = validatedInput.address ? publicKey(validatedInput.address) : getEffectiveOwner(umi)
 
         try {
             const balance = await umi.rpc.getBalance(targetAddress)

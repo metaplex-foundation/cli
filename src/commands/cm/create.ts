@@ -404,11 +404,12 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
 
         // Collection creation onchain
         const collectionCreationSpinner = ora('🏭 Creating collection onchain...').start()
-        await createCollection(umi, {
+        const collectionTx = createCollection(umi, {
             collection,
             name: collectionJson.name,
             uri: collectionJson.uri,
-        }).sendAndConfirm(umi, { send: { commitment: 'finalized' }, confirm: { commitment: 'finalized' } })
+        })
+        await umiSendAndConfirmTransaction(umi, collectionTx, { commitment: 'finalized' })
 
         const collectionRes = await fetchCollection(umi, collection.publicKey)
 
@@ -441,7 +442,7 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
                     guards: parsedGuards.guards,
                     groups: parsedGuards.groups,
                 });
-                await tx.sendAndConfirm(umi);
+                await umiSendAndConfirmTransaction(umi, tx);
                 candyMachineCreatorSpinner.succeed(`Candy machine created with guards - ${candyMachine.publicKey}`)
             } else {
                 // Create candy machine without candy guard (authority-only minting)
@@ -453,7 +454,7 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
                     isMutable: candyMachineConfig.config.isMutable,
                     ...getConfigLineSettings(candyMachineConfig),
                 });
-                await tx.sendAndConfirm(umi);
+                await umiSendAndConfirmTransaction(umi, tx);
                 candyMachineCreatorSpinner.succeed(`Candy machine created (authority-only minting) - ${candyMachine.publicKey}`)
             }
         } catch (error) {

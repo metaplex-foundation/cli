@@ -10,6 +10,7 @@ import ora from 'ora'
 import { generateExplorerUrl } from '../../../explorers.js'
 import { txSignatureToString } from '../../../lib/util.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
+import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 
 /* 
   Update Possibilities:
@@ -189,8 +190,9 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
       if (asset.updateAuthority.type === 'Collection' && asset.updateAuthority.address) {
         collection = await fetchCollection(umi, publicKey(asset.updateAuthority.address))
       }
-      const tx = await update(umi, { asset, collection, name, uri }).sendAndConfirm(umi)
-      const signature = txSignatureToString(tx.signature)
+      const txBuilder = update(umi, { asset, collection, name, uri })
+      const tx = await umiSendAndConfirmTransaction(umi, txBuilder)
+      const signature = txSignatureToString(tx.transaction.signature as Uint8Array)
       const explorerUrl = generateExplorerUrl(this.context.explorer, this.context.chain, signature, 'transaction')
       spinner.succeed(`Asset updated: ${asset.publicKey} (Tx: ${signature})`)
       return {

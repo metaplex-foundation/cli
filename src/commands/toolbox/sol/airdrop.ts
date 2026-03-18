@@ -3,6 +3,7 @@ import { Args } from '@oclif/core'
 import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import umiAirdrop from '../../../lib/toolbox/airdrop.js'
+import { getEffectiveOwner } from '../../../lib/umi/assetSignerPlugin.js'
 
 
 
@@ -49,7 +50,7 @@ export default class ToolboxSolAirdrop extends TransactionCommand<typeof Toolbox
             throw err
         })
 
-        const address = (args.address ?? umi.payer.publicKey).toString()
+        const address = (args.address ?? getEffectiveOwner(umi)).toString()
 
         spinner.succeed('Airdropped SOL successfully')
 

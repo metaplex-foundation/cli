@@ -1,7 +1,6 @@
 import { expect } from 'chai'
 import { runCli } from '../../runCli'
-import { createCoreAsset, createCoreCollection, extractAssetId, stripAnsi } from './corehelpers'
-import { createAndFundToken } from './executehelpers'
+import { createCoreAsset, createCoreCollection, stripAnsi } from './corehelpers'
 import { serializeInstruction } from '../../../src/lib/execute/deserializeInstruction.js'
 
 const ASSET_SIGNER_PDA_PATTERN = /Signer PDA:\s+([a-zA-Z0-9]+)/
@@ -19,12 +18,12 @@ describe('core asset execute commands', function () {
         await new Promise(resolve => setTimeout(resolve, 10000))
     })
 
-    describe('signer', () => {
+    describe('info', () => {
         it('shows the asset signer PDA address and balance', async function () {
             const { assetId } = await createCoreAsset()
 
             const { stdout, stderr, code } = await runCli([
-                'core', 'asset', 'execute', 'signer', assetId
+                'core', 'asset', 'execute', 'info', assetId
             ])
 
             const cleanStderr = stripAnsi(stderr)
@@ -44,141 +43,12 @@ describe('core asset execute commands', function () {
             const { assetId } = await createCoreAsset(collectionId)
 
             const { stdout, stderr, code } = await runCli([
-                'core', 'asset', 'execute', 'signer', assetId
+                'core', 'asset', 'execute', 'info', assetId
             ])
 
             const output = stripAnsi(stdout) + stripAnsi(stderr)
             expect(code).to.equal(0)
             expect(output).to.contain('Signer PDA:')
-        })
-    })
-
-    describe('transfer-sol', () => {
-        it('transfers SOL from the asset signer PDA', async function () {
-            const { assetId } = await createCoreAsset()
-
-            // Get the signer PDA
-            const { stdout: signerOut, stderr: signerErr } = await runCli([
-                'core', 'asset', 'execute', 'signer', assetId
-            ])
-            const signerPda = extractSignerPda(stripAnsi(signerOut) + stripAnsi(signerErr))
-            expect(signerPda).to.be.ok
-
-            // Fund the signer PDA
-            await runCli(['toolbox', 'sol', 'transfer', '0.1', signerPda!])
-            await new Promise(resolve => setTimeout(resolve, 5000))
-
-            // Transfer SOL from the signer PDA
-            const destination = 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
-            const { stdout, stderr, code } = await runCli([
-                'core', 'asset', 'execute', 'transfer-sol', assetId,
-                '--amount', '0.01', '--destination', destination
-            ])
-
-            const output = stripAnsi(stdout) + stripAnsi(stderr)
-            expect(code).to.equal(0)
-            expect(output).to.contain('SOL transferred from asset signer')
-            expect(output).to.contain('Signature:')
-        })
-
-        it('fails with an invalid amount', async function () {
-            const { assetId } = await createCoreAsset()
-
-            try {
-                await runCli([
-                    'core', 'asset', 'execute', 'transfer-sol', assetId,
-                    '--amount', '-1', '--destination', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
-                ])
-                expect.fail('Expected command to fail with negative amount')
-            } catch (error: any) {
-                expect(error.message).to.contain('Amount must be a positive number')
-            }
-        })
-    })
-
-    describe('transfer-token', () => {
-        it('transfers SPL tokens from the asset signer PDA', async function () {
-            const { assetId } = await createCoreAsset()
-
-            // Get the signer PDA
-            const { stdout: signerOut, stderr: signerErr } = await runCli([
-                'core', 'asset', 'execute', 'signer', assetId
-            ])
-            const signerPda = extractSignerPda(stripAnsi(signerOut) + stripAnsi(signerErr))
-            expect(signerPda).to.be.ok
-
-            // Create a fungible token and mint 1000 tokens to the asset signer PDA
-            const mintAddress = await createAndFundToken(signerPda!, 1000, 0)
-            await new Promise(resolve => setTimeout(resolve, 5000))
-
-            // Transfer 100 tokens from the signer PDA to destination
-            const destination = 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
-            const { stdout, stderr, code } = await runCli([
-                'core', 'asset', 'execute', 'transfer-token', assetId,
-                '--mint', mintAddress, '--amount', '100', '--destination', destination
-            ])
-
-            const output = stripAnsi(stdout) + stripAnsi(stderr)
-            expect(code).to.equal(0)
-            expect(output).to.contain('Tokens transferred from asset signer')
-            expect(output).to.contain('Signature:')
-        })
-    })
-
-    describe('transfer-asset', () => {
-        it('transfers an asset owned by the signer PDA to a new owner', async function () {
-            // Create the "signing" asset (the one whose PDA will own another asset)
-            const { assetId: signingAssetId } = await createCoreAsset()
-
-            // Get the signer PDA
-            const { stdout: signerOut, stderr: signerErr } = await runCli([
-                'core', 'asset', 'execute', 'signer', signingAssetId
-            ])
-            const signerPda = extractSignerPda(stripAnsi(signerOut) + stripAnsi(signerErr))
-            expect(signerPda).to.be.ok
-
-            // Create a second asset owned by the signer PDA
-            const { stdout: createOut, stderr: createErr, code: createCode } = await runCli([
-                'core', 'asset', 'create',
-                '--name', 'Owned by PDA',
-                '--uri', 'https://example.com/pda-owned',
-                '--owner', signerPda!,
-            ], ['\n'])
-            expect(createCode).to.equal(0)
-
-            const targetAssetId = extractAssetId(stripAnsi(createOut)) || extractAssetId(stripAnsi(createErr))
-            expect(targetAssetId).to.be.ok
-
-            // Transfer the target asset from the signer PDA to a new owner
-            const newOwner = 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
-            const { stdout, stderr, code } = await runCli([
-                'core', 'asset', 'execute', 'transfer-asset', signingAssetId,
-                '--asset', targetAssetId!, '--new-owner', newOwner
-            ])
-
-            const output = stripAnsi(stdout) + stripAnsi(stderr)
-            expect(code).to.equal(0)
-            expect(output).to.contain('Asset transferred from signer PDA')
-            expect(output).to.contain('Signature:')
-
-            // Verify ownership changed
-            const { stdout: fetchOut } = await runCli(['core', 'asset', 'fetch', targetAssetId!])
-            expect(stripAnsi(fetchOut)).to.contain(newOwner)
-        })
-
-        it('fails when target asset is not owned by the signer PDA', async function () {
-            const { assetId: signingAssetId } = await createCoreAsset()
-            const { assetId: otherAssetId } = await createCoreAsset()
-
-            try {
-                await runCli([
-                    'core', 'asset', 'execute', 'transfer-asset', signingAssetId,
-                    '--asset', otherAssetId, '--new-owner', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
-                ])
-                expect.fail('Expected command to fail when target is not owned by PDA')
-            } catch (error: any) {
-                expect(error.message).to.contain('not owned by the asset signer PDA')
-            }
         })
     })
 
@@ -188,7 +58,7 @@ describe('core asset execute commands', function () {
 
             // Get the signer PDA
             const { stdout: signerOut, stderr: signerErr } = await runCli([
-                'core', 'asset', 'execute', 'signer', assetId
+                'core', 'asset', 'execute', 'info', assetId
             ])
             const signerPda = extractSignerPda(stripAnsi(signerOut) + stripAnsi(signerErr))
             expect(signerPda).to.be.ok

@@ -23,6 +23,7 @@ import { generateExplorerUrl } from '../../explorers.js'
 import imageUploader from '../../lib/uploader/imageUploader.js'
 import uploadJson from '../../lib/uploader/uploadJson.js'
 import { TOKEN_AUTH_RULES_ID } from '../../constants.js'
+import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 
 export default class TmUpdate extends TransactionCommand<typeof TmUpdate> {
     static override description = 'Update an MPL Token Metadata NFT. Automatically detects pNFTs and includes ruleset if present. Use --editor to edit the metadata JSON in your default editor.'
@@ -187,7 +188,7 @@ export default class TmUpdate extends TransactionCommand<typeof TmUpdate> {
             })
         }
 
-        const result = await updateIx.sendAndConfirm(umi).catch((err) => {
+        const result = await umiSendAndConfirmTransaction(umi, updateIx).catch((err) => {
             updateSpinner.fail('Failed to update NFT')
             throw err
         })
@@ -196,7 +197,7 @@ export default class TmUpdate extends TransactionCommand<typeof TmUpdate> {
 
         return {
             asset,
-            signature: result.signature,
+            signature: result.transaction.signature,
         }
     }
 
@@ -325,7 +326,7 @@ export default class TmUpdate extends TransactionCommand<typeof TmUpdate> {
             })
         }
 
-        const result = await updateIx.sendAndConfirm(umi).catch((err) => {
+        const result = await umiSendAndConfirmTransaction(umi, updateIx).catch((err) => {
             updateSpinner.fail('Failed to update NFT')
             throw err
         })
@@ -334,7 +335,7 @@ export default class TmUpdate extends TransactionCommand<typeof TmUpdate> {
 
         return {
             asset,
-            signature: result.signature,
+            signature: result.transaction.signature,
         }
     }
 

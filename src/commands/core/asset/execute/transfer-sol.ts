@@ -1,7 +1,7 @@
 import { execute, fetchAsset, fetchCollection, findAssetSignerPda } from '@metaplex-foundation/mpl-core'
 import { transferSol } from '@metaplex-foundation/mpl-toolbox'
 import { createNoopSigner, publicKey, sol } from '@metaplex-foundation/umi'
-import { Args } from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
 
 import { generateExplorerUrl } from '../../../../explorers.js'
@@ -12,20 +12,23 @@ export default class ExecuteTransferSol extends TransactionCommand<typeof Execut
   static override description = 'Transfer SOL from an asset\'s signer PDA to a destination address'
 
   static override examples = [
-    '<%= config.bin %> <%= command.id %> <assetId> 0.5 <destination>',
+    '<%= config.bin %> <%= command.id %> <assetId> --amount 0.5 --destination <address>',
   ]
 
   static override args = {
     assetId: Args.string({ description: 'Asset whose signer PDA holds the SOL', required: true }),
-    amount: Args.string({ description: 'Amount of SOL to transfer', required: true }),
-    destination: Args.string({ description: 'Destination address', required: true }),
+  }
+
+  static override flags = {
+    amount: Flags.string({ description: 'Amount of SOL to transfer', required: true }),
+    destination: Flags.string({ description: 'Destination address', required: true }),
   }
 
   public async run(): Promise<unknown> {
-    const { args } = await this.parse(ExecuteTransferSol)
+    const { args, flags } = await this.parse(ExecuteTransferSol)
     const { umi, explorer, chain } = this.context
 
-    const amountInSol = parseFloat(args.amount)
+    const amountInSol = parseFloat(flags.amount)
     if (isNaN(amountInSol) || amountInSol <= 0) {
       this.error('Amount must be a positive number')
     }
@@ -45,7 +48,7 @@ export default class ExecuteTransferSol extends TransactionCommand<typeof Execut
 
       const transferSolIx = transferSol(umi, {
         source: createNoopSigner(assetSignerPda),
-        destination: publicKey(args.destination),
+        destination: publicKey(flags.destination),
         amount: sol(amountInSol),
       })
 
@@ -67,7 +70,7 @@ export default class ExecuteTransferSol extends TransactionCommand<typeof Execut
   Asset:        ${args.assetId}
   Signer PDA:   ${assetSignerPda.toString()}
   Amount:       ${amountInSol} SOL
-  Destination:  ${args.destination}
+  Destination:  ${flags.destination}
   Signature:    ${signature}
 --------------------------------`
       )
@@ -77,7 +80,7 @@ export default class ExecuteTransferSol extends TransactionCommand<typeof Execut
         asset: args.assetId,
         signerPda: assetSignerPda.toString(),
         amount: amountInSol,
-        destination: args.destination,
+        destination: flags.destination,
         signature,
         explorer: explorerUrl,
       }

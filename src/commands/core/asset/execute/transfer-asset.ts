@@ -1,6 +1,6 @@
 import { execute, fetchAsset, fetchCollection, findAssetSignerPda, transfer } from '@metaplex-foundation/mpl-core'
 import { createNoopSigner, publicKey } from '@metaplex-foundation/umi'
-import { Args } from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
 
 import { generateExplorerUrl } from '../../../../explorers.js'
@@ -11,17 +11,20 @@ export default class ExecuteTransferAsset extends TransactionCommand<typeof Exec
   static override description = 'Transfer a Core Asset owned by an asset\'s signer PDA to a new owner'
 
   static override examples = [
-    '<%= config.bin %> <%= command.id %> <signingAssetId> <targetAssetId> <newOwner>',
+    '<%= config.bin %> <%= command.id %> <assetId> --asset <targetAssetId> --new-owner <address>',
   ]
 
   static override args = {
     assetId: Args.string({ description: 'Asset whose signer PDA owns the target asset', required: true }),
-    targetAssetId: Args.string({ description: 'Asset to transfer (must be owned by the signer PDA)', required: true }),
-    newOwner: Args.string({ description: 'New owner of the target asset', required: true }),
+  }
+
+  static override flags = {
+    asset: Flags.string({ description: 'Asset to transfer (must be owned by the signer PDA)', required: true }),
+    'new-owner': Flags.string({ description: 'New owner of the target asset', required: true }),
   }
 
   public async run(): Promise<unknown> {
-    const { args } = await this.parse(ExecuteTransferAsset)
+    const { args, flags } = await this.parse(ExecuteTransferAsset)
     const { umi, explorer, chain } = this.context
 
     const spinner = ora('Fetching assets...').start()
@@ -35,7 +38,7 @@ export default class ExecuteTransferAsset extends TransactionCommand<typeof Exec
         signingCollection = await fetchCollection(umi, signingAsset.updateAuthority.address)
       }
 
-      const targetAssetPubkey = publicKey(args.targetAssetId)
+      const targetAssetPubkey = publicKey(flags.asset)
       const targetAsset = await fetchAsset(umi, targetAssetPubkey)
 
       let targetCollection
@@ -54,7 +57,7 @@ export default class ExecuteTransferAsset extends TransactionCommand<typeof Exec
       const transferIx = transfer(umi, {
         asset: targetAsset,
         collection: targetCollection,
-        newOwner: publicKey(args.newOwner),
+        newOwner: publicKey(flags['new-owner']),
         authority: createNoopSigner(assetSignerPda),
       })
 
@@ -74,8 +77,8 @@ export default class ExecuteTransferAsset extends TransactionCommand<typeof Exec
       this.logSuccess(
         `--------------------------------
   Signing Asset:  ${args.assetId}
-  Target Asset:   ${args.targetAssetId}
-  New Owner:      ${args.newOwner}
+  Target Asset:   ${flags.asset}
+  New Owner:      ${flags['new-owner']}
   Signature:      ${signature}
 --------------------------------`
       )
@@ -83,8 +86,8 @@ export default class ExecuteTransferAsset extends TransactionCommand<typeof Exec
 
       return {
         signingAsset: args.assetId,
-        targetAsset: args.targetAssetId,
-        newOwner: args.newOwner,
+        targetAsset: flags.asset,
+        newOwner: flags['new-owner'],
         signature,
         explorer: explorerUrl,
       }

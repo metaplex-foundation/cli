@@ -1,7 +1,7 @@
 import { execute, fetchAsset, fetchCollection, findAssetSignerPda } from '@metaplex-foundation/mpl-core'
 import { createAssociatedToken, findAssociatedTokenPda, transferTokens } from '@metaplex-foundation/mpl-toolbox'
 import { createNoopSigner, publicKey } from '@metaplex-foundation/umi'
-import { Args } from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
 
 import { generateExplorerUrl } from '../../../../explorers.js'
@@ -12,18 +12,21 @@ export default class ExecuteTransferToken extends TransactionCommand<typeof Exec
   static override description = 'Transfer SPL tokens from an asset\'s signer PDA to a destination address'
 
   static override examples = [
-    '<%= config.bin %> <%= command.id %> <assetId> <mint> 1000 <destination>',
+    '<%= config.bin %> <%= command.id %> <assetId> --mint <mintAddress> --amount 1000 --destination <address>',
   ]
 
   static override args = {
     assetId: Args.string({ description: 'Asset whose signer PDA holds the tokens', required: true }),
-    mint: Args.string({ description: 'Token mint address', required: true }),
-    amount: Args.integer({ description: 'Amount to transfer in smallest unit (e.g., lamports for wrapped SOL)', required: true }),
-    destination: Args.string({ description: 'Destination wallet address', required: true }),
+  }
+
+  static override flags = {
+    mint: Flags.string({ description: 'Token mint address', required: true }),
+    amount: Flags.integer({ description: 'Amount to transfer in smallest unit (e.g., lamports for wrapped SOL)', required: true }),
+    destination: Flags.string({ description: 'Destination wallet address', required: true }),
   }
 
   public async run(): Promise<unknown> {
-    const { args } = await this.parse(ExecuteTransferToken)
+    const { args, flags } = await this.parse(ExecuteTransferToken)
     const { umi, explorer, chain } = this.context
 
     const spinner = ora('Fetching asset...').start()
@@ -38,8 +41,8 @@ export default class ExecuteTransferToken extends TransactionCommand<typeof Exec
       }
 
       const [assetSignerPda] = findAssetSignerPda(umi, { asset: assetPubkey })
-      const mintPubkey = publicKey(args.mint)
-      const destinationPubkey = publicKey(args.destination)
+      const mintPubkey = publicKey(flags.mint)
+      const destinationPubkey = publicKey(flags.destination)
 
       // Create the destination token account if it doesn't exist, then transfer
       const createAtaIx = createAssociatedToken(umi, {
@@ -57,7 +60,7 @@ export default class ExecuteTransferToken extends TransactionCommand<typeof Exec
           owner: destinationPubkey,
         }),
         authority: createNoopSigner(assetSignerPda),
-        amount: args.amount,
+        amount: flags.amount,
       })
 
       // Collect all instructions as a flat array for the execute wrapper
@@ -83,9 +86,9 @@ export default class ExecuteTransferToken extends TransactionCommand<typeof Exec
         `--------------------------------
   Asset:        ${args.assetId}
   Signer PDA:   ${assetSignerPda.toString()}
-  Mint:         ${args.mint}
-  Amount:       ${args.amount}
-  Destination:  ${args.destination}
+  Mint:         ${flags.mint}
+  Amount:       ${flags.amount}
+  Destination:  ${flags.destination}
   Signature:    ${signature}
 --------------------------------`
       )
@@ -94,9 +97,9 @@ export default class ExecuteTransferToken extends TransactionCommand<typeof Exec
       return {
         asset: args.assetId,
         signerPda: assetSignerPda.toString(),
-        mint: args.mint,
-        amount: args.amount,
-        destination: args.destination,
+        mint: flags.mint,
+        amount: flags.amount,
+        destination: flags.destination,
         signature,
         explorer: explorerUrl,
       }

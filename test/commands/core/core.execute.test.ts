@@ -71,7 +71,8 @@ describe('core asset execute commands', function () {
             // Transfer SOL from the signer PDA
             const destination = 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
             const { stdout, stderr, code } = await runCli([
-                'core', 'asset', 'execute', 'transfer-sol', assetId, '0.01', destination
+                'core', 'asset', 'execute', 'transfer-sol', assetId,
+                '--amount', '0.01', '--destination', destination
             ])
 
             const output = stripAnsi(stdout) + stripAnsi(stderr)
@@ -85,7 +86,8 @@ describe('core asset execute commands', function () {
 
             try {
                 await runCli([
-                    'core', 'asset', 'execute', 'transfer-sol', assetId, '-1', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
+                    'core', 'asset', 'execute', 'transfer-sol', assetId,
+                    '--amount', '-1', '--destination', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
                 ])
                 expect.fail('Expected command to fail with negative amount')
             } catch (error: any) {
@@ -112,8 +114,8 @@ describe('core asset execute commands', function () {
             // Transfer 100 tokens from the signer PDA to destination
             const destination = 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
             const { stdout, stderr, code } = await runCli([
-                'core', 'asset', 'execute', 'transfer-token',
-                assetId, mintAddress, '100', destination
+                'core', 'asset', 'execute', 'transfer-token', assetId,
+                '--mint', mintAddress, '--amount', '100', '--destination', destination
             ])
 
             const output = stripAnsi(stdout) + stripAnsi(stderr)
@@ -150,7 +152,8 @@ describe('core asset execute commands', function () {
             // Transfer the target asset from the signer PDA to a new owner
             const newOwner = 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
             const { stdout, stderr, code } = await runCli([
-                'core', 'asset', 'execute', 'transfer-asset', signingAssetId, targetAssetId!, newOwner
+                'core', 'asset', 'execute', 'transfer-asset', signingAssetId,
+                '--asset', targetAssetId!, '--new-owner', newOwner
             ])
 
             const output = stripAnsi(stdout) + stripAnsi(stderr)
@@ -169,8 +172,8 @@ describe('core asset execute commands', function () {
 
             try {
                 await runCli([
-                    'core', 'asset', 'execute', 'transfer-asset',
-                    signingAssetId, otherAssetId, 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
+                    'core', 'asset', 'execute', 'transfer-asset', signingAssetId,
+                    '--asset', otherAssetId, '--new-owner', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
                 ])
                 expect.fail('Expected command to fail when target is not owned by PDA')
             } catch (error: any) {

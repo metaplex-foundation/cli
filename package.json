@@ -107,7 +107,7 @@
   "repository": "metaplex-foundation/cli",
   "scripts": {
     "clean": "shx rm -rf dist tsconfig.build.tsbuildinfo",
-    "prebuild": "pnpm run clean",
+    "prebuild": "if [ -z \"$CI\" ]; then pnpm run clean; fi",
     "build": "tsc -b tsconfig.build.json --verbose",
     "build:clean": "pnpm run clean && pnpm run build",
     "dev": "./bin/dev.js",

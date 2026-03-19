@@ -5,7 +5,6 @@ export default class CoreAssetExecute extends Command {
 
   static override examples = [
     '<%= config.bin %> core asset execute info <assetId>',
-    '<%= config.bin %> core asset execute raw <assetId> --instruction <base64>',
   ]
 
   public async run(): Promise<void> {

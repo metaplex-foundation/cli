@@ -2,14 +2,22 @@ name: tests
 on:
   push:
     branches-ignore: [main]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   unit-tests:
     strategy:
       matrix:
         os: ['ubuntu-latest']
-        node_version: [lts/-1, lts/*, 24]
+        node_version: [lts/*, 24]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:
@@ -31,6 +39,8 @@ jobs:
           solana: ${{ env.SOLANA_VERSION }}
           cache: true
           artifacts: false
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
       - run: pnpm run build
+        env:
+          CI: true
       - run: pnpm run test

@@ -27,7 +27,7 @@ jobs:
           registry-url: https://registry.npmjs.org
       - name: Install npm >= 11.5.1
         run: npm install -g "npm@>=11.5.1"
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm prepack
       - run: npm publish --provenance --access public

@@ -8,7 +8,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { spawn } from 'child_process'
 import { CLI_PATH, TEST_RPC, KEYPAIR_PATH, runCliDirect } from '../../runCli'
-import { createCoreAsset, stripAnsi } from './corehelpers'
+import { extractAssetId, stripAnsi } from './corehelpers'
 
 const runCliWithConfig = (
     args: string[],
@@ -63,8 +63,13 @@ describe('asset-signer specific tests', function () {
         umi.use(keypairIdentity(kp))
         ownerAddress = kp.publicKey.toString()
 
-        // Create the signing asset and fund PDA
-        const { assetId } = await createCoreAsset()
+        // Create the signing asset with the normal wallet (not through asset-signer)
+        const { stdout: createOut, stderr: createErr } = await runCliDirect(
+            ['core', 'asset', 'create', '--name', 'Signing Asset', '--uri', 'https://example.com/signing'],
+            ['\n'],
+        )
+        const assetId = extractAssetId(stripAnsi(createOut)) || extractAssetId(stripAnsi(createErr))
+        if (!assetId) throw new Error('Could not create signing asset')
         const [pda] = findAssetSignerPda(umi, { asset: publicKey(assetId) })
         signerPda = pda.toString()
 

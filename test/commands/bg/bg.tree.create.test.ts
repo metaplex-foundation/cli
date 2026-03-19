@@ -68,7 +68,8 @@ describe('bg tree create command', function () {
             '--canopyDepth', '8',
         ]
 
-        const { stdout, stderr, code } = await runCli(cliInput)
+        // Tree creation allocates a large account — use runCliDirect
+        const { stdout, stderr, code } = await runCliDirect(cliInput)
         const combined = stripAnsi(stdout + '\n' + stderr)
 
         expect(code).to.equal(0)
@@ -87,7 +88,8 @@ describe('bg tree create command', function () {
             '--canopyDepth', '8',
         ]
 
-        const { stdout, stderr, code } = await runCli(cliInput)
+        // Tree creation allocates a large account — use runCliDirect
+        const { stdout, stderr, code } = await runCliDirect(cliInput)
         const combined = stripAnsi(stdout + '\n' + stderr)
 
         expect(code).to.equal(0)

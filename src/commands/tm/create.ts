@@ -9,6 +9,7 @@ import { TransactionCommand } from '../../TransactionCommand.js'
 import { ExplorerType, generateExplorerUrl } from '../../explorers.js'
 import uploadFile from '../../lib/uploader/uploadFile.js'
 import uploadJson from '../../lib/uploader/uploadJson.js'
+import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 import createTokenMetadataPrompt, { CreateTokenMetadataPromptResult, NftType } from '../../prompts/createTokenMetadataPrompt.js'
 import { txSignatureToString } from '../../lib/util.js'
 
@@ -334,10 +335,10 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
                 collection: input.collection ? some({ key: publicKey(input.collection), verified: false }) : undefined,
             })
 
-        const result = await createNftIx.sendAndConfirm(umi)
+        const result = await umiSendAndConfirmTransaction(umi, createNftIx)
         return {
             mint: mint.publicKey.toString(),
-            signature: result.signature,
+            signature: result.transaction.signature as Uint8Array,
         }
     }
 

@@ -116,7 +116,7 @@ Instead, they allocate base tokens directly to a recipient.`
         genesisAccount: genesisAddress,
         baseMint: genesisAccount.baseMint,
         quoteMint: genesisAccount.quoteMint,
-        authority: this.context.signer,
+        authority: this.context.umi.identity,
         payer: this.context.payer,
         recipient: publicKey(flags.recipient),
         bucketIndex,

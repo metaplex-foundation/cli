@@ -15,6 +15,7 @@ import { TransactionCommand } from '../../TransactionCommand.js'
 import { txSignatureToString } from '../../lib/util.js'
 import { generateExplorerUrl } from '../../explorers.js'
 import { TOKEN_AUTH_RULES_ID } from '../../constants.js'
+import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 
 export default class TmTransfer extends TransactionCommand<typeof TmTransfer> {
     static override description = 'Transfer an MPL Token Metadata NFT to a new owner. Automatically detects pNFTs and includes ruleset if present.'
@@ -110,14 +111,14 @@ export default class TmTransfer extends TransactionCommand<typeof TmTransfer> {
             })
         }
 
-        const result = await transferIx.sendAndConfirm(umi).catch((err) => {
+        const result = await umiSendAndConfirmTransaction(umi, transferIx).catch((err) => {
             transferSpinner.fail('Failed to transfer NFT')
             throw err
         })
 
         transferSpinner.succeed('NFT transferred successfully!')
 
-        const signature = txSignatureToString(result.signature as Uint8Array)
+        const signature = txSignatureToString(result.transaction.signature as Uint8Array)
         this.logSuccess(
             `--------------------------------
     NFT: ${asset.metadata.name}

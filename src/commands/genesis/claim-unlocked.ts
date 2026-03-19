@@ -59,7 +59,7 @@ Requirements:
       const genesisAddress = publicKey(args.genesis)
       const recipientAddress = flags.recipient
         ? publicKey(flags.recipient)
-        : this.context.signer.publicKey
+        : this.context.umi.identity.publicKey
 
       // Fetch the Genesis account
       spinner.text = 'Fetching Genesis account details...'

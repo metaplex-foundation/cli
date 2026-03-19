@@ -86,7 +86,7 @@ Requirements:
       // Verify the deposit exists
       const [depositPda] = findLaunchPoolDepositV2Pda(this.context.umi, {
         bucket: bucketPda,
-        recipient: this.context.signer.publicKey,
+        recipient: this.context.umi.identity.publicKey,
       })
 
       spinner.text = 'Verifying deposit...'
@@ -94,7 +94,7 @@ Requirements:
 
       if (!deposit) {
         spinner.fail('Deposit not found')
-        this.error(`No deposit found for signer ${this.context.signer.publicKey}. Make sure you have deposited into this launch pool.`)
+        this.error(`No deposit found for signer ${this.context.umi.identity.publicKey}. Make sure you have deposited into this launch pool.`)
       }
 
       // Parse and validate amount
@@ -116,7 +116,7 @@ Requirements:
         bucket: bucketPda,
         baseMint: genesisAccount.baseMint,
         quoteMint: genesisAccount.quoteMint,
-        withdrawer: this.context.signer,
+        withdrawer: this.context.umi.identity,
         payer: this.context.payer,
         amountQuoteToken: amount,
       })

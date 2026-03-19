@@ -49,7 +49,7 @@ export default class ToolboxSolAirdrop extends TransactionCommand<typeof Toolbox
             throw err
         })
 
-        const address = (args.address ?? umi.payer.publicKey).toString()
+        const address = (args.address ?? umi.identity.publicKey).toString()
 
         spinner.succeed('Airdropped SOL successfully')
 

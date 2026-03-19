@@ -83,7 +83,7 @@ Note: You must have mint authority for the specified token mint.`
         }
 
         // Determine recipient - default to current keypair
-        const recipientAddress = flags.recipient || umi.payer.publicKey.toString();
+        const recipientAddress = flags.recipient || umi.identity.publicKey.toString();
         let recipientPublicKey;
         try {
             recipientPublicKey = publicKey(recipientAddress);

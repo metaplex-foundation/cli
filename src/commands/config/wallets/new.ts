@@ -91,7 +91,7 @@ export default class ConfigWalletsNew extends BaseCommand<typeof ConfigWalletsNe
             }
 
             // Check for existing wallet with same path
-            const existingPath = config.wallets.find((w) => w.path === filePath)
+            const existingPath = config.wallets.find((w) => 'path' in w && w.path === filePath)
             if (existingPath) {
                 this.error(`Wallet with path ${filePath} already exists`)
             }

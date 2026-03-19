@@ -67,7 +67,7 @@ The Bubblegum V2 plugin is required for collections that will contain compressed
           basisPoints: Math.round(flags.royalties * 100),
           creators: [
             {
-              address: this.context.signer.publicKey,
+              address: umi.identity.publicKey,
               percentage: 100,
             },
           ],
@@ -104,7 +104,7 @@ Collection: ${collectionAddress}
 Name: ${flags.name}
 URI: ${flags.uri}
 Royalties: ${flags.royalties}%
-Update Authority: ${this.context.signer.publicKey}
+Update Authority: ${umi.identity.publicKey}
 Plugins: ${pluginsList}
 
 Transaction: ${signature}
@@ -123,7 +123,7 @@ Use it with: mplx bg nft create <tree> --collection ${collectionAddress}
         name: flags.name,
         uri: flags.uri,
         royalties: flags.royalties,
-        updateAuthority: this.context.signer.publicKey.toString(),
+        updateAuthority: umi.identity.publicKey.toString(),
       }
     } catch (error) {
       spinner.fail('Failed to create collection')

@@ -20,18 +20,24 @@ export default class ConfigWalletListCommand extends Command {
       return { wallets: [] }
     }
 
-    const wallets = config.wallets.map(wallet => ({
-      name: wallet.name,
-      address: wallet.address,
-      path: wallet.path,
-      active: wallet.path === config.keypair,
-    }))
+    const wallets = config.wallets.map(wallet => {
+      const type = wallet.type || 'file'
+      const isActive = type === 'asset-signer'
+        ? wallet.name === config.activeWallet
+        : ('path' in wallet && wallet.path === config.keypair && !config.activeWallet)
+
+      return {
+        name: wallet.name,
+        address: wallet.address,
+        type,
+        active: isActive,
+        ...(type === 'asset-signer' && 'asset' in wallet ? { asset: wallet.asset } : {}),
+        ...('path' in wallet ? { path: wallet.path } : {}),
+      }
+    })
 
     this.log('Installed Wallets:')
-    for (const wallet of wallets) {
-      const marker = wallet.active ? ' (active)' : ''
-      this.log(`  ${wallet.name}: ${wallet.address}${marker}`)
-    }
+    console.table(wallets)
 
     return { wallets }
   }

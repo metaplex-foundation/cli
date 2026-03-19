@@ -167,7 +167,7 @@ Launch types:
       if (flags.telegram) externalLinks.telegram = flags.telegram
 
       // Build token metadata
-      const wallet = this.context.signer.publicKey.toString()
+      const wallet = this.context.umi.identity.publicKey.toString()
       const token = {
         name: flags.name,
         symbol: flags.symbol,

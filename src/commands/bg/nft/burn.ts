@@ -58,7 +58,7 @@ Note: The current owner (or their delegate) must be the signer. This action is i
       const leafOwner = assetWithProof.leafOwner
       const leafDelegate = assetWithProof.leafDelegate
 
-      const signerKey = this.context.signer.publicKey.toString()
+      const signerKey = umi.identity.publicKey.toString()
       const ownerKey = leafOwner.toString()
       const delegateKey = leafDelegate ? leafDelegate.toString() : null
 

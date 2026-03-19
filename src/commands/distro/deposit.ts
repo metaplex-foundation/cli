@@ -83,7 +83,7 @@ The distribution must be active and you must have the tokens in your wallet.`
 
       const depositorTokenAccount = findAssociatedTokenPda(this.context.umi, {
         mint,
-        owner: this.context.signer.publicKey,
+        owner: this.context.umi.identity.publicKey,
       })
 
       const distributionTokenAccount = findAssociatedTokenPda(this.context.umi, {
@@ -111,12 +111,12 @@ The distribution must be active and you must have the tokens in your wallet.`
 
       const transaction = deposit(this.context.umi, {
         amount: basisAmount,
-        depositor: this.context.signer,
+        depositor: this.context.umi.identity,
         depositorTokenAccount,
         distribution: distributionAddress,
         distributionTokenAccount,
         mint,
-        authority: this.context.signer,
+        authority: this.context.umi.identity,
         payer: this.context.payer,
       })
 

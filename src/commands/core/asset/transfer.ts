@@ -5,6 +5,7 @@ import ora from 'ora'
 
 import { generateExplorerUrl } from '../../../explorers.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
+import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
 
 export default class AssetTransfer extends TransactionCommand<typeof AssetTransfer> {
@@ -55,13 +56,15 @@ export default class AssetTransfer extends TransactionCommand<typeof AssetTransf
 
       spinner.text = 'Transferring asset...'
 
-      const result = await transfer(umi, {
+      const tx = transfer(umi, {
         asset,
         collection,
         newOwner: publicKey(args.newOwner),
-      }).sendAndConfirm(umi)
+      })
 
-      const signature = txSignatureToString(result.signature)
+      const result = await umiSendAndConfirmTransaction(umi, tx)
+
+      const signature = txSignatureToString(result.transaction.signature as Uint8Array)
       const explorerUrl = generateExplorerUrl(explorer, this.context.chain, signature, 'transaction')
 
       spinner.succeed(`Asset transferred: ${args.assetId}`)

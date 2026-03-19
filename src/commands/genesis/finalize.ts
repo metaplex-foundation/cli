@@ -98,7 +98,7 @@ Requirements:
       const transaction = finalizeV2(this.context.umi, {
         genesisAccount: genesisAddress,
         baseMint: genesisAccount.baseMint,
-        authority: this.context.signer,
+        authority: this.context.umi.identity,
       }).addRemainingAccounts(bucketAccounts)
 
       const result = await umiSendAndConfirmTransaction(this.context.umi, transaction)

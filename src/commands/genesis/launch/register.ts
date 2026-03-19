@@ -115,7 +115,7 @@ provided as a JSON file via --launchConfig.`
 
       // Use the configured signer as wallet if not set in the config
       if (!launchConfig.wallet) {
-        launchConfig.wallet = this.context.signer.publicKey.toString()
+        launchConfig.wallet = this.context.umi.identity.publicKey.toString()
       }
 
       const apiConfig: GenesisApiConfig = {

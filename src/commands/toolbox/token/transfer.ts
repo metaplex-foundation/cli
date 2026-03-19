@@ -50,7 +50,7 @@ export default class ToolboxTokenTransfer extends TransactionCommand<typeof Tool
         })
 
         const transferTokenIx = transferTokens(umi, {
-            source: findAssociatedTokenPda(umi, { mint: publicKey(args.mintAddress), owner: umi.payer.publicKey }),
+            source: findAssociatedTokenPda(umi, { mint: publicKey(args.mintAddress), owner: umi.identity.publicKey }),
             destination: findAssociatedTokenPda(umi, { mint: publicKey(args.mintAddress), owner: publicKey(args.destination) }),
             amount: args.amount
         })

@@ -304,11 +304,11 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
         })
             .add(createTokenIfMissing(umi, {
                 mint: mint.publicKey,
-                owner: umi.payer.publicKey,
+                owner: umi.identity.publicKey,
             }))
             .add(mintTokensTo(umi, {
                 mint: mint.publicKey,
-                token: findAssociatedTokenPda(umi, { mint: mint.publicKey, owner: umi.payer.publicKey }),
+                token: findAssociatedTokenPda(umi, { mint: mint.publicKey, owner: umi.identity.publicKey }),
                 amount: input.mintAmount,
             }))
 

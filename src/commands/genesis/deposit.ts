@@ -103,8 +103,8 @@ Launch pools use a pro-rata allocation model where:
         bucket: bucketPda,
         baseMint: genesisAccount.baseMint,
         quoteMint: genesisAccount.quoteMint,
-        depositor: this.context.signer,
-        recipient: this.context.signer,
+        depositor: this.context.umi.identity,
+        recipient: this.context.umi.identity,
         rentPayer: this.context.payer,
         amountQuoteToken: amount,
       })
@@ -114,7 +114,7 @@ Launch pools use a pro-rata allocation model where:
       // Find the deposit PDA for reference
       const depositPda = findLaunchPoolDepositV2Pda(this.context.umi, {
         bucket: bucketPda,
-        recipient: this.context.signer.publicKey,
+        recipient: this.context.umi.identity.publicKey,
       })
 
       spinner.succeed('Deposit successful!')

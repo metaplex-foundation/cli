@@ -200,9 +200,8 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
 
     if (!ownerPath && isTransactionContext) {
       throw new Error(
-        `Asset-signer wallet '${activeWallet.name}' requires an owner wallet.\n` +
-        `Set the owner with: mplx config wallet add --asset <assetId> --payer <walletName>\n` +
-        `Or set a default keypair in your config.`
+        `Asset-signer wallet '${activeWallet.name}' could not resolve an owner wallet.\n` +
+        `Ensure the asset owner is a saved wallet, or set a default keypair in your config.`
       )
     }
 

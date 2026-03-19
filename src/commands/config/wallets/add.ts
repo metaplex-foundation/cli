@@ -1,9 +1,11 @@
 import { Args, Command, Flags } from '@oclif/core'
 import fs from 'fs'
 import { dirname } from 'path'
-import { findAssetSignerPda } from '@metaplex-foundation/mpl-core'
+import { fetchAsset, findAssetSignerPda } from '@metaplex-foundation/mpl-core'
 import { publicKey } from '@metaplex-foundation/umi'
-import { createSignerFromPath, getDefaultConfigPath, readConfig, WalletEntry } from '../../../lib/Context.js'
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
+import { mplCore } from '@metaplex-foundation/mpl-core'
+import { createSignerFromPath, consolidateConfigs, DEFAULT_CONFIG, getDefaultConfigPath, readConfig, WalletEntry } from '../../../lib/Context.js'
 import { ensureDirectoryExists, writeJsonSync } from '../../../lib/file.js'
 import { shortenAddress, DUMMY_UMI } from '../../../lib/util.js'
 
@@ -24,17 +26,12 @@ export default class ConfigWalletAddCommand extends Command {
     asset: Flags.string({
       description: 'Asset ID to create an asset-signer wallet from',
     }),
-    payer: Flags.string({
-      description: 'Default fee payer wallet name (for asset-signer wallets)',
-    }),
   }
 
   static override examples = [
     '<%= config.bin %> <%= command.id %> my-wallet ~/.config/solana/id.json',
     '<%= config.bin %> <%= command.id %> mainnet-wallet ./wallets/mainnet.json',
-    '<%= config.bin %> <%= command.id %> dev-wallet /Users/dev/.solana/devnet.json',
     '<%= config.bin %> <%= command.id %> vault --asset <assetId>',
-    '<%= config.bin %> <%= command.id %> vault --asset <assetId> --payer my-wallet',
   ]
 
   public async run(): Promise<unknown> {
@@ -45,8 +42,8 @@ export default class ConfigWalletAddCommand extends Command {
       this.error(`Invalid wallet name '${args.name}'. Name must contain only letters, numbers, hyphens (-), and underscores (_). Example: 'my-wallet' or 'dev_wallet_1'`)
     }
 
-    const path = flags.config ?? getDefaultConfigPath()
-    const config = readConfig(path)
+    const configPath = flags.config ?? getDefaultConfigPath()
+    const config = readConfig(configPath)
 
     if (!config.wallets) {
       config.wallets = []
@@ -65,15 +62,25 @@ export default class ConfigWalletAddCommand extends Command {
       const assetPubkey = publicKey(flags.asset)
       const [pdaPubkey] = findAssetSignerPda(DUMMY_UMI, { asset: assetPubkey })
 
-      // Validate payer reference if provided
-      if (flags.payer) {
-        const payerWallet = config.wallets.find(w => w.name === flags.payer)
-        if (!payerWallet) {
-          this.error(`Payer wallet '${flags.payer}' not found. Add it first with 'mplx config wallet add'.`)
-        }
-        if (payerWallet.type === 'asset-signer') {
-          this.error(`Payer wallet '${flags.payer}' is an asset-signer wallet. The payer must be a file or ledger wallet.`)
-        }
+      // Fetch the asset on-chain to determine the owner
+      const mergedConfig = consolidateConfigs(DEFAULT_CONFIG, config, { rpcUrl: flags.rpc })
+      const umi = createUmi(mergedConfig.rpcUrl!).use(mplCore())
+      const asset = await fetchAsset(umi, assetPubkey).catch(() => {
+        this.error(`Could not fetch asset ${flags.asset}. Make sure it exists and your RPC is reachable.`)
+      })
+
+      const ownerAddress = asset.owner.toString()
+
+      // Find the saved wallet that matches the asset owner
+      const ownerWallet = config.wallets.find(
+        w => w.address === ownerAddress && w.type !== 'asset-signer'
+      )
+
+      if (!ownerWallet) {
+        this.error(
+          `Asset owner ${shortenAddress(ownerAddress)} is not in your saved wallets.\n` +
+          `Add the owner wallet first: mplx config wallets add <name> <keypair-path>`
+        )
       }
 
       const existingAddress = config.wallets.find((w) => w.address === pdaPubkey.toString())
@@ -86,21 +93,21 @@ export default class ConfigWalletAddCommand extends Command {
         type: 'asset-signer',
         asset: flags.asset,
         address: pdaPubkey.toString(),
-        ...(flags.payer ? { payer: flags.payer } : {}),
+        payer: ownerWallet.name,
       }
 
       config.wallets.push(wallet)
 
-      const dir = dirname(path)
+      const dir = dirname(configPath)
       ensureDirectoryExists(dir)
-      writeJsonSync(path, config)
+      writeJsonSync(configPath, config)
 
       this.log(
         `✅ Asset-signer wallet '${args.name}' added!\n` +
         `   Asset:      ${flags.asset}\n` +
         `   Signer PDA: ${pdaPubkey.toString()}\n` +
-        (flags.payer ? `   Payer:      ${flags.payer}\n` : '') +
-        `\nUse 'mplx config wallet set ${args.name}' to make this your active wallet.`
+        `   Owner:      ${ownerWallet.name} (${shortenAddress(ownerAddress)})\n` +
+        `\nUse 'mplx config wallets set ${args.name}' to make this your active wallet.`
       )
 
       return {
@@ -108,7 +115,7 @@ export default class ConfigWalletAddCommand extends Command {
         type: 'asset-signer',
         asset: flags.asset,
         address: pdaPubkey.toString(),
-        payer: flags.payer,
+        owner: ownerWallet.name,
       }
     }
 
@@ -145,9 +152,9 @@ export default class ConfigWalletAddCommand extends Command {
 
     config.wallets.push(wallet)
 
-    const dir = dirname(path)
+    const dir = dirname(configPath)
     ensureDirectoryExists(dir)
-    writeJsonSync(path, config)
+    writeJsonSync(configPath, config)
 
     this.log(`✅ Wallet '${args.name}' successfully added to configuration!\n   Address: ${signer.publicKey}\n   Path: ${args.path}\n\nUse 'mplx config wallets set ${args.name}' to make this your active wallet.`)
 

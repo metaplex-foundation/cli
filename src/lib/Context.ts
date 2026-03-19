@@ -205,8 +205,12 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
       )
     }
 
-    realWalletSigner = await createSignerFromPath(ownerPath)
-    signer = realWalletSigner
+    if (ownerPath) {
+      realWalletSigner = await createSignerFromPath(ownerPath)
+      signer = realWalletSigner
+    } else {
+      signer = createNoopSigner()
+    }
 
     // Identity is a noop signer keyed to the PDA — instructions naturally
     // use the PDA address. The send layer wraps them in execute().

@@ -80,6 +80,7 @@ Alternatively, pipe instructions via stdin with --stdin.`
 
       spinner.text = `Executing ${instructions.length} instruction(s)...`
 
+      // bytesCreatedOnChain is 0 since we can't infer account creation from raw instructions
       const tx = instructions.reduce(
         (builder, ix) => builder.add({ instruction: ix, signers: [umi.identity], bytesCreatedOnChain: 0 }),
         transactionBuilder(),

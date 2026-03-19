@@ -67,6 +67,9 @@ export default class ConfigWalletSetCommand extends Command {
       config.activeWallet = selectedWallet.name
     } else {
       // For file/ledger wallets, set keypair path and clear any active asset-signer
+      if (!selectedWallet.path) {
+        this.error('Wallet path is missing')
+      }
       config.keypair = selectedWallet.path
       delete config.activeWallet
     }

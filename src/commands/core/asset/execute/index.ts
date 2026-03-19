@@ -8,6 +8,6 @@ export default class CoreAssetExecute extends Command {
   ]
 
   public async run(): Promise<void> {
-    const {args, flags} = await this.parse(CoreAssetExecute)
+    await this.parse(CoreAssetExecute)
   }
 }

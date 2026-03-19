@@ -1,11 +1,10 @@
 import { expect } from 'chai'
 import { runCli, KEYPAIR_PATH } from '../../runCli'
 import { serializeInstruction } from '../../../src/lib/execute/deserializeInstruction.js'
+import { stripAnsi } from '../core/corehelpers'
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
 import { keypairIdentity, publicKey } from '@metaplex-foundation/umi'
 import fs from 'node:fs'
-
-const stripAnsi = (str: string) => str.replace(/\u001b\[\d+m/g, '')
 
 describe('toolbox raw command', function () {
     this.timeout(120000)

@@ -102,6 +102,7 @@ describe('asset-signer wallet', function () {
             destination: pda,
             amount: { basisPoints: 500_000_000n, identifier: 'SOL', decimals: 9 },
         }).sendAndConfirm(umi)
+        // Wait for RPC state propagation on localnet
         await new Promise(resolve => setTimeout(resolve, 2000))
 
         // Write the asset-signer config
@@ -124,8 +125,9 @@ describe('asset-signer wallet', function () {
 
             const output = stripAnsi(stdout) + stripAnsi(stderr)
             expect(code).to.equal(0)
-            // Should show the PDA address, not the wallet address
+            // Should show the shortened PDA address, not the wallet address
             expect(output).to.contain(signerPda.slice(0, 4))
+            expect(output).not.to.contain(ownerAddress.slice(0, 4))
         })
 
         it('transfers SOL from the PDA', async function () {

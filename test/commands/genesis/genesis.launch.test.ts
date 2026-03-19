@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { runCli } from '../../runCli'
+import { runCli, runCliDirect } from '../../runCli'
 import { stripAnsi, createGenesisAccount, addLaunchPoolBucket } from './genesishelpers'
 
 /** Return an ISO timestamp offset from now by the given number of seconds. */
@@ -13,9 +13,9 @@ function futureIso(offsetSeconds: number): string {
 describe('genesis launch commands', () => {
 
     before(async () => {
-        await runCli(["toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"])
+        await runCliDirect(["toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"])
         await new Promise(resolve => setTimeout(resolve, 10000))
-        await runCli(['toolbox', 'sol', 'wrap', '50'])
+        await runCliDirect(['toolbox', 'sol', 'wrap', '50'])
     })
 
     describe('genesis launch create', () => {

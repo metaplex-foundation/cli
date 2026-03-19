@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { runCli } from '../../runCli'
+import { runCli, runCliDirect } from '../../runCli'
 
 // Helper to strip ANSI color codes
 const stripAnsi = (str: string) => str.replace(/\u001b\[\d+m/g, '')
@@ -24,15 +24,15 @@ describe('distro withdraw commands', () => {
   
   before(async () => {
     // Airdrop SOL for testing
-    const { stdout: airdropStdout } = await runCli([
+    const { stdout: airdropStdout } = await runCliDirect([
       "toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
     ])
-    
+
     // Wait for airdrop to settle
     await new Promise(resolve => setTimeout(resolve, 10000))
 
-    // Wrap some SOL to get wrapped SOL tokens
-    await runCli([
+    // Wrap some SOL to get wrapped SOL tokens (SOL wrapping is CPI-incompatible)
+    await runCliDirect([
       'toolbox',
       'sol',
       'wrap',
@@ -40,7 +40,7 @@ describe('distro withdraw commands', () => {
     ])
 
     // Create a test distribution for withdraw testing using wrapped SOL
-    const { stdout, stderr } = await runCli([
+    const { stdout, stderr } = await runCliDirect([
       'distro',
       'create',
       '--name',
@@ -68,7 +68,7 @@ describe('distro withdraw commands', () => {
     expect(testDistributionId).to.not.be.empty
 
     // Deposit some tokens first so we can withdraw them
-    await runCli([
+    await runCliDirect([
       'distro',
       'deposit',
       testDistributionId,
@@ -77,7 +77,8 @@ describe('distro withdraw commands', () => {
     ])
   })
 
-  it('withdraws tokens using amount flag', async () => {
+  it('withdraws tokens using amount flag', async function () {
+    if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
     const cliInput = [
       'distro',
       'withdraw',
@@ -101,7 +102,8 @@ describe('distro withdraw commands', () => {
     expect(cleanStdout).to.contain('Transaction:')
   })
 
-  it('withdraws tokens using basisAmount flag', async () => {
+  it('withdraws tokens using basisAmount flag', async function () {
+    if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
     const cliInput = [
       'distro',
       'withdraw',
@@ -122,7 +124,8 @@ describe('distro withdraw commands', () => {
     expect(cleanStdout).to.contain('Remaining available for withdrawal:')
   })
 
-  it('withdraws tokens to a specific recipient', async () => {
+  it('withdraws tokens to a specific recipient', async function () {
+    if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
     // Create a second test wallet address (using the same test wallet for simplicity)
     const recipientAddress = 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
     
@@ -147,7 +150,8 @@ describe('distro withdraw commands', () => {
     expect(cleanStdout).to.contain(`Recipient: ${recipientAddress}`)
   })
 
-  it('fails when neither amount nor basisAmount is provided', async () => {
+  it('fails when neither amount nor basisAmount is provided', async function () {
+    if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
     const cliInput = [
       'distro',
       'withdraw',
@@ -162,7 +166,8 @@ describe('distro withdraw commands', () => {
     }
   })
 
-  it('fails when both amount and basisAmount are provided', async () => {
+  it('fails when both amount and basisAmount are provided', async function () {
+    if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
     const cliInput = [
       'distro',
       'withdraw',
@@ -181,7 +186,8 @@ describe('distro withdraw commands', () => {
     }
   })
 
-  it('fails when trying to withdraw more tokens than available', async () => {
+  it('fails when trying to withdraw more tokens than available', async function () {
+    if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
     const cliInput = [
       'distro',
       'withdraw',
@@ -198,7 +204,8 @@ describe('distro withdraw commands', () => {
     }
   })
 
-  it('fails with invalid distribution address', async () => {
+  it('fails with invalid distribution address', async function () {
+    if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
     const cliInput = [
       'distro',
       'withdraw',
@@ -215,7 +222,8 @@ describe('distro withdraw commands', () => {
     }
   })
 
-  it('fails when non-authority tries to withdraw', async () => {
+  it('fails when non-authority tries to withdraw', async function () {
+    if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
     // This test would need a different signer context, 
     // but with current test setup we're always using the same authority
     // so this test is conceptual - in practice the authority check happens in the command

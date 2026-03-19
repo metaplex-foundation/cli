@@ -1,6 +1,6 @@
 import { expect } from 'chai'
-import { runCli } from '../../runCli'
-import { createBubblegumTree, createCompressedNFT, stripAnsi, extractSignature } from './bghelpers'
+import { runCli, runCliDirect } from '../../runCli'
+import { createBubblegumTree, createCompressedNFT, stripAnsi, extractSignature, extractTreeAddress } from './bghelpers'
 import { generateSigner } from '@metaplex-foundation/umi'
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
 
@@ -21,18 +21,22 @@ describe.skip('bg nft transfer command', () => {
 
     before(async () => {
         // Airdrop SOL to test account
-        await runCli([
+        await runCliDirect([
             "toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
         ])
 
         await new Promise(resolve => setTimeout(resolve, 10000))
 
-        // Create a test tree
-        const { treeAddress } = await createBubblegumTree({
-            maxDepth: 14,
-            maxBufferSize: 64,
-            canopyDepth: 8,
-        })
+        // Create a test tree (tree creation is CPI-incompatible)
+        const { stdout, stderr } = await runCliDirect([
+            'bg', 'tree', 'create',
+            '--maxDepth', '14',
+            '--maxBufferSize', '64',
+            '--canopyDepth', '8',
+        ])
+        const combined = stripAnsi(stdout + '\n' + stderr)
+        const treeAddress = extractTreeAddress(combined)
+        if (!treeAddress) throw new Error('Tree address not found in output')
         testTree = treeAddress
 
         await new Promise(resolve => setTimeout(resolve, 2000))

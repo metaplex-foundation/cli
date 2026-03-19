@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { runCli } from '../../runCli'
+import { runCli, runCliDirect } from '../../runCli'
 
 // Helper to strip ANSI color codes
 const stripAnsi = (str: string) => str.replace(/\u001b\[\d+m/g, '')
@@ -24,15 +24,15 @@ describe('distro deposit commands', () => {
   
   before(async () => {
     // Airdrop SOL for testing
-    const { stdout: airdropStdout } = await runCli([
+    const { stdout: airdropStdout } = await runCliDirect([
       "toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
     ])
-    
+
     // Wait for airdrop to settle
     await new Promise(resolve => setTimeout(resolve, 10000))
 
-    // Wrap some SOL to get wrapped SOL tokens
-    await runCli([
+    // Wrap some SOL to get wrapped SOL tokens (SOL wrapping is CPI-incompatible)
+    await runCliDirect([
       'toolbox',
       'sol',
       'wrap',
@@ -40,7 +40,7 @@ describe('distro deposit commands', () => {
     ])
 
     // Create a test distribution for deposit testing using wrapped SOL
-    const { stdout, stderr } = await runCli([
+    const { stdout, stderr } = await runCliDirect([
       'distro',
       'create',
       '--name',
@@ -68,7 +68,8 @@ describe('distro deposit commands', () => {
     expect(testDistributionId).to.not.be.empty
   })
 
-  it('deposits tokens using amount flag', async () => {
+  it('deposits tokens using amount flag', async function () {
+    if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
     const cliInput = [
       'distro',
       'deposit',
@@ -90,7 +91,8 @@ describe('distro deposit commands', () => {
     expect(cleanStdout).to.contain('Transaction:')
   })
 
-  it('deposits tokens using basisAmount flag', async () => {
+  it('deposits tokens using basisAmount flag', async function () {
+    if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
     const cliInput = [
       'distro',
       'deposit',
@@ -111,7 +113,8 @@ describe('distro deposit commands', () => {
     expect(cleanStdout).to.contain('New total deposited:')
   })
 
-  it('fails when neither amount nor basisAmount is provided', async () => {
+  it('fails when neither amount nor basisAmount is provided', async function () {
+    if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
     const cliInput = [
       'distro',
       'deposit',
@@ -126,7 +129,8 @@ describe('distro deposit commands', () => {
     }
   })
 
-  it('fails when both amount and basisAmount are provided', async () => {
+  it('fails when both amount and basisAmount are provided', async function () {
+    if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
     const cliInput = [
       'distro',
       'deposit',
@@ -145,7 +149,8 @@ describe('distro deposit commands', () => {
     }
   })
 
-  it('fails when trying to deposit more tokens than available in wallet', async () => {
+  it('fails when trying to deposit more tokens than available in wallet', async function () {
+    if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
     const cliInput = [
       'distro',
       'deposit',
@@ -162,7 +167,8 @@ describe('distro deposit commands', () => {
     }
   })
 
-  it('fails with invalid distribution address', async () => {
+  it('fails with invalid distribution address', async function () {
+    if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
     const cliInput = [
       'distro',
       'deposit',

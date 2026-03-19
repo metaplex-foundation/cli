@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { runCli } from '../../runCli'
+import { runCli, runCliDirect } from '../../runCli'
 import { createGenesisAccount, addLaunchPoolBucket, addUnlockedBucket, stripAnsi } from './genesishelpers'
 
 describe('genesis integration workflow', () => {
@@ -16,14 +16,14 @@ describe('genesis integration workflow', () => {
 
     before(async () => {
         // Airdrop SOL for testing
-        await runCli([
+        await runCliDirect([
             "toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
         ])
 
         await new Promise(resolve => setTimeout(resolve, 10000))
 
-        // Wrap some SOL to get wrapped SOL tokens (needed for deposits)
-        await runCli([
+        // Wrap some SOL to get wrapped SOL tokens (needed for deposits, SOL wrapping is CPI-incompatible)
+        await runCliDirect([
             'toolbox',
             'sol',
             'wrap',
@@ -31,7 +31,8 @@ describe('genesis integration workflow', () => {
         ])
     })
 
-    it('creates a genesis account for the workflow', async () => {
+    it('creates a genesis account for the workflow', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const result = await createGenesisAccount({
             name: 'Integration Token',
             symbol: 'INT',
@@ -44,7 +45,8 @@ describe('genesis integration workflow', () => {
         expect(genesisAddress).to.match(/^[a-zA-Z0-9]+$/)
     })
 
-    it('adds an unlocked bucket as graduation destination', async () => {
+    it('adds an unlocked bucket as graduation destination', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const result = await addUnlockedBucket(
             genesisAddress,
             'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
@@ -60,7 +62,8 @@ describe('genesis integration workflow', () => {
         expect(unlockedBucketAddress).to.match(/^[a-zA-Z0-9]+$/)
     })
 
-    it('adds a launch pool bucket to the genesis account', async () => {
+    it('adds a launch pool bucket to the genesis account', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const result = await addLaunchPoolBucket(genesisAddress, {
             allocation: '1000000000',
             depositStart,
@@ -75,7 +78,8 @@ describe('genesis integration workflow', () => {
         expect(bucketAddress).to.match(/^[a-zA-Z0-9]+$/)
     })
 
-    it('fetches the genesis account and verifies bucket was added', async () => {
+    it('fetches the genesis account and verifies bucket was added', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         await new Promise(resolve => setTimeout(resolve, 2000))
 
         const { stdout, stderr, code } = await runCli([
@@ -94,7 +98,8 @@ describe('genesis integration workflow', () => {
         expect(cleanStdout).to.contain('Finalized: No')
     })
 
-    it('fetches the launch pool bucket details', async () => {
+    it('fetches the launch pool bucket details', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const { stdout, stderr, code } = await runCli([
             'genesis',
             'bucket',
@@ -115,7 +120,8 @@ describe('genesis integration workflow', () => {
         expect(cleanStdout).to.contain('Claim Count: 0')
     })
 
-    it('finalizes the genesis launch', async () => {
+    it('finalizes the genesis launch', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const { stdout, stderr, code } = await runCli([
             'genesis',
             'finalize',
@@ -132,7 +138,8 @@ describe('genesis integration workflow', () => {
         expect(cleanStdout).to.contain('Transaction:')
     })
 
-    it('deposits into the launch pool', async () => {
+    it('deposits into the launch pool', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const { stdout, stderr, code } = await runCli([
             'genesis',
             'deposit',
@@ -154,7 +161,8 @@ describe('genesis integration workflow', () => {
         expect(cleanStdout).to.contain('Transaction:')
     })
 
-    it('verifies the genesis account is now finalized', async () => {
+    it('verifies the genesis account is now finalized', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         await new Promise(resolve => setTimeout(resolve, 2000))
 
         const { stdout, stderr, code } = await runCli([
@@ -170,7 +178,8 @@ describe('genesis integration workflow', () => {
         expect(cleanStdout).to.contain('Finalized: Yes')
     })
 
-    it('fails to finalize an already-finalized genesis account', async () => {
+    it('fails to finalize an already-finalized genesis account', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         try {
             await runCli([
                 'genesis',
@@ -183,7 +192,8 @@ describe('genesis integration workflow', () => {
         }
     })
 
-    it('fails to add a bucket to a finalized genesis account', async () => {
+    it('fails to add a bucket to a finalized genesis account', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         try {
             await runCli([
                 'genesis',
@@ -207,7 +217,8 @@ describe('genesis integration workflow', () => {
         }
     })
 
-    it('revokes mint authority', async () => {
+    it('revokes mint authority', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const { stdout, stderr, code } = await runCli([
             'genesis',
             'revoke',
@@ -225,7 +236,8 @@ describe('genesis integration workflow', () => {
         expect(cleanStdout).to.contain('WARNING')
     })
 
-    it('fails when no revoke flag is specified', async () => {
+    it('fails when no revoke flag is specified', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         try {
             await runCli([
                 'genesis',
@@ -238,7 +250,8 @@ describe('genesis integration workflow', () => {
         }
     })
 
-    it('fails to deposit into a non-existent bucket', async () => {
+    it('fails to deposit into a non-existent bucket', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         try {
             await runCli([
                 'genesis',
@@ -255,7 +268,8 @@ describe('genesis integration workflow', () => {
         }
     })
 
-    it('fails to fetch a non-existent bucket', async () => {
+    it('fails to fetch a non-existent bucket', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         try {
             await runCli([
                 'genesis',
@@ -280,14 +294,15 @@ describe('genesis unlocked bucket workflow', () => {
     const claimEnd = (now + 86400 * 365).toString()     // 1 year from now
 
     before(async () => {
-        await runCli([
+        await runCliDirect([
             "toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
         ])
 
         await new Promise(resolve => setTimeout(resolve, 10000))
     })
 
-    it('creates a genesis account with unlocked bucket', async () => {
+    it('creates a genesis account with unlocked bucket', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const result = await createGenesisAccount({
             name: 'Unlocked Token',
             symbol: 'UNL',
@@ -300,7 +315,8 @@ describe('genesis unlocked bucket workflow', () => {
         expect(genesisAddress).to.match(/^[a-zA-Z0-9]+$/)
     })
 
-    it('adds an unlocked bucket', async () => {
+    it('adds an unlocked bucket', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const result = await addUnlockedBucket(
             genesisAddress,
             'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
@@ -314,7 +330,8 @@ describe('genesis unlocked bucket workflow', () => {
         expect(result.bucketAddress).to.match(/^[a-zA-Z0-9]+$/)
     })
 
-    it('fetches the unlocked bucket details', async () => {
+    it('fetches the unlocked bucket details', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const { stdout, stderr, code } = await runCli([
             'genesis',
             'bucket',
@@ -336,7 +353,8 @@ describe('genesis unlocked bucket workflow', () => {
         expect(cleanStdout).to.contain('Claimed: No')
     })
 
-    it('fails to claim unlocked bucket before finalization', async () => {
+    it('fails to claim unlocked bucket before finalization', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         try {
             await runCli([
                 'genesis',

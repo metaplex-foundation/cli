@@ -1,12 +1,13 @@
 import { expect } from 'chai'
-import { runCli } from '../../runCli'
+import { runCli, runCliDirect } from '../../runCli'
 import { createBubblegumTree, stripAnsi, extractTreeAddress, extractSignature } from './bghelpers'
 
-describe('bg tree create command', () => {
+describe('bg tree create command', function () {
 
     before(async () => {
+
         // Airdrop SOL to test account for transactions
-        const { stdout, stderr, code } = await runCli([
+        const { stdout, stderr, code } = await runCliDirect([
             "toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
         ])
 
@@ -14,14 +15,14 @@ describe('bg tree create command', () => {
         await new Promise(resolve => setTimeout(resolve, 10000))
     })
 
-    it('creates a basic Bubblegum tree with default configuration', async () => {
+    it('creates a basic Bubblegum tree with default configuration', async function () {
         const { treeAddress, signature } = await createBubblegumTree()
 
         expect(treeAddress).to.match(/^[a-zA-Z0-9]{32,44}$/)
         expect(signature).to.match(/^[a-zA-Z0-9]{32,}$/)
     })
 
-    it('creates a tree with custom depth and buffer size', async () => {
+    it('creates a tree with custom depth and buffer size', async function () {
         const { treeAddress, signature } = await createBubblegumTree({
             maxDepth: 14,
             maxBufferSize: 64,
@@ -32,7 +33,7 @@ describe('bg tree create command', () => {
         expect(signature).to.match(/^[a-zA-Z0-9]{32,}$/)
     })
 
-    it('creates a public tree', async () => {
+    it('creates a public tree', async function () {
         const { treeAddress, signature } = await createBubblegumTree({
             maxDepth: 14,
             maxBufferSize: 64,
@@ -44,7 +45,7 @@ describe('bg tree create command', () => {
         expect(signature).to.match(/^[a-zA-Z0-9]{32,}$/)
     })
 
-    it('creates a tree with a name for storage', async () => {
+    it('creates a tree with a name for storage', async function () {
         const treeName = `test-tree-${Date.now()}`
         const { treeAddress, signature } = await createBubblegumTree({
             maxDepth: 14,
@@ -57,7 +58,7 @@ describe('bg tree create command', () => {
         expect(signature).to.match(/^[a-zA-Z0-9]{32,}$/)
     })
 
-    it('validates tree configuration parameters', async () => {
+    it('validates tree configuration parameters', async function () {
         const cliInput = [
             'bg',
             'tree',
@@ -76,7 +77,7 @@ describe('bg tree create command', () => {
         expect(combined).to.contain('Canopy Depth: 8')
     })
 
-    it('includes explorer links in output', async () => {
+    it('includes explorer links in output', async function () {
         const cliInput = [
             'bg',
             'tree',
@@ -94,7 +95,7 @@ describe('bg tree create command', () => {
         expect(combined).to.match(/Tree Explorer:.*http/)
     })
 
-    it('validates tree name format', async () => {
+    it('validates tree name format', async function () {
         const validName = `test-tree-${Date.now()}`
         const { treeAddress } = await createBubblegumTree({
             maxDepth: 14,
@@ -106,7 +107,7 @@ describe('bg tree create command', () => {
         expect(treeAddress).to.match(/^[a-zA-Z0-9]{32,44}$/)
     })
 
-    it('prevents duplicate tree names on same network', async () => {
+    it('prevents duplicate tree names on same network', async function () {
         const treeName = `unique-tree-${Date.now()}`
 
         // Create first tree with the name

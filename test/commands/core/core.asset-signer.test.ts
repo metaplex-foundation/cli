@@ -7,13 +7,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { spawn } from 'child_process'
-import { runCli, CLI_PATH, TEST_RPC, KEYPAIR_PATH } from '../../runCli'
-import { createCoreAsset, extractAssetId, stripAnsi } from './corehelpers'
+import { CLI_PATH, TEST_RPC, KEYPAIR_PATH, runCliDirect } from '../../runCli'
+import { createCoreAsset, stripAnsi } from './corehelpers'
 
-/**
- * Runs the CLI with a custom config (for asset-signer wallet tests).
- * Uses -c instead of -k so the asset-signer config is picked up.
- */
 const runCliWithConfig = (
     args: string[],
     configPath: string,
@@ -45,42 +41,19 @@ const runCliWithConfig = (
     })
 }
 
-/**
- * Writes a temporary config file with the asset-signer wallet active.
- */
-const writeAssetSignerConfig = (assetId: string, pdaAddress: string, ownerAddress: string): string => {
-    const config = {
-        rpcUrl: TEST_RPC,
-        keypair: KEYPAIR_PATH,
-        activeWallet: 'vault',
-        wallets: [
-            {
-                name: 'owner',
-                address: ownerAddress,
-                path: KEYPAIR_PATH,
-            },
-            {
-                name: 'vault',
-                type: 'asset-signer',
-                asset: assetId,
-                address: pdaAddress,
-                payer: 'owner',
-            },
-        ],
-    }
-
-    const configPath = path.join(os.tmpdir(), `mplx-asset-signer-test-${Date.now()}.json`)
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
-    return configPath
+const extractTreeAddress = (str: string) => {
+    const match = str.match(/Tree Address:\s+([a-zA-Z0-9]+)/)
+    return match ? match[1] : null
 }
 
-describe('asset-signer wallet', function () {
+describe('asset-signer specific tests', function () {
     this.timeout(120000)
 
-    let signingAssetId: string
     let signerPda: string
     let ownerAddress: string
     let configPath: string
+    let payerKeypairPath: string
+    let publicTreeAddress: string
     const tempFiles: string[] = []
 
     before(async () => {
@@ -90,24 +63,51 @@ describe('asset-signer wallet', function () {
         umi.use(keypairIdentity(kp))
         ownerAddress = kp.publicKey.toString()
 
-        // Create the signing asset
+        // Create the signing asset and fund PDA
         const { assetId } = await createCoreAsset()
-        signingAssetId = assetId
-
-        // Derive the PDA and fund it
-        const [pda] = findAssetSignerPda(umi, { asset: publicKey(signingAssetId) })
+        const [pda] = findAssetSignerPda(umi, { asset: publicKey(assetId) })
         signerPda = pda.toString()
 
         await transferSol(umi, {
             destination: pda,
             amount: { basisPoints: 500_000_000n, identifier: 'SOL', decimals: 9 },
         }).sendAndConfirm(umi)
-        // Wait for RPC state propagation on localnet
         await new Promise(resolve => setTimeout(resolve, 2000))
 
-        // Write the asset-signer config
-        configPath = writeAssetSignerConfig(signingAssetId, signerPda, ownerAddress)
+        // Write asset-signer config
+        configPath = path.join(os.tmpdir(), `mplx-asset-signer-test-${Date.now()}.json`)
+        fs.writeFileSync(configPath, JSON.stringify({
+            rpcUrl: TEST_RPC,
+            keypair: KEYPAIR_PATH,
+            activeWallet: 'vault',
+            wallets: [
+                { name: 'owner', address: ownerAddress, path: KEYPAIR_PATH },
+                { name: 'vault', type: 'asset-signer', asset: assetId, address: signerPda, payer: 'owner' },
+            ],
+        }, null, 2))
         tempFiles.push(configPath)
+
+        // Generate and fund a separate fee payer keypair
+        const newKp = generateSigner(umi)
+        payerKeypairPath = path.join(os.tmpdir(), `mplx-test-payer-${Date.now()}.json`)
+        fs.writeFileSync(payerKeypairPath, JSON.stringify(Array.from(newKp.secretKey)))
+        tempFiles.push(payerKeypairPath)
+
+        await umi.rpc.airdrop(newKp.publicKey, { basisPoints: 2_000_000_000n, identifier: 'SOL', decimals: 9 })
+        await new Promise(resolve => setTimeout(resolve, 2000))
+
+        // Create a public tree (anyone can mint) for bg mint test
+        const { stdout, stderr } = await runCliDirect([
+            'bg', 'tree', 'create',
+            '--maxDepth', '3',
+            '--maxBufferSize', '8',
+            '--canopyDepth', '1',
+            '--public',
+        ])
+        const treeAddr = extractTreeAddress(stripAnsi(stdout + '\n' + stderr))
+        if (!treeAddr) throw new Error('Could not create public tree')
+        publicTreeAddress = treeAddr
+        await new Promise(resolve => setTimeout(resolve, 2000))
     })
 
     after(() => {
@@ -116,83 +116,26 @@ describe('asset-signer wallet', function () {
         }
     })
 
-    describe('SOL operations', () => {
-        it('shows the PDA balance when checking balance', async function () {
-            const { stdout, stderr, code } = await runCliWithConfig(
-                ['toolbox', 'sol', 'balance'],
-                configPath,
-            )
+    it('transfers SOL from PDA with a different wallet paying fees', async function () {
+        const { stdout, stderr, code } = await runCliWithConfig(
+            ['toolbox', 'sol', 'transfer', '0.01', ownerAddress, '-p', payerKeypairPath],
+            configPath,
+        )
 
-            const output = stripAnsi(stdout) + stripAnsi(stderr)
-            expect(code).to.equal(0)
-            // Should show the shortened PDA address, not the wallet address
-            expect(output).to.contain(signerPda.slice(0, 4))
-            expect(output).not.to.contain(ownerAddress.slice(0, 4))
-        })
-
-        it('transfers SOL from the PDA', async function () {
-            const { stdout, stderr, code } = await runCliWithConfig(
-                ['toolbox', 'sol', 'transfer', '0.01', ownerAddress],
-                configPath,
-            )
-
-            const output = stripAnsi(stdout) + stripAnsi(stderr)
-            expect(code).to.equal(0)
-            expect(output).to.contain('SOL transferred successfully')
-        })
+        const output = stripAnsi(stdout) + stripAnsi(stderr)
+        expect(code).to.equal(0)
+        expect(output).to.contain('SOL transferred successfully')
     })
 
-    describe('Core asset transfer', () => {
-        it('transfers a PDA-owned asset to a new owner', async function () {
-            // Create asset owned by the PDA (using standard CLI, not asset-signer)
-            const { stdout: out, stderr: err, code: c } = await runCli(
-                ['core', 'asset', 'create', '--name', 'PDA Owned', '--uri', 'https://example.com/pda', '--owner', signerPda],
-                ['\n'],
-            )
-            expect(c).to.equal(0)
-            const targetAssetId = extractAssetId(stripAnsi(out)) || extractAssetId(stripAnsi(err))
-            expect(targetAssetId).to.be.ok
+    it('mints a compressed NFT into a public tree as the PDA', async function () {
+        const { stdout, stderr, code } = await runCliWithConfig(
+            ['bg', 'nft', 'create', publicTreeAddress, '--name', 'PDA cNFT', '--uri', 'https://example.com/pda-cnft'],
+            configPath,
+        )
 
-            // Transfer it via asset-signer wallet
-            const { stdout, stderr, code } = await runCliWithConfig(
-                ['core', 'asset', 'transfer', targetAssetId!, ownerAddress],
-                configPath,
-            )
-
-            const output = stripAnsi(stdout) + stripAnsi(stderr)
-            expect(code).to.equal(0)
-            expect(output).to.contain('Asset transferred')
-        })
-    })
-
-    describe('separate fee payer via -p', () => {
-        let payerKeypairPath: string
-
-        before(async function () {
-            // Generate and fund a second keypair
-            const umi = createUmi(TEST_RPC).use(mplCore()).use(mplToolbox())
-            const keypairData = JSON.parse(fs.readFileSync(KEYPAIR_PATH, 'utf-8'))
-            const mainKp = umi.eddsa.createKeypairFromSecretKey(new Uint8Array(keypairData))
-            umi.use(keypairIdentity(mainKp))
-
-            const newKp = generateSigner(umi)
-            payerKeypairPath = path.join(os.tmpdir(), `mplx-test-payer-${Date.now()}.json`)
-            fs.writeFileSync(payerKeypairPath, JSON.stringify(Array.from(newKp.secretKey)))
-            tempFiles.push(payerKeypairPath)
-
-            await umi.rpc.airdrop(newKp.publicKey, { basisPoints: 2_000_000_000n, identifier: 'SOL', decimals: 9 })
-            await new Promise(resolve => setTimeout(resolve, 2000))
-        })
-
-        it('transfers SOL from PDA with a different wallet paying fees', async function () {
-            const { stdout, stderr, code } = await runCliWithConfig(
-                ['toolbox', 'sol', 'transfer', '0.01', ownerAddress, '-p', payerKeypairPath],
-                configPath,
-            )
-
-            const output = stripAnsi(stdout) + stripAnsi(stderr)
-            expect(code).to.equal(0)
-            expect(output).to.contain('SOL transferred successfully')
-        })
+        const output = stripAnsi(stdout) + stripAnsi(stderr)
+        expect(code).to.equal(0)
+        expect(output).to.contain('Compressed NFT created successfully')
+        expect(output).to.contain(signerPda)
     })
 })

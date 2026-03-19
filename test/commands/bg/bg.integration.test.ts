@@ -1,20 +1,23 @@
 import { expect } from 'chai'
-import { runCli } from '../../runCli'
+import { runCli, runCliDirect } from '../../runCli'
 import { createBubblegumTree, createCompressedNFT, stripAnsi } from './bghelpers'
 import { createBubblegumCollection } from './bgcollectionhelpers'
 
-describe('bg command integration tests', () => {
+describe('bg command integration tests', function () {
 
     before(async () => {
+
         // Airdrop SOL to test account
-        await runCli([
+        await runCliDirect([
             "toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
         ])
 
         await new Promise(resolve => setTimeout(resolve, 10000))
     })
 
-    it('creates a complete workflow: tree -> collection -> compressed NFT', async () => {
+    it('creates a complete workflow: tree -> collection -> compressed NFT', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
+
         // Step 1: Create a tree
         const { treeAddress } = await createBubblegumTree({
             maxDepth: 14,
@@ -44,7 +47,9 @@ describe('bg command integration tests', () => {
         expect(signature).to.match(/^[a-zA-Z0-9]{32,}$/)
     })
 
-    it('creates multiple trees with different configurations', async () => {
+    it('creates multiple trees with different configurations', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
+
         const smallTree = await createBubblegumTree({
             maxDepth: 14,
             maxBufferSize: 64,
@@ -66,7 +71,9 @@ describe('bg command integration tests', () => {
         expect(smallTree.treeAddress).to.not.equal(mediumTree.treeAddress)
     })
 
-    it('creates NFTs in different trees', async () => {
+    it('creates NFTs in different trees', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
+
         const tree1 = await createBubblegumTree({
             maxDepth: 14,
             maxBufferSize: 64,
@@ -98,7 +105,9 @@ describe('bg command integration tests', () => {
         expect(nft1.signature).to.not.equal(nft2.signature)
     })
 
-    it('handles public tree creation and NFT minting', async () => {
+    it('handles public tree creation and NFT minting', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
+
         const { treeAddress } = await createBubblegumTree({
             maxDepth: 14,
             maxBufferSize: 64,
@@ -118,7 +127,9 @@ describe('bg command integration tests', () => {
         expect(signature).to.match(/^[a-zA-Z0-9]{32,}$/)
     })
 
-    it('creates a collection with multiple compressed NFTs', async () => {
+    it('creates a collection with multiple compressed NFTs', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
+
         const { treeAddress } = await createBubblegumTree({
             maxDepth: 14,
             maxBufferSize: 64,
@@ -154,7 +165,9 @@ describe('bg command integration tests', () => {
         expect(uniqueSignatures.size).to.equal(3)
     })
 
-    it('validates tree storage and naming', async () => {
+    it('validates tree storage and naming', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
+
         const treeName = `named-tree-${Date.now()}`
 
         const { treeAddress } = await createBubblegumTree({
@@ -170,7 +183,9 @@ describe('bg command integration tests', () => {
         // Note: We can't query the storage directly in tests, but the creation should succeed
     })
 
-    it('handles royalties at various percentages', async () => {
+    it('handles royalties at various percentages', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
+
         const { treeAddress } = await createBubblegumTree({
             maxDepth: 14,
             maxBufferSize: 64,
@@ -194,7 +209,9 @@ describe('bg command integration tests', () => {
         }
     })
 
-    it('creates NFTs with various symbols', async () => {
+    it('creates NFTs with various symbols', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
+
         const { treeAddress } = await createBubblegumTree({
             maxDepth: 14,
             maxBufferSize: 64,

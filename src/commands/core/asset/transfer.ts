@@ -5,7 +5,6 @@ import ora from 'ora'
 
 import { generateExplorerUrl } from '../../../explorers.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
-import { getAssetSigner } from '../../../lib/umi/assetSignerPlugin.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
 
@@ -40,23 +39,19 @@ export default class AssetTransfer extends TransactionCommand<typeof AssetTransf
         this.error('Cannot transfer: asset is frozen')
       }
 
-      // Skip client-side validation for asset-signer wallets — the execute
-      // instruction handles authorization on-chain via the PDA.
-      if (!getAssetSigner(umi)) {
-        const transferError = await validateTransfer(umi, {
-          authority: umi.identity.publicKey,
-          asset,
-          collection,
-          recipient: publicKey(args.newOwner),
-        })
+      const transferError = await validateTransfer(umi, {
+        authority: umi.identity.publicKey,
+        asset,
+        collection,
+        recipient: publicKey(args.newOwner),
+      })
 
-        if (transferError) {
-          spinner.fail('Asset transfer failed')
-          const message = transferError === LifecycleValidationError.NoAuthority
-            ? 'Cannot transfer: you are not the owner or an authorized delegate of this asset'
-            : `Cannot transfer: ${transferError}`
-          this.error(message)
-        }
+      if (transferError) {
+        spinner.fail('Asset transfer failed')
+        const message = transferError === LifecycleValidationError.NoAuthority
+          ? 'Cannot transfer: you are not the owner or an authorized delegate of this asset'
+          : `Cannot transfer: ${transferError}`
+        this.error(message)
       }
 
       spinner.text = 'Transferring asset...'

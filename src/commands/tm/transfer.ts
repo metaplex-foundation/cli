@@ -15,7 +15,6 @@ import { TransactionCommand } from '../../TransactionCommand.js'
 import { txSignatureToString } from '../../lib/util.js'
 import { generateExplorerUrl } from '../../explorers.js'
 import { TOKEN_AUTH_RULES_ID } from '../../constants.js'
-import { getEffectiveOwner } from '../../lib/umi/assetSignerPlugin.js'
 import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 
 export default class TmTransfer extends TransactionCommand<typeof TmTransfer> {
@@ -67,7 +66,7 @@ export default class TmTransfer extends TransactionCommand<typeof TmTransfer> {
                 mint: asset.publicKey,
                 token: findAssociatedTokenPda(umi, {
                     mint: asset.publicKey,
-                    owner: getEffectiveOwner(umi),
+                    owner: umi.identity.publicKey,
                 })[0],
             })
 
@@ -91,7 +90,7 @@ export default class TmTransfer extends TransactionCommand<typeof TmTransfer> {
             transferIx = transferV1(umi, {
                 mint: asset.publicKey,
                 authority: umi.identity,
-                tokenOwner: getEffectiveOwner(umi),
+                tokenOwner: umi.identity.publicKey,
                 destinationOwner,
                 destinationToken: destinationToken[0],
                 tokenStandard: TokenStandard.ProgrammableNonFungible,
@@ -106,7 +105,7 @@ export default class TmTransfer extends TransactionCommand<typeof TmTransfer> {
             transferIx = transferV1(umi, {
                 mint: asset.publicKey,
                 authority: umi.identity,
-                tokenOwner: getEffectiveOwner(umi),
+                tokenOwner: umi.identity.publicKey,
                 destinationOwner,
                 tokenStandard: unwrapOptionRecursively(asset.metadata.tokenStandard) || TokenStandard.NonFungible
             })

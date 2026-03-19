@@ -8,7 +8,6 @@ import ora from 'ora'
 
 import { generateExplorerUrl } from '../../../explorers.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
-import { getEffectiveOwner } from '../../../lib/umi/assetSignerPlugin.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
 
@@ -32,7 +31,7 @@ export default class ToolboxSolUnwrap extends TransactionCommand<typeof ToolboxS
         try {
             const [associatedTokenPda] = findAssociatedTokenPda(umi, {
                 mint: NATIVE_MINT,
-                owner: getEffectiveOwner(umi),
+                owner: umi.identity.publicKey,
             })
 
             const accountInfo = await umi.rpc.getAccount(associatedTokenPda).catch(() => null)
@@ -48,7 +47,7 @@ export default class ToolboxSolUnwrap extends TransactionCommand<typeof ToolboxS
 
             const tx = closeToken(umi, {
                 account: associatedTokenPda,
-                destination: getEffectiveOwner(umi),
+                destination: umi.identity.publicKey,
                 owner: umi.identity,
             })
 

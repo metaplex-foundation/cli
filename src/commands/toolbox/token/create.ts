@@ -9,7 +9,6 @@ import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import imageUploader from '../../../lib/uploader/imageUploader.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
 import { RpcChain, txSignatureToString } from '../../../lib/util.js'
-import { getEffectiveOwner } from '../../../lib/umi/assetSignerPlugin.js'
 import { validateMintAmount, validateTokenName, validateTokenSymbol } from '../../../lib/validations.js'
 import createTokenPrompt from '../../../prompts/createTokenPrompt.js'
 
@@ -305,11 +304,11 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
         })
             .add(createTokenIfMissing(umi, {
                 mint: mint.publicKey,
-                owner: getEffectiveOwner(umi),
+                owner: umi.identity.publicKey,
             }))
             .add(mintTokensTo(umi, {
                 mint: mint.publicKey,
-                token: findAssociatedTokenPda(umi, { mint: mint.publicKey, owner: getEffectiveOwner(umi) }),
+                token: findAssociatedTokenPda(umi, { mint: mint.publicKey, owner: umi.identity.publicKey }),
                 amount: input.mintAmount,
             }))
 

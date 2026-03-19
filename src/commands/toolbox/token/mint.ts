@@ -5,7 +5,6 @@ import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
-import { getEffectiveOwner } from '../../../lib/umi/assetSignerPlugin.js'
 import { RpcChain, txSignatureToString } from '../../../lib/util.js'
 
 const SUCCESS_MESSAGE = async (
@@ -84,7 +83,7 @@ Note: You must have mint authority for the specified token mint.`
         }
 
         // Determine recipient - default to current keypair
-        const recipientAddress = flags.recipient || getEffectiveOwner(umi).toString();
+        const recipientAddress = flags.recipient || umi.identity.publicKey.toString();
         let recipientPublicKey;
         try {
             recipientPublicKey = publicKey(recipientAddress);

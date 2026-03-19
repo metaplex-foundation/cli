@@ -1,5 +1,6 @@
 import { setComputeUnitPrice } from '@metaplex-foundation/mpl-toolbox'
 import { BlockhashWithExpiryBlockHeight, Signer, TransactionBuilder, TransactionSignature, Umi } from '@metaplex-foundation/umi'
+import { getAssetSigner } from './assetSignerPlugin.js'
 import { UmiSendOptions } from './sendOptions.js'
 
 export interface UmiTransactionResponse {
@@ -35,6 +36,14 @@ const umiSendTransaction = async (
         microLamports: 100000,
       }),
     )
+  }
+
+  // In asset-signer mode umi.payer is a noopSigner(PDA) so instructions use
+  // the PDA for payer accounts. Override the transaction fee payer to the real
+  // wallet so it pays gas and provides a valid signature.
+  const assetSigner = getAssetSigner(umi)
+  if (assetSigner) {
+    transaction = transaction.setFeePayer(assetSigner.authority)
   }
 
   let signedTx = await transaction.buildAndSign(umi).catch((error) => {

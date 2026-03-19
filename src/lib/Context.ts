@@ -6,6 +6,7 @@ import {
   Umi,
   createNoopSigner as createUmiNoopSigner,
   generateSigner,
+  publicKey,
   signerIdentity,
   signerPayer,
 } from '@metaplex-foundation/umi'
@@ -56,7 +57,6 @@ export type ConfigJson = {
 
 export type AssetSignerInfo = {
   asset: string
-  signerPda: string
 }
 
 export type Context = {
@@ -174,11 +174,13 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
   let signer: Signer
   let assetSigner: AssetSignerInfo | undefined
   let payerPath: string | undefined = config.payer
+  let pdaIdentity: Signer | undefined
+  let realWalletSigner: Signer | undefined
 
   if (isAssetSigner) {
-    // For asset-signer wallets, umi.identity is the real wallet (required for
-    // correct mpl-core CPI account layout). The asset-signer plugin stores
-    // PDA info on umi; use getEffectiveOwner(umi) for address derivation.
+    // Asset-signer mode: umi.identity AND umi.payer = noopSigner(PDA) so
+    // instructions are built with the PDA for all accounts naturally.
+    // The send layer overrides the transaction fee payer to the real wallet.
     const walletPayerName = activeWallet.payer
     if (!payerPath && walletPayerName && config.wallets) {
       const payerWallet = config.wallets.find(w => w.name === walletPayerName)
@@ -199,25 +201,41 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
       )
     }
 
-    // Identity is the real wallet — commands build instructions normally.
-    // The asset-signer plugin on umi tells the send layer to wrap in execute().
-    signer = await createSignerFromPath(payerPath)
-    assetSigner = { asset: activeWallet.asset, signerPda: activeWallet.address }
+    // The real wallet pays gas; context.signer stays as the real wallet
+    // for backward compat (genesis/distro commands).
+    realWalletSigner = await createSignerFromPath(payerPath)
+    signer = realWalletSigner
+
+    // Identity is a noop signer keyed to the PDA — instructions naturally
+    // use the PDA address. The send layer wraps them in execute().
+    pdaIdentity = createUmiNoopSigner(publicKey(activeWallet.address))
+    assetSigner = { asset: activeWallet.asset }
   } else if (isTransactionContext) {
     signer = await createSignerFromPath(overrides.keypair || config.keypair)
   } else {
     signer = config.keypair ? await createSignerFromPath(config.keypair) : createNoopSigner()
   }
 
-  const payer = payerPath ? await createSignerFromPath(payerPath) : signer
+  // For asset-signer mode, payer is already set as assetSignerPayer above.
+  // For normal mode, resolve payer from payerPath or fall back to signer.
+  const payer = isAssetSigner ? signer : (payerPath ? await createSignerFromPath(payerPath) : signer)
 
   const umi = createUmi(config.rpcUrl!, {
     commitment: config.commitment!,
   })
 
-  umi.use(signerIdentity(signer))
-    .use(signerPayer(payer))
-    .use(mplCore())
+  if (isAssetSigner) {
+    // Both identity and payer = noopSigner(PDA). Instructions are built with
+    // the PDA for all accounts. The send layer overrides the transaction fee
+    // payer to the real wallet via setFeePayer() before buildAndSign.
+    umi.use(signerIdentity(pdaIdentity!))
+      .use(signerPayer(pdaIdentity!))
+  } else {
+    umi.use(signerIdentity(signer))
+      .use(signerPayer(payer))
+  }
+
+  umi.use(mplCore())
     .use(mplTokenMetadata())
     .use(mplToolbox())
     .use(mplBubblegum())

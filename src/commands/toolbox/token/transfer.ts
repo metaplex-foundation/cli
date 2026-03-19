@@ -6,7 +6,6 @@ import ora from 'ora'
 import { generateExplorerUrl } from '../../../explorers.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
-import { getEffectiveOwner } from '../../../lib/umi/assetSignerPlugin.js'
 import { txSignatureToString } from '../../../lib/util.js'
 
 /*
@@ -51,7 +50,7 @@ export default class ToolboxTokenTransfer extends TransactionCommand<typeof Tool
         })
 
         const transferTokenIx = transferTokens(umi, {
-            source: findAssociatedTokenPda(umi, { mint: publicKey(args.mintAddress), owner: getEffectiveOwner(umi) }),
+            source: findAssociatedTokenPda(umi, { mint: publicKey(args.mintAddress), owner: umi.identity.publicKey }),
             destination: findAssociatedTokenPda(umi, { mint: publicKey(args.mintAddress), owner: publicKey(args.destination) }),
             amount: args.amount
         })

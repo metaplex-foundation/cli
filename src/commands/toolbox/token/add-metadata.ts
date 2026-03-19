@@ -188,7 +188,7 @@ IMPORTANT: You must be the mint authority of the token to add metadata.`
                 metadata: metadataPda,
                 mint: mintPubkey,
                 mintAuthority: umi.identity,
-                payer: umi.payer,
+                payer: this.context.payer ?? umi.payer,
                 updateAuthority: umi.identity.publicKey,
                 data: {
                     name,

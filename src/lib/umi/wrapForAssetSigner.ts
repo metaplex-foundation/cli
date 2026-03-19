@@ -1,31 +1,13 @@
 import { execute, fetchAsset, fetchCollection } from '@metaplex-foundation/mpl-core'
-import { Instruction, publicKey, Signer, TransactionBuilder, Umi } from '@metaplex-foundation/umi'
+import { publicKey, Signer, TransactionBuilder, Umi } from '@metaplex-foundation/umi'
 import { AssetSignerInfo } from '../Context.js'
-
-/**
- * Rewrites signer accounts in an instruction: swaps the wallet pubkey for the
- * PDA. Only isSigner accounts are rewritten so derived addresses (ATAs, PDAs)
- * and payer accounts stay correct.
- */
-function rewriteSignerAuthority(ix: Instruction, walletPubkey: string, pdaPubkey: string): Instruction {
-  const pda = publicKey(pdaPubkey)
-  return {
-    ...ix,
-    keys: ix.keys.map(k =>
-      k.pubkey.toString() === walletPubkey && k.isSigner
-        ? { ...k, pubkey: pda }
-        : k
-    ),
-  }
-}
 
 /**
  * Wraps a TransactionBuilder's instructions inside an MPL Core `execute` call
  * so the asset's signer PDA signs for them on-chain.
  *
- * umi.identity is the real wallet, so instructions have the wallet as
- * authority. This function rewrites signer accounts (wallet → PDA) then
- * wraps in execute() with the wallet as the caller.
+ * Since umi.identity is a noopSigner keyed to the PDA, instructions are
+ * already built with the PDA as authority — no rewriting needed.
  */
 export const wrapForAssetSigner = async (
   umi: Umi,
@@ -41,10 +23,7 @@ export const wrapForAssetSigner = async (
     collection = await fetchCollection(umi, asset.updateAuthority.address)
   }
 
-  const walletPubkey = authority.publicKey.toString()
-  const instructions = transaction.getInstructions().map(ix =>
-    rewriteSignerAuthority(ix, walletPubkey, assetSigner.signerPda)
-  )
+  const instructions = transaction.getInstructions()
 
   return execute(umi, {
     asset,

@@ -25,7 +25,7 @@ export default class ConfigWalletAddCommand extends Command {
       description: 'Asset ID to create an asset-signer wallet from',
     }),
     payer: Flags.string({
-      description: 'Default payer wallet name for gas fees (for asset-signer wallets)',
+      description: 'Default fee payer wallet name (for asset-signer wallets)',
     }),
   }
 

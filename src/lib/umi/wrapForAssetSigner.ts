@@ -8,12 +8,16 @@ import { AssetSignerInfo } from '../Context.js'
  *
  * Since umi.identity is a noopSigner keyed to the PDA, instructions are
  * already built with the PDA as authority — no rewriting needed.
+ *
+ * @param authority - The asset owner (signs the execute instruction)
+ * @param payer - The fee payer (can differ from authority via -p flag)
  */
 export const wrapForAssetSigner = async (
   umi: Umi,
   transaction: TransactionBuilder,
   assetSigner: AssetSignerInfo,
   authority: Signer,
+  payer: Signer,
 ): Promise<TransactionBuilder> => {
   const assetPubkey = publicKey(assetSigner.asset)
   const asset = await fetchAsset(umi, assetPubkey)
@@ -30,5 +34,6 @@ export const wrapForAssetSigner = async (
     collection,
     instructions,
     authority,
+    payer,
   })
 }

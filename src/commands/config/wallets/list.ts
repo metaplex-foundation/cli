@@ -37,11 +37,7 @@ export default class ConfigWalletListCommand extends Command {
     })
 
     this.log('Installed Wallets:')
-    for (const wallet of wallets) {
-      const marker = wallet.active ? ' (active)' : ''
-      const typeLabel = wallet.type === 'asset-signer' ? ' [asset-signer]' : ''
-      this.log(`  ${wallet.name}: ${wallet.address}${typeLabel}${marker}`)
-    }
+    console.table(wallets)
 
     return { wallets }
   }

@@ -40,10 +40,10 @@ const umiSendTransaction = async (
 
   // In asset-signer mode umi.payer is a noopSigner(PDA) so instructions use
   // the PDA for payer accounts. Override the transaction fee payer to the real
-  // wallet so it pays gas and provides a valid signature.
+  // wallet so it pays fees and provides a valid signature.
   const assetSigner = getAssetSigner(umi)
   if (assetSigner) {
-    transaction = transaction.setFeePayer(assetSigner.authority)
+    transaction = transaction.setFeePayer(assetSigner.payer)
   }
 
   let signedTx = await transaction.buildAndSign(umi).catch((error) => {

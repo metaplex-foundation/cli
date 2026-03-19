@@ -18,7 +18,7 @@ const umiSendAndConfirmTransaction = async (
   let tx = transaction
   const assetSigner = getAssetSigner(umi)
   if (assetSigner) {
-    tx = await wrapForAssetSigner(umi, transaction, assetSigner.info, assetSigner.authority)
+    tx = await wrapForAssetSigner(umi, transaction, assetSigner.info, assetSigner.authority, assetSigner.payer)
   }
 
   // Send transaction

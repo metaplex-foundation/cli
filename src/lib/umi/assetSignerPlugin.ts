@@ -3,7 +3,8 @@ import { AssetSignerInfo } from '../Context.js'
 
 export type AssetSignerState = {
   info: AssetSignerInfo
-  authority: Signer
+  authority: Signer  // Asset owner — signs the execute instruction
+  payer: Signer      // Fee payer — can differ from authority via -p flag
 }
 
 const assetSignerStore = new WeakMap<Umi, AssetSignerState>()
@@ -13,8 +14,8 @@ const assetSignerStore = new WeakMap<Umi, AssetSignerState>()
  * keyed by the umi instance so the send layer can wrap transactions in execute().
  *
  * Both umi.identity and umi.payer are noopSigner(PDA), so instructions are
- * built with the PDA for all accounts. The send layer overrides the
- * transaction fee payer to the real wallet (authority) via setFeePayer().
+ * built with the PDA for all accounts. The send layer uses authority as the
+ * execute caller and payer as the transaction fee payer via setFeePayer().
  */
 export const assetSignerPlugin = (state: AssetSignerState) => ({
   install(umi: Umi) {

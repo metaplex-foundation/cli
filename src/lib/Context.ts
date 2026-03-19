@@ -180,30 +180,33 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
   if (isAssetSigner) {
     // Asset-signer mode: umi.identity AND umi.payer = noopSigner(PDA) so
     // instructions are built with the PDA for all accounts naturally.
-    // The send layer overrides the transaction fee payer to the real wallet.
+    // The send layer wraps in execute() with the asset owner as authority
+    // and the fee payer (which can differ via -p).
+
+    // Resolve the asset owner wallet (authority on the execute instruction).
+    // This is always the wallet configured on the asset-signer entry.
+    let ownerPath: string | undefined
     const walletPayerName = activeWallet.payer
-    if (!payerPath && walletPayerName && config.wallets) {
-      const payerWallet = config.wallets.find(w => w.name === walletPayerName)
-      if (payerWallet && payerWallet.type !== 'asset-signer' && 'path' in payerWallet) {
-        payerPath = payerWallet.path
+    if (walletPayerName && config.wallets) {
+      const ownerWallet = config.wallets.find(w => w.name === walletPayerName)
+      if (ownerWallet && ownerWallet.type !== 'asset-signer' && 'path' in ownerWallet) {
+        ownerPath = ownerWallet.path
       }
     }
 
-    if (!payerPath) {
-      payerPath = config.keypair
+    if (!ownerPath) {
+      ownerPath = config.keypair
     }
 
-    if (!payerPath && isTransactionContext) {
+    if (!ownerPath && isTransactionContext) {
       throw new Error(
-        `Asset-signer wallet '${activeWallet.name}' requires a payer wallet for gas fees.\n` +
-        `Set a default payer with: mplx config wallet add --asset <assetId> --payer <walletName>\n` +
-        `Or use the --payer flag.`
+        `Asset-signer wallet '${activeWallet.name}' requires an owner wallet.\n` +
+        `Set the owner with: mplx config wallet add --asset <assetId> --payer <walletName>\n` +
+        `Or set a default keypair in your config.`
       )
     }
 
-    // The real wallet pays gas; context.signer stays as the real wallet
-    // for backward compat (genesis/distro commands).
-    realWalletSigner = await createSignerFromPath(payerPath)
+    realWalletSigner = await createSignerFromPath(ownerPath)
     signer = realWalletSigner
 
     // Identity is a noop signer keyed to the PDA — instructions naturally
@@ -244,8 +247,12 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
     .use(genesis())
     .use(dasApi())
 
-  if (assetSigner) {
-    umi.use(assetSignerPlugin({ info: assetSigner, authority: signer }))
+  if (assetSigner && realWalletSigner) {
+    // Resolve fee payer: -p flag overrides, otherwise the owner pays.
+    const feePayer = payerPath
+      ? await createSignerFromPath(payerPath)
+      : realWalletSigner
+    umi.use(assetSignerPlugin({ info: assetSigner, authority: realWalletSigner, payer: feePayer }))
   }
 
   const storageProvider = await initStorageProvider(config)

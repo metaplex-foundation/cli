@@ -235,7 +235,7 @@ Use Unix timestamps for absolute times.`
         genesisAccount: genesisAddress,
         baseMint: genesisAccount.baseMint,
         quoteMint: genesisAccount.quoteMint,
-        authority: this.context.signer,
+        authority: this.context.umi.identity,
         payer: this.context.payer,
         bucketIndex,
         baseTokenAllocation: allocation,
@@ -255,7 +255,7 @@ Use Unix timestamps for absolute times.`
         try {
           spinner.text = 'Setting extensions...'
           const extensionsTx = addLaunchPoolBucketV2Extensions(this.context.umi, {
-            authority: this.context.signer,
+            authority: this.context.umi.identity,
             bucket: bucketPda,
             extensions,
             genesisAccount: genesisAddress,
@@ -278,7 +278,7 @@ Use Unix timestamps for absolute times.`
           const setBehaviorsTx = setLaunchPoolBucketV2Behaviors(this.context.umi, {
             genesisAccount: genesisAddress,
             bucket: bucketPda,
-            authority: this.context.signer,
+            authority: this.context.umi.identity,
             payer: this.context.payer,
             padding: new Array(3).fill(0),
             endBehaviors,

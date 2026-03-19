@@ -100,8 +100,8 @@ Requirements:
         bucket: bucketPda,
         baseMint: genesisAccount.baseMint,
         quoteMint: genesisAccount.quoteMint,
-        depositor: this.context.signer,
-        recipient: this.context.signer,
+        depositor: this.context.umi.identity,
+        recipient: this.context.umi.identity,
         rentPayer: this.context.payer,
         amountQuoteToken: amount,
       })

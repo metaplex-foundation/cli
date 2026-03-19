@@ -75,7 +75,7 @@ Options:
       const transaction = revokeV2(this.context.umi, {
         genesisAccount: genesisAddress,
         baseMint: genesisAccount.baseMint,
-        authority: this.context.signer,
+        authority: this.context.umi.identity,
         baseTokenProgram: publicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
         revokeMintAuthority: flags.revokeMint,
         revokeFreezeAuthority: flags.revokeFreeze,

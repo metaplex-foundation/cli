@@ -225,7 +225,7 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
 
   private resolveOwner(ownerFlag?: string): PublicKey {
     if (!ownerFlag) {
-      return this.context.signer.publicKey
+      return this.context.umi.identity.publicKey
     }
 
     return this.parsePublicKey('owner', ownerFlag)
@@ -321,7 +321,7 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
       collection: collectionPubkey,
       creators: [
         {
-          address: this.context.signer.publicKey,
+          address: this.context.umi.identity.publicKey,
           verified: true,
           share: 100,
         },

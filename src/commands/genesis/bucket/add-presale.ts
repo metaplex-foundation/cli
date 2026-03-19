@@ -150,7 +150,7 @@ Use Unix timestamps for absolute times.`
         genesisAccount: genesisAddress,
         baseMint: genesisAccount.baseMint,
         quoteMint: genesisAccount.quoteMint,
-        authority: this.context.signer,
+        authority: this.context.umi.identity,
         payer: this.context.payer,
         bucketIndex,
         baseTokenAllocation: allocation,

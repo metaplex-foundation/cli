@@ -251,7 +251,7 @@ You can either provide all required flags individually or use a distro config JS
     // Create the distribution
     const transaction = createDistribution(this.context.umi, {
       allowedDistributor,
-      authority: this.context.signer,
+      authority: this.context.umi.identity,
       distributionType,
       endTime,
       merkleRoot,

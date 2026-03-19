@@ -124,7 +124,7 @@ Funding Modes:
       const transaction = initializeV2(this.context.umi, {
         baseMint,
         quoteMint,
-        authority: this.context.signer,
+        authority: this.context.umi.identity,
         payer: this.context.payer,
         fundingMode,
         totalSupplyBaseToken: totalSupply,

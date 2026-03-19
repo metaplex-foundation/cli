@@ -73,7 +73,7 @@ Withdrawals may be restricted during active distribution periods depending on th
       const distribution = await fetchDistribution(this.context.umi, distributionAddress)
       const {mint} = distribution
 
-      if (distribution.authority !== this.context.signer.publicKey) {
+      if (distribution.authority !== this.context.umi.identity.publicKey) {
         throw new Error(`Only the distribution authority can withdraw tokens. Authority: ${distribution.authority}`)
       }
 
@@ -93,7 +93,7 @@ Withdrawals may be restricted during active distribution periods depending on th
 
       const recipient = flags.recipient 
         ? publicKey(flags.recipient)
-        : this.context.signer.publicKey
+        : this.context.umi.identity.publicKey
 
       const recipientTokenAccount = findAssociatedTokenPda(this.context.umi, {
         mint,
@@ -139,7 +139,7 @@ Withdrawals may be restricted during active distribution periods depending on th
 
       const withdrawIx = withdraw(this.context.umi, {
         amount: basisAmount,
-        authority: this.context.signer,
+        authority: this.context.umi.identity,
         distribution: distributionAddress,
         distributionTokenAccount,
         mint,

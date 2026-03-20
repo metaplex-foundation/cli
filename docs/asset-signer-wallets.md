@@ -93,7 +93,7 @@ All CLI commands work with asset-signer wallets. The transaction wrapping happen
 - **Toolbox Token**: `transfer`, `create`, `mint`
 - **Toolbox Raw**: `raw --instruction <base64>`
 - **Token Metadata**: `transfer`, `create`, `update`
-- **Bubblegum**: `nft create` (public trees), `nft transfer`, `nft burn`, `collection create`
+- **Bubblegum**: `nft create` (into existing trees — tree creation itself is a [CPI limitation](#cpi-limitations)), `nft transfer`, `nft burn`, `collection create`
 - **Genesis**: `create`, `bucket add-*`, `deposit`, `withdraw`, `claim`, `finalize`, `revoke`
 - **Distribution**: `create`, `deposit`, `withdraw`
 - **Candy Machine**: `insert`, `withdraw`
@@ -120,7 +120,7 @@ echo "<base64>" | mplx toolbox raw --stdin
 Some operations cannot be wrapped in `execute()` due to Solana CPI constraints:
 
 - **Large account creation** — Merkle trees, candy machines (exceed CPI account allocation limits)
-- **Native SOL wrapping** — `transferSol` to a token account fails in CPI context
+- **SOL wrapping** — creating wrapped SOL (wSOL) token accounts fails in CPI context
 
 For these operations, use a normal wallet or create the infrastructure first, then switch to the asset-signer wallet for subsequent operations.
 

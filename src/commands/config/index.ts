@@ -1,7 +1,7 @@
 import { Command, Flags } from '@oclif/core'
 import { CONFIG_KEYS, ConfigJson, DEFAULT_CONFIG, getDefaultConfigPath, readConfig } from '../../lib/Context.js'
 import { existsSync } from 'fs'
-import chalk from 'chalk'
+import ansis from 'ansis'
 
 export default class Config extends Command {
   static override description = 'Show the current config'
@@ -18,9 +18,9 @@ export default class Config extends Command {
 
     const config = readConfig(path)
     if (!existsSync(path)) {
-      this.log(chalk.yellow(`Config file not found at: ${path}, using defaults`))
+      this.log(ansis.yellow(`Config file not found at: ${path}, using defaults`))
     } else {
-      this.log(chalk.green(`Found config at: ${chalk.bold(path)}`))
+      this.log(ansis.green(`Found config at: ${ansis.bold(path)}`))
       this.log('')
 
       // prints the config and expands [object Object] while adding some defining colors
@@ -28,18 +28,18 @@ export default class Config extends Command {
       CONFIG_KEYS.forEach((key) => {
         const value = config[key]
         if (typeof value === 'object' && value !== null) {
-          this.log(chalk.cyan(`${key}:`))
+          this.log(ansis.cyan(`${key}:`))
           Object.entries(value).forEach(([k, v]) => {
             const formattedValue = typeof v === 'string' ? 
-              chalk.green(`"${v}"`) : 
-              chalk.yellow(JSON.stringify(v))
-            this.log(`  ${chalk.dim(k)}: ${formattedValue}`)
+              ansis.green(`"${v}"`) : 
+              ansis.yellow(JSON.stringify(v))
+            this.log(`  ${ansis.dim(k)}: ${formattedValue}`)
           })
         } else {
           const formattedValue = value === undefined ? 
-            chalk.gray('undefined') : 
-            chalk.green(value)
-          this.log(`${chalk.cyan(key)}: ${formattedValue}`)
+            ansis.gray('undefined') : 
+            ansis.green(value)
+          this.log(`${ansis.cyan(key)}: ${formattedValue}`)
         }
         this.log('')
       })

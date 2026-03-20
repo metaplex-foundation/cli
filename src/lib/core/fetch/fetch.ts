@@ -1,7 +1,7 @@
 import { fetchAsset } from '@metaplex-foundation/mpl-core'
 import { publicKey, Umi } from '@metaplex-foundation/umi'
 import { fileTypeFromBuffer } from 'file-type'
-import mime from 'mime-types'
+import mime from 'mime'
 import fs from 'node:fs'
 import { join } from 'node:path'
 import util from 'node:util'
@@ -47,13 +47,13 @@ const fetchImage = async (url: string): Promise<DownloadedImage> => {
   // If no extension from bytes, try content-type
   if (!ext) {
     const contentType = response.headers.get('content-type');
-    const mimeExt = contentType ? mime.extension(contentType) : undefined;
+    const mimeExt = contentType ? mime.getExtension(contentType) : undefined;
     ext = typeof mimeExt === 'string' ? mimeExt : undefined;
   }
 
   // If still no extension, try URL
   if (!ext) {
-    const urlExt = mime.extension(mime.lookup(url) || '');
+    const urlExt = mime.getExtension(mime.getType(url) || '');
     ext = typeof urlExt === 'string' ? urlExt : undefined;
   }
 

@@ -4,7 +4,7 @@ import irys from './irys.js'
 // import turbo from './turbo.js'
 
 export interface StorageProvider<T = any> {
-    name: 'irys' | 'cascade' | 'turbo'
+    name: 'irys' | 'cascade'
     description?: string
     website?: string
     params?: {

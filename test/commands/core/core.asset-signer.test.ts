@@ -122,6 +122,15 @@ describe('asset-signer specific tests', function () {
     })
 
     it('transfers SOL from PDA with a different wallet paying fees', async function () {
+        // Read the payer keypair to get its pubkey for balance checks
+        const payerData = JSON.parse(fs.readFileSync(payerKeypairPath, 'utf-8'))
+        const umi = createUmi(TEST_RPC).use(mplCore())
+        const payerKp = umi.eddsa.createKeypairFromSecretKey(new Uint8Array(payerData))
+        const payerPubkey = payerKp.publicKey
+
+        // Check payer balance before
+        const balanceBefore = await umi.rpc.getBalance(payerPubkey)
+
         const { stdout, stderr, code } = await runCliWithConfig(
             ['toolbox', 'sol', 'transfer', '0.01', ownerAddress, '-p', payerKeypairPath],
             configPath,
@@ -130,6 +139,10 @@ describe('asset-signer specific tests', function () {
         const output = stripAnsi(stdout) + stripAnsi(stderr)
         expect(code).to.equal(0)
         expect(output).to.contain('SOL transferred successfully')
+
+        // Verify the override payer's balance decreased (paid the fee)
+        const balanceAfter = await umi.rpc.getBalance(payerPubkey)
+        expect(balanceAfter.basisPoints).to.be.lessThan(balanceBefore.basisPoints)
     })
 
     it('mints a compressed NFT into a public tree as the PDA', async function () {

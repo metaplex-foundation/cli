@@ -52,8 +52,13 @@ export const runCliDirect = (args: string[], stdin?: string[]): Promise<{ stdout
 
 export const runCli = (args: string[], stdin?: string[]): Promise<{ stdout: string; stderr: string; code: number }> => {
     return new Promise((resolve, reject) => {
-        const cliArgs = isAssetSignerMode() && assetSignerConfigPath
-            ? [CLI_PATH, ...args, '-r', TEST_RPC, '-c', assetSignerConfigPath]
+        if (isAssetSignerMode() && !assetSignerConfigPath) {
+            reject(new Error('Asset-signer mode is enabled but no config has been registered. Ensure setup.asset-signer.ts ran, or use runCliDirect().'))
+            return
+        }
+
+        const cliArgs = isAssetSignerMode()
+            ? [CLI_PATH, ...args, '-r', TEST_RPC, '-c', assetSignerConfigPath!]
             : [CLI_PATH, ...args, '-r', TEST_RPC, '-k', KEYPAIR_PATH]
 
         const child = spawn('node', cliArgs, {

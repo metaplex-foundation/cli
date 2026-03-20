@@ -107,18 +107,23 @@ Infrastructure that can't be created via execute CPI (large account allocations)
 ## Why Some Tests Skip in Asset-Signer Mode
 
 ### CPI Limitations
+
 These operations allocate large accounts, which fails when wrapped in `execute()`:
+
 - Merkle tree creation
 - Candy machine creation
 
 The `createBubblegumTree` helper and CM creation in test setup use `runCliDirect` to bypass this.
 
 ### Authority Mismatch
+
 Resources created with `runCliDirect` (normal wallet) have the wallet as authority. In asset-signer mode, commands run as the PDA, which isn't the authority. This affects:
+
 - bg nft minting (tree authority is wallet, not PDA)
 - CM insert/withdraw (CM authority is wallet)
 - Genesis deposits/finalize (genesis authority is wallet)
 - Distro deposits/withdrawals (distro authority is wallet)
 
 ### What IS Tested in Asset-Signer Mode
-The asset-signer specific test creates a **public tree** (anyone can mint) and verifies the PDA can mint a cNFT into it. This confirms bubblegum minting works through execute CPI when authority isn't an issue.
+
+The asset-signer-specific test creates a **public tree** (anyone can mint) and verifies the PDA can mint a cNFT into it. This confirms bubblegum minting works through execute CPI when authority isn't an issue.

@@ -7,6 +7,8 @@ describe('bg nft create command', () => {
     let testTree: string
 
     before(async () => {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return
+
         await runCliDirect([
             "toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
         ])

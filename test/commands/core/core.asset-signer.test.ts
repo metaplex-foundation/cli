@@ -9,6 +9,7 @@ import os from 'node:os'
 import { spawn } from 'child_process'
 import { CLI_PATH, TEST_RPC, KEYPAIR_PATH, runCliDirect } from '../../runCli'
 import { extractAssetId, stripAnsi } from './corehelpers'
+import { extractTreeAddress } from '../bg/bghelpers'
 
 const runCliWithConfig = (
     args: string[],
@@ -39,11 +40,6 @@ const runCliWithConfig = (
             child.stdin.end()
         }
     })
-}
-
-const extractTreeAddress = (str: string) => {
-    const match = str.match(/Tree Address:\s+([a-zA-Z0-9]+)/)
-    return match ? match[1] : null
 }
 
 describe('asset-signer specific tests', function () {
@@ -142,7 +138,7 @@ describe('asset-signer specific tests', function () {
 
         // Verify the override payer's balance decreased (paid the fee)
         const balanceAfter = await umi.rpc.getBalance(payerPubkey)
-        expect(balanceAfter.basisPoints).to.be.lessThan(balanceBefore.basisPoints)
+        expect(balanceAfter.basisPoints < balanceBefore.basisPoints).to.be.true
     })
 
     it('mints a compressed NFT into a public tree as the PDA', async function () {

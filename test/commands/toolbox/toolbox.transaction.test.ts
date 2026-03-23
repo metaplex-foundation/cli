@@ -6,7 +6,7 @@ import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
 import { keypairIdentity, publicKey } from '@metaplex-foundation/umi'
 import fs from 'node:fs'
 
-describe('toolbox raw command', function () {
+describe('toolbox transaction command', function () {
     this.timeout(120000)
 
     let walletAddress: string
@@ -40,7 +40,7 @@ describe('toolbox raw command', function () {
         const serialized = serializeInstruction(instruction)
 
         const { stdout, stderr, code } = await runCli([
-            'toolbox', 'raw', '--instruction', serialized
+            'toolbox', 'transaction', '--instruction', serialized
         ])
 
         const output = stripAnsi(stdout) + stripAnsi(stderr)
@@ -51,7 +51,7 @@ describe('toolbox raw command', function () {
 
     it('fails when no instructions are provided', async function () {
         try {
-            await runCli(['toolbox', 'raw'])
+            await runCli(['toolbox', 'transaction'])
             expect.fail('Expected command to fail without instructions')
         } catch (error: any) {
             expect(error.message).to.contain('You must provide instructions via --instruction or --stdin')

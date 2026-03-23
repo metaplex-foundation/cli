@@ -8,7 +8,7 @@ import { deserializeInstruction } from '../../lib/execute/deserializeInstruction
 import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../lib/util.js'
 
-export default class ToolboxRaw extends TransactionCommand<typeof ToolboxRaw> {
+export default class ToolboxTransaction extends TransactionCommand<typeof ToolboxTransaction> {
   static override description = `Execute arbitrary base64-encoded Solana instructions.
 
 Instructions are signed by the current wallet. When an asset-signer wallet is
@@ -49,7 +49,7 @@ Alternatively, pipe instructions via stdin with --stdin.`
   }
 
   public async run(): Promise<unknown> {
-    const { flags } = await this.parse(ToolboxRaw)
+    const { flags } = await this.parse(ToolboxTransaction)
     const { umi, explorer, chain } = this.context
 
     let instructionData: string[]

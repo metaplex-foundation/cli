@@ -30,7 +30,11 @@ import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 */
 
 export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> {
-  static override description = 'Update an MPL Core Asset'
+  static override description = `Update an MPL Core Asset's name, URI, image, or offchain metadata.
+
+  Update specific fields with --name and/or --uri, or provide a metadata JSON file
+  with --offchain to sync the on-chain name from the file. Use --image to upload and
+  assign a new image. Combinations like --offchain with --image are supported.`
 
   static examples = [
     'Single Asset Update:',

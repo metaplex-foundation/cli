@@ -6,10 +6,11 @@ import { BaseCommand } from '../../../BaseCommand.js'
 import { openDirectory } from '../../../lib/util.js'
 
 export default class CoreCollectionTemplate extends BaseCommand<typeof CoreCollectionTemplate> {
-  static override description = 'Generate a template folder for Collection metadata and image, and plugins'
+  static override description = 'Generate a template folder for Collection metadata and image'
 
   static override examples = [
-    '<%= config.bin %> <%= command.id %> -n "Cool Collection" -u "https://example.com/collection-metadata.json"',
+    '<%= config.bin %> <%= command.id %>',
+    '<%= config.bin %> <%= command.id %> ./my-collection',
   ]
 
   static override args = {

@@ -17,7 +17,7 @@ export default class CoreCollectionFetch extends BaseCommand<typeof CoreCollecti
     collection: Args.string({ description: 'Collection pubkey (mint) to fetch', required: true }),
   }
 
-  static description = 'Fetch an Collection by pubkey'
+  static description = 'Fetch a Collection by pubkey. Use --output to download metadata and image files to disk.'
 
   static examples = [
     ...super.baseExamples,

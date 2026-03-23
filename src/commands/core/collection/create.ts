@@ -8,7 +8,7 @@ import { txSignatureToString } from '../../../lib/util.js'
 import pluginConfigurator, { mapPluginDataToArray } from '../../../prompts/pluginInquirer.js'
 import { PluginFilterType, pluginSelector } from '../../../prompts/pluginSelector.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
-import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
+import { ExplorerType, generateCoreExplorerUrl, generateExplorerUrl } from '../../../explorers.js'
 import createAssetPrompt, { CreateAssetPromptResult } from '../../../prompts/createAssetPrompt.js'
 import uploadFile from '../../../lib/uploader/uploadFile.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
@@ -207,7 +207,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
   Collection: ${collection}
   Signature: ${signature}
   Explorer: ${generateExplorerUrl(explorer, this.context.chain, signature, 'transaction')}
-  Core Explorer: https://core.metaplex.com/explorer/${collection}
+  Core Explorer: ${generateCoreExplorerUrl(this.context.chain, String(collection))}
 --------------------------------`
   }
 
@@ -216,7 +216,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       collection: String(collectionKey),
       signature,
       explorer: generateExplorerUrl(explorer, this.context.chain, signature, 'transaction'),
-      coreExplorer: `https://core.metaplex.com/explorer/${collectionKey}`,
+      coreExplorer: generateCoreExplorerUrl(this.context.chain, String(collectionKey)),
     }
   }
 

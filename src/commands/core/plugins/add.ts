@@ -5,6 +5,7 @@ import { publicKey, transactionBuilder } from '@metaplex-foundation/umi'
 import { readFileSync } from 'fs'
 import ora from 'ora'
 import { BaseCommand } from '../../../BaseCommand.js'
+import { generateCoreExplorerUrl } from '../../../explorers.js'
 import { Plugin } from '../../../lib/types/pluginData.js'
 import umiSendAllTransactionsAndConfirm from '../../../lib/umi/sendAllTransactionsAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
@@ -129,7 +130,7 @@ ${isCollection ? 'Collection' : 'Asset'}: ${asset}
 Plugins Added: ${pluginsData.length}
 Transactions: ${transactions.length}
 Signatures: ${signatures}
-Core Explorer: https://core.metaplex.com/explorer/${asset}
+Core Explorer: ${generateCoreExplorerUrl(this.context.chain, asset)}
 --------------------------------`
             )
 
@@ -138,7 +139,7 @@ Core Explorer: https://core.metaplex.com/explorer/${asset}
                 pluginsAdded: pluginsData.length,
                 transactions: transactions.length,
                 signatures: signatures.split(', ').filter(Boolean),
-                coreExplorer: `https://core.metaplex.com/explorer/${asset}`,
+                coreExplorer: generateCoreExplorerUrl(this.context.chain, asset),
             }
         } catch (error: unknown) {
             transactionSpinner.fail(`Failed to add plugins: ${error instanceof Error ? error.message : 'Unknown error'}`)

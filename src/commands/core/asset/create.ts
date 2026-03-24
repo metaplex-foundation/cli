@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import ora from 'ora'
 
 import { generateSigner, publicKey, Umi } from '@metaplex-foundation/umi'
-import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
+import { ExplorerType, generateCoreExplorerUrl, generateExplorerUrl } from '../../../explorers.js'
 import createAssetFromArgs, { AssetCreationResult } from '../../../lib/core/create/createAssetFromArgs.js'
 import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
 import uploadFile from '../../../lib/uploader/uploadFile.js'
@@ -225,7 +225,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
   // TODO: Fix any typings
   private formatAssetResult(result: AssetCreationResult, explorer: ExplorerType): { display: string; json: Record<string, string> } {
     const explorerUrl = generateExplorerUrl(explorer, this.context.chain, result.signature, 'transaction')
-    const coreExplorerUrl = `https://core.metaplex.com/explorer/${result.asset}`
+    const coreExplorerUrl = generateCoreExplorerUrl(this.context.chain, result.asset)
     return {
       display: `--------------------------------
   Asset: ${result.asset}

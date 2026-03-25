@@ -90,21 +90,21 @@ provided as a JSON file via --launchConfig.`
         throw new Error('Launch config is missing required "launch" object')
       }
       if (config.launchType === undefined || config.launchType === null) {
-        config.launchType = 'project'
+        config.launchType = 'launchpool'
       }
-      if (config.launchType !== 'project' && config.launchType !== 'memecoin') {
-        throw new Error(`Launch config "launchType" must be "project" or "memecoin", got "${config.launchType}"`)
+      if (config.launchType !== 'launchpool' && config.launchType !== 'bondingCurve') {
+        throw new Error(`Launch config "launchType" must be "launchpool" or "bondingCurve", got "${config.launchType}"`)
       }
 
       // Validate required launch fields per type
       const launch = config.launch as Record<string, unknown>
-      if (config.launchType === 'project') {
+      if (config.launchType === 'launchpool') {
         if (!launch.launchpool || typeof launch.launchpool !== 'object') {
-          throw new Error('Project launch config requires a "launch.launchpool" object')
+          throw new Error('Launchpool config requires a "launch.launchpool" object')
         }
       } else {
-        if (!launch.depositStartTime) {
-          throw new Error('Memecoin launch config requires "launch.depositStartTime"')
+        if (!launch.bondingCurve || typeof launch.bondingCurve !== 'object') {
+          throw new Error('Bonding curve config requires a "launch.bondingCurve" object')
         }
       }
 

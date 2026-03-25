@@ -1,4 +1,5 @@
 import {
+  CreateBondingCurveLaunchInput,
   CreateLaunchInput,
   CreateLaunchpoolLaunchInput,
   GenesisApiConfig,
@@ -94,9 +95,16 @@ const LAUNCH_STRATEGIES: Record<string, LaunchStrategy> = {
       return []
     },
 
-    // TODO: Implement when @metaplex-foundation/genesis exports bonding-curve input types
-    buildInput(_common, _flags) {
-      throw new Error('Bonding curve launches are not yet supported by the Genesis SDK. Coming soon.')
+    buildInput(common, flags): CreateBondingCurveLaunchInput {
+      return {
+        ...common,
+        launchType: 'bondingCurve',
+        launch: {
+          bondingCurve: {
+            depositStartTime: flags.depositStartTime as string,
+          },
+        },
+      }
     },
   },
 }

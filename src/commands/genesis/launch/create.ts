@@ -295,10 +295,10 @@ Use --wizard for an interactive guided setup.`
     }
 
     // Non-wizard mode: validate required flags
-    if (!flags.name) this.error('Missing required flag --name. Use --wizard for interactive setup.')
-    if (!flags.symbol) this.error('Missing required flag --symbol. Use --wizard for interactive setup.')
-    if (!flags.image) this.error('Missing required flag --image. Use --wizard for interactive setup.')
-    if (!flags.depositStartTime) this.error('Missing required flag --depositStartTime. Use --wizard for interactive setup.')
+    const missingFlags = (['name', 'symbol', 'image', 'depositStartTime'] as const).filter(f => !flags[f])
+    if (missingFlags.length > 0) {
+      this.error(`Missing required flag${missingFlags.length > 1 ? 's' : ''}: ${missingFlags.map(f => `--${f}`).join(', ')}. Use --wizard for interactive setup.`)
+    }
 
     const strategy = LAUNCH_STRATEGIES[flags.launchType]
     const flagRecord: Record<string, unknown> = flags
@@ -331,12 +331,17 @@ Use --wizard for an interactive guided setup.`
     if (flags.telegram) externalLinks.telegram = flags.telegram
 
     // Build common params shared by all launch types
+    // Safe to assert — validated above
+    const name = flags.name!
+    const symbol = flags.symbol!
+    const image = flags.image!
+
     const common: CommonLaunchParams = {
       wallet: this.context.umi.identity.publicKey.toString(),
       token: {
-        name: flags.name,
-        symbol: flags.symbol,
-        image: flags.image,
+        name,
+        symbol,
+        image,
         ...(flags.description && { description: flags.description }),
         ...(Object.keys(externalLinks).length > 0 && { externalLinks }),
       },

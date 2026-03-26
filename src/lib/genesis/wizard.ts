@@ -328,6 +328,7 @@ export async function runManualWizard(
 
   let registrationResult: { launchId: string; launchLink: string } | undefined
   if (shouldRegister) {
+    const registerSpinner = ora('Registering on platform...')
     try {
       const registerData = await promptRegisterLaunch()
 
@@ -360,7 +361,7 @@ export async function runManualWizard(
         baseUrl: ctx.apiUrl,
       }
 
-      const registerSpinner = ora('Registering on platform...').start()
+      registerSpinner.start()
       const result = await registerLaunch(ctx.umi, apiConfig, {
         genesisAccount: genesisAccountPda,
         createLaunchInput: launchInput,
@@ -375,6 +376,7 @@ export async function runManualWizard(
         launchLink: result.launch.link,
       }
     } catch (error) {
+      registerSpinner.fail('Registration failed')
       logger.warn(`Registration failed: ${error instanceof Error ? error.message : String(error)}`)
       if (error && typeof error === 'object' && 'responseBody' in error) {
         logger.logJson((error as { responseBody: unknown }).responseBody)

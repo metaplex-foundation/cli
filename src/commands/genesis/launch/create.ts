@@ -370,6 +370,8 @@ Use --wizard for an interactive guided setup.`
 
     const wizardResult = await promptLaunchWizard()
 
+    const networkOverride = flags.network as SvmNetwork | undefined
+
     const launchInput = buildLaunchInput(
       this.context.umi.identity.publicKey.toString(),
       this.context.chain,
@@ -393,6 +395,7 @@ Use --wizard for an interactive guided setup.`
         raydiumLiquidityBps: wizardResult.raydiumLiquidityBps,
         fundsRecipient: wizardResult.fundsRecipient,
       },
+      networkOverride,
     )
 
     return this.sendLaunch(launchInput, flags.apiUrl as string | undefined)

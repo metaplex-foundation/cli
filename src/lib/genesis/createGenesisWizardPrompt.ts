@@ -1,6 +1,8 @@
 import { input, select, confirm } from '@inquirer/prompts'
 import { isPublicKey } from '@metaplex-foundation/umi'
 
+import type { AddLaunchPoolParams, AddPresaleParams, AddUnlockedParams } from './operations.js'
+
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
@@ -16,37 +18,9 @@ export interface GenesisCreateResult {
   quoteMint?: string
 }
 
-export interface LaunchPoolBucketResult {
-  allocation: string
-  bucketIndex: number
-  depositStart: string
-  depositEnd: string
-  claimStart: string
-  claimEnd: string
-  minimumDeposit?: string
-  depositLimit?: string
-  minimumQuoteTokenThreshold?: string
-}
-
-export interface PresaleBucketResult {
-  allocation: string
-  quoteCap: string
-  bucketIndex: number
-  depositStart: string
-  depositEnd: string
-  claimStart: string
-  claimEnd: string
-  minimumDeposit?: string
-  depositLimit?: string
-}
-
-export interface UnlockedBucketResult {
-  recipient: string
-  allocation: string
-  bucketIndex: number
-  claimStart: string
-  claimEnd: string
-}
+export type LaunchPoolBucketResult = AddLaunchPoolParams
+export type PresaleBucketResult = AddPresaleParams
+export type UnlockedBucketResult = AddUnlockedParams
 
 export type BucketChoice = 'launch-pool' | 'presale' | 'unlocked' | 'done'
 
@@ -109,16 +83,19 @@ function abortOrTrue(v: string): true | void {
 
 function validateTimestamp(v: string, opts?: { requireFuture?: boolean; allowEmpty?: boolean }): string | true {
   abortOrTrue(v)
-  if (!v.trim()) return opts?.allowEmpty ? true : 'Required'
+  const trimmed = v.trim()
+  if (!trimmed) return opts?.allowEmpty ? true : 'Required'
 
-  if (/^\d{4}-\d{2}/.test(v)) {
-    const ms = Date.parse(v)
+  if (/^\d{4}-\d{2}/.test(trimmed)) {
+    const ms = Date.parse(trimmed)
     if (Number.isNaN(ms)) return 'Invalid date. Use ISO format (e.g. 2025-06-01T00:00:00Z) or a unix timestamp.'
     if (opts?.requireFuture && ms <= Date.now()) return 'Must be in the future'
     return true
   }
-  if (/^\d+$/.test(v)) {
-    if (opts?.requireFuture && BigInt(v) <= BigInt(Math.floor(Date.now() / 1000))) return 'Must be in the future'
+  if (/^\d+$/.test(trimmed)) {
+    const n = BigInt(trimmed)
+    if (n > 10_000_000_000n) return 'Value looks like milliseconds. Please provide a unix timestamp in seconds.'
+    if (opts?.requireFuture && n <= BigInt(Math.floor(Date.now() / 1000))) return 'Must be in the future'
     return true
   }
   return 'Invalid. Use ISO format (e.g. 2025-06-01T00:00:00Z) or a unix timestamp.'
@@ -155,6 +132,11 @@ function validatePublicKey(v: string): string | true {
   if (!v.trim()) return 'Required'
   if (!isPublicKey(v.trim())) return 'Invalid Solana public key'
   return true
+}
+
+async function promptPublicKeyInput(message: string): Promise<string> {
+  const value = await input({ message, validate: validatePublicKey })
+  return value.trim()
 }
 
 function validateUrlField(v: string, type: 'website' | 'twitter' | 'telegram'): string | true {
@@ -252,10 +234,7 @@ export async function promptQuoteMint(): Promise<string> {
   })
 
   if (choice === 'custom') {
-    return input({
-      message: 'Enter custom quote mint address:',
-      validate: validatePublicKey,
-    })
+    return promptPublicKeyInput('Enter custom quote mint address:')
   }
 
   return choice
@@ -269,7 +248,12 @@ export async function promptProjectConfig(quoteMint: string): Promise<{
 }> {
   const allocationStr = await input({
     message: 'Launch pool token allocation (portion of 1B total supply, e.g. 500000000):',
-    validate: validatePositiveInt,
+    validate: (v) => {
+      const result = validatePositiveInt(v)
+      if (result !== true) return result
+      if (BigInt(v) > 1_000_000_000n) return 'Must not exceed 1,000,000,000'
+      return true
+    },
   })
   const tokenAllocation = Number(allocationStr)
 
@@ -299,10 +283,7 @@ export async function promptProjectConfig(quoteMint: string): Promise<{
   })
   const raydiumLiquidityBps = Number(raydiumPctStr) * 100
 
-  const fundsRecipient = await input({
-    message: 'Funds recipient wallet address:',
-    validate: validatePublicKey,
-  })
+  const fundsRecipient = await promptPublicKeyInput('Funds recipient wallet address:')
 
   return { tokenAllocation, raiseGoal, raydiumLiquidityBps, fundsRecipient }
 }
@@ -346,13 +327,13 @@ export async function promptGenesisCreate(): Promise<GenesisCreateResult> {
 
   let baseMint: string | undefined
   if (fundingMode === 'transfer') {
-    baseMint = await input({ message: 'Existing base mint address:', validate: validatePublicKey })
+    baseMint = await promptPublicKeyInput('Existing base mint address:')
   }
 
   const useCustomQuote = await confirm({ message: 'Use a custom quote token? (default: SOL)', default: false })
   let quoteMint: string | undefined
   if (useCustomQuote) {
-    quoteMint = await input({ message: 'Quote mint address:', validate: validatePublicKey })
+    quoteMint = await promptPublicKeyInput('Quote mint address:')
   }
 
   return {
@@ -376,6 +357,17 @@ export async function promptLaunchPoolBucket(nextIndex: number): Promise<LaunchP
   const depositEndStr = await input({ message: 'Deposit end (ISO date or unix timestamp):', validate: (v) => validateTimestamp(v) })
   const claimStartStr = await input({ message: 'Claim start (ISO date or unix timestamp):', validate: (v) => validateTimestamp(v) })
   const claimEndStr = await input({ message: 'Claim end (ISO date or unix timestamp, press Enter for far future):', validate: (v) => validateTimestamp(v, { allowEmpty: true }) })
+
+  // Validate chronology
+  const depStartTs = BigInt(toUnixTimestamp(depositStartStr))
+  const depEndTs = BigInt(toUnixTimestamp(depositEndStr))
+  const clmStartTs = BigInt(toUnixTimestamp(claimStartStr))
+  if (depEndTs <= depStartTs) {
+    throw new Error('depositEnd must be after depositStart')
+  }
+  if (clmStartTs < depEndTs) {
+    throw new Error('claimStart must be at or after depositEnd')
+  }
 
   // Optional extensions
   const addExtensions = await confirm({ message: 'Add optional extensions (minimum deposit, deposit limit, quote threshold)?', default: false })
@@ -419,6 +411,17 @@ export async function promptPresaleBucket(nextIndex: number): Promise<PresaleBuc
   const claimStartStr = await input({ message: 'Claim start (ISO date or unix timestamp):', validate: (v) => validateTimestamp(v) })
   const claimEndStr = await input({ message: 'Claim end (ISO date or unix timestamp, press Enter for far future):', validate: (v) => validateTimestamp(v, { allowEmpty: true }) })
 
+  // Validate chronology
+  const depStartTs = BigInt(toUnixTimestamp(depositStartStr))
+  const depEndTs = BigInt(toUnixTimestamp(depositEndStr))
+  const clmStartTs = BigInt(toUnixTimestamp(claimStartStr))
+  if (depEndTs <= depStartTs) {
+    throw new Error('depositEnd must be after depositStart')
+  }
+  if (clmStartTs < depEndTs) {
+    throw new Error('claimStart must be at or after depositEnd')
+  }
+
   // Optional deposit limits
   const addLimits = await confirm({ message: 'Add deposit limits?', default: false })
   let minimumDeposit: string | undefined
@@ -446,7 +449,7 @@ export async function promptPresaleBucket(nextIndex: number): Promise<PresaleBuc
 }
 
 export async function promptUnlockedBucket(nextIndex: number): Promise<UnlockedBucketResult> {
-  const recipient = await input({ message: 'Recipient wallet address:', validate: validatePublicKey })
+  const recipient = await promptPublicKeyInput('Recipient wallet address:')
 
   const allocationStr = await input({ message: 'Token allocation (in base units, default 0):', default: '0', validate: validateNonNegativeInt })
   const bucketIndexStr = await input({ message: 'Bucket index:', default: String(nextIndex), validate: validateNonNegativeInt })

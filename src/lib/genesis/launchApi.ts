@@ -41,8 +41,9 @@ export function buildLaunchInput(
   wallet: string,
   chain: RpcChain,
   params: BuildLaunchInputParams,
+  networkOverride?: SvmNetwork,
 ): CreateLaunchInput {
-  const network: SvmNetwork = detectSvmNetwork(chain)
+  const network: SvmNetwork = networkOverride ?? detectSvmNetwork(chain)
 
   const externalLinks: Record<string, string> = {}
   if (params.socials?.website) externalLinks.website = params.socials.website

@@ -32,11 +32,12 @@ describe('distro withdraw commands', () => {
     await new Promise(resolve => setTimeout(resolve, 10000))
 
     // Wrap some SOL to get wrapped SOL tokens
+    // Use unique amount to avoid "already processed" errors with other test suites
     await runCli([
       'toolbox',
       'sol',
       'wrap',
-      '50'
+      '30'
     ])
 
     // Create a test distribution for withdraw testing using wrapped SOL

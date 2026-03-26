@@ -16,6 +16,8 @@ import { TransactionCommand } from '../../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../../explorers.js'
 import { readJsonSync } from '../../../lib/file.js'
 import { detectSvmNetwork, txSignatureToString } from '../../../lib/util.js'
+import { promptLaunchWizard } from '../../../lib/genesis/createGenesisWizardPrompt.js'
+import { buildLaunchInput } from '../../../lib/genesis/launchApi.js'
 
 /* ------------------------------------------------------------------ */
 /*  Launch strategy types & implementations                            */
@@ -183,17 +185,22 @@ This is an all-in-one command that:
 The Genesis API handles creating the genesis account, mint, launch pool bucket,
 and optional locked allocations in a single flow.
 
-Launch types:
-  - launchpool: Total supply 1B, 48-hour deposit period, configurable allocations.
-  - bonding-curve: Total supply 1B, 1-hour deposit period, hardcoded fund flows. Only --depositStartTime is required.`
+Use --wizard for an interactive guided setup.`
 
   static override examples = [
+    '$ mplx genesis launch create --wizard',
     '$ mplx genesis launch create --name "My Token" --symbol "MTK" --image "https://gateway.irys.xyz/abc123" --tokenAllocation 500000000 --depositStartTime 2025-03-01T00:00:00Z --raiseGoal 200 --raydiumLiquidityBps 5000 --fundsRecipient <ADDRESS>',
     '$ mplx genesis launch create --launchType bonding-curve --name "My Meme" --symbol "MEME" --image "https://gateway.irys.xyz/abc123" --depositStartTime 2025-03-01T00:00:00Z',
     '$ mplx genesis launch create --name "My Token" --symbol "MTK" --image "https://gateway.irys.xyz/abc123" --tokenAllocation 500000000 --depositStartTime 2025-03-01T00:00:00Z --raiseGoal 200 --raydiumLiquidityBps 5000 --fundsRecipient <ADDRESS> --lockedAllocations allocations.json',
   ]
 
   static override flags = {
+    // Wizard mode
+    wizard: Flags.boolean({
+      description: 'Interactive guided setup wizard',
+      default: false,
+    }),
+
     // Launch type
     launchType: Flags.option({
       description: 'Launch type: launchpool (default) or bonding-curve',
@@ -205,16 +212,16 @@ Launch types:
     name: Flags.string({
       char: 'n',
       description: 'Name of the token (1-32 characters)',
-      required: true,
+      required: false,
     }),
     symbol: Flags.string({
       char: 's',
       description: 'Symbol of the token (1-10 characters)',
-      required: true,
+      required: false,
     }),
     image: Flags.string({
       description: 'Token image URL (must start with https://gateway.irys.xyz/)',
-      required: true,
+      required: false,
     }),
     description: Flags.string({
       description: 'Token description (max 250 characters)',
@@ -236,7 +243,7 @@ Launch types:
     // Shared config
     depositStartTime: Flags.string({
       description: 'Deposit start time (ISO date string or unix timestamp). Project: 48h deposit. Memecoin: 1h deposit.',
-      required: true,
+      required: false,
     }),
 
     // Project-only launchpool config
@@ -283,6 +290,16 @@ Launch types:
   public async run(): Promise<unknown> {
     const { flags } = await this.parse(GenesisLaunchCreate)
 
+    if (flags.wizard) {
+      return this.runWizard(flags)
+    }
+
+    // Non-wizard mode: validate required flags
+    if (!flags.name) this.error('Missing required flag --name. Use --wizard for interactive setup.')
+    if (!flags.symbol) this.error('Missing required flag --symbol. Use --wizard for interactive setup.')
+    if (!flags.image) this.error('Missing required flag --image. Use --wizard for interactive setup.')
+    if (!flags.depositStartTime) this.error('Missing required flag --depositStartTime. Use --wizard for interactive setup.')
+
     const strategy = LAUNCH_STRATEGIES[flags.launchType]
     const flagRecord: Record<string, unknown> = flags
 
@@ -304,36 +321,88 @@ Launch types:
       this.error(errors.join('\n'))
     }
 
+    // Detect network from chain if not specified
+    const network: SvmNetwork = flags.network ?? detectSvmNetwork(this.context.chain)
+
+    // Build external links
+    const externalLinks: Record<string, string> = {}
+    if (flags.website) externalLinks.website = flags.website
+    if (flags.twitter) externalLinks.twitter = flags.twitter
+    if (flags.telegram) externalLinks.telegram = flags.telegram
+
+    // Build common params shared by all launch types
+    const common: CommonLaunchParams = {
+      wallet: this.context.umi.identity.publicKey.toString(),
+      token: {
+        name: flags.name,
+        symbol: flags.symbol,
+        image: flags.image,
+        ...(flags.description && { description: flags.description }),
+        ...(Object.keys(externalLinks).length > 0 && { externalLinks }),
+      },
+      network,
+      ...(flags.quoteMint !== 'SOL' && { quoteMint: flags.quoteMint as QuoteMintInput }),
+    }
+
+    const launchInput = strategy.buildInput(common, flagRecord)
+
+    return this.sendLaunch(launchInput, flags.apiUrl)
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Wizard                                                             */
+  /* ------------------------------------------------------------------ */
+
+  private async runWizard(flags: Record<string, unknown>): Promise<unknown> {
+    this.log('')
+    this.log('============================================')
+    this.log('  Genesis Launch Wizard')
+    this.log('============================================')
+    this.log('')
+    this.log('This wizard will guide you through creating a token launch via the Genesis API.')
+    this.log('Type "q" at any prompt to abort.')
+    this.log('')
+
+    const wizardResult = await promptLaunchWizard()
+
+    const launchInput = buildLaunchInput(
+      this.context.umi.identity.publicKey.toString(),
+      this.context.chain,
+      {
+        launchType: wizardResult.launchType,
+        token: {
+          name: wizardResult.name,
+          symbol: wizardResult.symbol,
+          image: wizardResult.image,
+          ...(wizardResult.description && { description: wizardResult.description }),
+        },
+        socials: {
+          ...(wizardResult.website && { website: wizardResult.website }),
+          ...(wizardResult.twitter && { twitter: wizardResult.twitter }),
+          ...(wizardResult.telegram && { telegram: wizardResult.telegram }),
+        },
+        quoteMint: wizardResult.quoteMint,
+        depositStartTime: wizardResult.depositStartTime,
+        tokenAllocation: wizardResult.tokenAllocation,
+        raiseGoal: wizardResult.raiseGoal,
+        raydiumLiquidityBps: wizardResult.raydiumLiquidityBps,
+        fundsRecipient: wizardResult.fundsRecipient,
+      },
+    )
+
+    return this.sendLaunch(launchInput, flags.apiUrl as string | undefined)
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Send launch (shared by wizard and flag modes)                      */
+  /* ------------------------------------------------------------------ */
+
+  private async sendLaunch(launchInput: CreateLaunchInput, apiUrl?: string): Promise<unknown> {
     const spinner = ora('Creating token launch via Genesis API...').start()
 
     try {
-      // Detect network from chain if not specified
-      const network: SvmNetwork = flags.network ?? detectSvmNetwork(this.context.chain)
-
-      // Build external links
-      const externalLinks: Record<string, string> = {}
-      if (flags.website) externalLinks.website = flags.website
-      if (flags.twitter) externalLinks.twitter = flags.twitter
-      if (flags.telegram) externalLinks.telegram = flags.telegram
-
-      // Build common params shared by all launch types
-      const common: CommonLaunchParams = {
-        wallet: this.context.umi.identity.publicKey.toString(),
-        token: {
-          name: flags.name,
-          symbol: flags.symbol,
-          image: flags.image,
-          ...(flags.description && { description: flags.description }),
-          ...(Object.keys(externalLinks).length > 0 && { externalLinks }),
-        },
-        network,
-        ...(flags.quoteMint !== 'SOL' && { quoteMint: flags.quoteMint as QuoteMintInput }),
-      }
-
-      const input = strategy.buildInput(common, flagRecord)
-
       const apiConfig: GenesisApiConfig = {
-        baseUrl: flags.apiUrl,
+        baseUrl: apiUrl ?? 'https://api.metaplex.com',
       }
 
       spinner.text = 'Building transactions via Genesis API...'
@@ -346,7 +415,7 @@ Launch types:
       const result = await createAndRegisterLaunch(
         this.context.umi,
         apiConfig,
-        input,
+        launchInput,
         { commitment },
       )
 

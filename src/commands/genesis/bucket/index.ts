@@ -18,7 +18,7 @@ export default class GenesisBucket extends Command {
     this.log('  Auction       - Bid-based price discovery')
     this.log('  Presale       - Whitelist-based allocations')
     this.log('  Vault         - Token storage with conditions')
-    this.log('  Bonding Curve - Dynamic pricing based on supply')
+    // Bonding Curve - Dynamic pricing based on supply (not yet released)
     this.log('')
     this.log('Available commands:')
     this.log('  genesis bucket add-launch-pool  Add a launch pool bucket')

@@ -29,7 +29,7 @@
     "@ledgerhq/hw-transport": "^6.31.4",
     "@ledgerhq/hw-transport-node-hid-singleton": "^6.31.5",
     "@metaplex-foundation/digital-asset-standard-api": "^2.0.0",
-    "@metaplex-foundation/genesis": "^0.24.0",
+    "@metaplex-foundation/genesis": "^0.26.1",
     "@metaplex-foundation/mpl-agent-registry": "^0.2.1",
     "@metaplex-foundation/mpl-bubblegum": "^5.0.2",
     "@metaplex-foundation/mpl-core": "^1.8.0",

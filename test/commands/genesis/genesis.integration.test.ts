@@ -23,11 +23,12 @@ describe('genesis integration workflow', () => {
         await new Promise(resolve => setTimeout(resolve, 10000))
 
         // Wrap some SOL to get wrapped SOL tokens (needed for deposits)
+        // Use a different amount than other test suites to avoid "already processed" errors
         await runCli([
             'toolbox',
             'sol',
             'wrap',
-            '50',
+            '40',
         ])
     })
 

@@ -137,8 +137,8 @@ function parseLockedAllocations(filePath: string): LockedAllocation[] {
     if (typeof entry.name !== 'string' || entry.name.length === 0) {
       throw new Error(`Locked allocation [${i}]: "name" must be a non-empty string`)
     }
-    if (typeof entry.recipient !== 'string' || entry.recipient.length === 0) {
-      throw new Error(`Locked allocation [${i}]: "recipient" must be a non-empty string`)
+    if (typeof entry.recipient !== 'string' || !isPublicKey(entry.recipient)) {
+      throw new Error(`Locked allocation [${i}]: "recipient" must be a valid public key`)
     }
     if (typeof entry.tokenAmount !== 'number' || entry.tokenAmount <= 0) {
       throw new Error(`Locked allocation [${i}]: "tokenAmount" must be a positive number`)

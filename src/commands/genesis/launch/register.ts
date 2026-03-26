@@ -99,12 +99,20 @@ provided as a JSON file via --launchConfig.`
       // Validate required launch fields per type
       const launch = config.launch as Record<string, unknown>
       if (config.launchType === 'launchpool') {
-        if (!launch.launchpool || typeof launch.launchpool !== 'object') {
+        if (!launch.launchpool || typeof launch.launchpool !== 'object' || Array.isArray(launch.launchpool)) {
           throw new Error('Launchpool config requires a "launch.launchpool" object')
         }
+        const pool = launch.launchpool as Record<string, unknown>
+        if (!pool.tokenAllocation || !pool.depositStartTime || !pool.raiseGoal || !pool.raydiumLiquidityBps || !pool.fundsRecipient) {
+          throw new Error('Launchpool config requires "tokenAllocation", "depositStartTime", "raiseGoal", "raydiumLiquidityBps", and "fundsRecipient" in launch.launchpool')
+        }
       } else {
-        if (!launch.bondingCurve || typeof launch.bondingCurve !== 'object') {
+        if (!launch.bondingCurve || typeof launch.bondingCurve !== 'object' || Array.isArray(launch.bondingCurve)) {
           throw new Error('Bonding curve config requires a "launch.bondingCurve" object')
+        }
+        const curve = launch.bondingCurve as Record<string, unknown>
+        if (!curve.depositStartTime) {
+          throw new Error('Bonding curve config requires "depositStartTime" in launch.bondingCurve')
         }
       }
 

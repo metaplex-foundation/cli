@@ -271,7 +271,7 @@ describe('genesis launch commands', () => {
             }
         })
 
-        it.skip('bonding-curve launch rejects launchpool-only flags', async () => {
+        it('bonding-curve launch rejects launchpool-only flags', async () => {
             const cliInput = [
                 'genesis', 'launch', 'create',
                 '--launchType', 'bonding-curve',

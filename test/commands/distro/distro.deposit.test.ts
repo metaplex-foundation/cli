@@ -32,12 +32,11 @@ describe('distro deposit commands', () => {
     await new Promise(resolve => setTimeout(resolve, 10000))
 
     // Wrap some SOL to get wrapped SOL tokens
-    // Use unique amount to avoid "already processed" errors with other test suites
     await runCli([
       'toolbox',
       'sol',
       'wrap',
-      '20'
+      '50'
     ])
 
     // Create a test distribution for deposit testing using wrapped SOL

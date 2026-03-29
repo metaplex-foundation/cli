@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { runCli } from '../../runCli'
+import { runCli, runCliDirect } from '../../runCli'
 import { createGenesisAccount, addPresaleBucket, stripAnsi } from './genesishelpers'
 
 describe('genesis presale workflow', () => {
@@ -13,14 +13,15 @@ describe('genesis presale workflow', () => {
     const claimEnd = (now + 86400 * 365).toString()     // 1 year from now
 
     before(async () => {
-        // runCli rejects on non-zero exit, so failures propagate automatically
-        await runCli([
+        // runCliDirect rejects on non-zero exit, so failures propagate automatically
+        await runCliDirect([
             "toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
         ])
 
         await new Promise(resolve => setTimeout(resolve, 10000))
 
-        await runCli([
+        // SOL wrapping is CPI-incompatible
+        await runCliDirect([
             'toolbox',
             'sol',
             'wrap',
@@ -28,7 +29,8 @@ describe('genesis presale workflow', () => {
         ])
     })
 
-    it('creates a genesis account for presale workflow', async () => {
+    it('creates a genesis account for presale workflow', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const result = await createGenesisAccount({
             name: 'Presale Token',
             symbol: 'PSL',
@@ -41,7 +43,8 @@ describe('genesis presale workflow', () => {
         expect(genesisAddress).to.match(/^[a-zA-Z0-9]+$/)
     })
 
-    it('adds a presale bucket to the genesis account', async () => {
+    it('adds a presale bucket to the genesis account', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const result = await addPresaleBucket(genesisAddress, {
             allocation: '500000000',
             quoteCap: '1000000000',
@@ -56,7 +59,8 @@ describe('genesis presale workflow', () => {
         expect(bucketAddress).to.match(/^[a-zA-Z0-9]+$/)
     })
 
-    it('fetches the presale bucket details', async () => {
+    it('fetches the presale bucket details', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const { stdout, stderr, code } = await runCli([
             'genesis',
             'bucket',
@@ -78,7 +82,8 @@ describe('genesis presale workflow', () => {
         expect(cleanStdout).to.contain('Quote Token Cap: 1000000000')
     })
 
-    it('deposits into the presale bucket', async () => {
+    it('deposits into the presale bucket', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const { stdout, stderr, code } = await runCli([
             'genesis',
             'presale',
@@ -100,7 +105,8 @@ describe('genesis presale workflow', () => {
         expect(cleanStdout).to.contain('Transaction:')
     })
 
-    it('fails to deposit into a non-existent presale bucket', async () => {
+    it('fails to deposit into a non-existent presale bucket', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         try {
             await runCli([
                 'genesis',
@@ -118,7 +124,8 @@ describe('genesis presale workflow', () => {
         }
     })
 
-    it('fails to claim from presale with no deposit', async () => {
+    it('fails to claim from presale with no deposit', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         // Create a new genesis with a presale bucket but no deposit
         const newGenesis = await createGenesisAccount({
             name: 'No Deposit Presale',

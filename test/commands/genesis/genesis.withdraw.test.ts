@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { runCli } from '../../runCli'
+import { runCli, runCliDirect } from '../../runCli'
 import { createGenesisAccount, addLaunchPoolBucket, addUnlockedBucket, stripAnsi } from './genesishelpers'
 
 describe('genesis withdraw workflow', () => {
@@ -14,13 +14,14 @@ describe('genesis withdraw workflow', () => {
     const claimEnd = (now + 86400 * 365).toString()     // 1 year from now
 
     before(async () => {
-        await runCli([
+        await runCliDirect([
             "toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
         ])
 
         await new Promise(resolve => setTimeout(resolve, 10000))
 
-        await runCli([
+        // SOL wrapping is CPI-incompatible
+        await runCliDirect([
             'toolbox',
             'sol',
             'wrap',
@@ -28,7 +29,8 @@ describe('genesis withdraw workflow', () => {
         ])
     })
 
-    it('creates a genesis account for withdraw workflow', async () => {
+    it('creates a genesis account for withdraw workflow', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const result = await createGenesisAccount({
             name: 'Withdraw Token',
             symbol: 'WTH',
@@ -41,7 +43,8 @@ describe('genesis withdraw workflow', () => {
         expect(genesisAddress).to.match(/^[a-zA-Z0-9]+$/)
     })
 
-    it('adds an unlocked bucket as graduation destination', async () => {
+    it('adds an unlocked bucket as graduation destination', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const result = await addUnlockedBucket(
             genesisAddress,
             'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
@@ -57,7 +60,8 @@ describe('genesis withdraw workflow', () => {
         expect(unlockedBucketAddress).to.match(/^[a-zA-Z0-9]+$/)
     })
 
-    it('adds a launch pool bucket', async () => {
+    it('adds a launch pool bucket', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const result = await addLaunchPoolBucket(genesisAddress, {
             allocation: '1000000000',
             depositStart,
@@ -72,7 +76,8 @@ describe('genesis withdraw workflow', () => {
         expect(bucketAddress).to.match(/^[a-zA-Z0-9]+$/)
     })
 
-    it('finalizes the genesis account', async () => {
+    it('finalizes the genesis account', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const { stdout, stderr, code } = await runCli([
             'genesis',
             'finalize',
@@ -84,7 +89,8 @@ describe('genesis withdraw workflow', () => {
         expect(cleanStderr).to.contain('Genesis launch finalized successfully')
     })
 
-    it('deposits into the launch pool', async () => {
+    it('deposits into the launch pool', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const { stdout, stderr, code } = await runCli([
             'genesis',
             'deposit',
@@ -100,7 +106,8 @@ describe('genesis withdraw workflow', () => {
         expect(cleanStderr).to.contain('Deposit successful')
     })
 
-    it('withdraws from the launch pool', async () => {
+    it('withdraws from the launch pool', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const { stdout, stderr, code } = await runCli([
             'genesis',
             'withdraw',
@@ -122,7 +129,8 @@ describe('genesis withdraw workflow', () => {
         expect(cleanStdout).to.contain('Transaction:')
     })
 
-    it('fails to withdraw from a non-existent bucket', async () => {
+    it('fails to withdraw from a non-existent bucket', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         try {
             await runCli([
                 'genesis',
@@ -139,7 +147,8 @@ describe('genesis withdraw workflow', () => {
         }
     })
 
-    it('fails to withdraw without a deposit', async () => {
+    it('fails to withdraw without a deposit', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         // Create a new genesis with a launch pool but no deposit
         const newGenesis = await createGenesisAccount({
             name: 'No Deposit Token',

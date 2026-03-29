@@ -1,5 +1,5 @@
 import { exec } from 'node:child_process'
-import { runCli } from '../../runCli'
+import { runCli, runCliDirect } from '../../runCli'
 import { promisify } from 'node:util'
 import { createCoreCollection } from '../core/corehelpers'
 import { expect } from 'chai'
@@ -7,9 +7,9 @@ import fs from 'node:fs'
 
 const execAsync = promisify(exec)
 
-describe('cm full lifecycle commands', () => {
+describe('cm full lifecycle commands', function () {
     before(async () => {
-        const { stdout, stderr, code } = await runCli(
+        const { stdout, stderr, code } = await runCliDirect(
             ["toolbox", 'sol', "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"]
         )
         // console.log('Airdrop stdout:', stdout)
@@ -18,7 +18,8 @@ describe('cm full lifecycle commands', () => {
         await new Promise(resolve => setTimeout(resolve, 10000))
     })
 
-    it('can complete full candy machine lifecycle: create → insert → withdraw', async () => {
+    it('can complete full candy machine lifecycle: create → insert → withdraw', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const cmName = "testCmFull"
 
         try {
@@ -28,9 +29,9 @@ describe('cm full lifecycle commands', () => {
             // Create directory with assets (uploaded) and config
             await execAsync(`npm run create-test-cm -- --name=${cmName} --with-config --collection=${collectionId} --with-assets --uploaded --assets=10`)
 
-            // Step 1: Create candy machine
+            // Step 1: Create candy machine (uses runCliDirect — large account allocation fails via execute CPI)
             // console.log('Step 1: Creating candy machine...')
-            const { stdout: cmCreateStdout, stderr: cmCreateStderr, code: cmCreateCode } = await runCli(
+            const { stdout: cmCreateStdout, stderr: cmCreateStderr, code: cmCreateCode } = await runCliDirect(
                 ["cm", "create", `./${cmName}`]
             )
             // console.log('Cm create stdout:', cmCreateStdout)

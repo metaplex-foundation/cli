@@ -1,5 +1,5 @@
 import { exec } from 'node:child_process'
-import { runCli } from '../../runCli'
+import { runCli, runCliDirect } from '../../runCli'
 import { promisify } from 'node:util'
 import { createCoreCollection } from '../core/corehelpers'
 import { expect } from 'chai'
@@ -7,9 +7,9 @@ import fs from 'node:fs'
 
 const execAsync = promisify(exec)
 
-describe('cm withdraw commands', () => {
+describe('cm withdraw commands', function () {
     before(async () => {
-        const { stdout, stderr, code } = await runCli(
+        const { stdout, stderr, code } = await runCliDirect(
             ["toolbox", 'sol', "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"]
         )
         // console.log('Airdrop stdout:', stdout)
@@ -18,7 +18,8 @@ describe('cm withdraw commands', () => {
         await new Promise(resolve => setTimeout(resolve, 10000))
     })
 
-    it('can withdraw from a candy machine', async () => {
+    it('can withdraw from a candy machine', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const cmName = "testCm3"
 
         try {
@@ -28,7 +29,8 @@ describe('cm withdraw commands', () => {
             // Await the directory creation
             await execAsync(`npm run create-test-cm -- --name=${cmName} --with-config --collection=${collectionId}`)
 
-            const { stdout: cmCreateStdout, stderr: cmCreateStderr, code: cmCreateCode } = await runCli(
+            // CM creation uses runCliDirect — large account allocation fails via execute CPI
+            const { stdout: cmCreateStdout, stderr: cmCreateStderr, code: cmCreateCode } = await runCliDirect(
                 ["cm", "create", `./${cmName}`]
             )
             // console.log('Cm create stdout:', cmCreateStdout)

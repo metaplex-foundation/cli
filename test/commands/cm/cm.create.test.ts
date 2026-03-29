@@ -1,5 +1,5 @@
 import { exec } from 'node:child_process'
-import { runCli } from '../../runCli'
+import { runCli, runCliDirect } from '../../runCli'
 import { promisify } from 'node:util'
 import { createCoreCollection } from '../core/corehelpers'
 import { expect } from 'chai'
@@ -31,9 +31,9 @@ function hasGuards(candyMachineConfig: CandyMachineConfig): boolean {
     return false
 }
 
-describe('cm create commands', () => {
+describe('cm create commands', function () {
     before(async () => {
-        const { stdout, stderr, code } = await runCli(
+        const { stdout, stderr, code } = await runCliDirect(
             ["toolbox", 'sol', "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"]
         )
         // console.log('Airdrop stdout:', stdout)
@@ -44,7 +44,8 @@ describe('cm create commands', () => {
 
     })
 
-    it('can create a cm through single command', async () => {
+    it('can create a cm through single command', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const cmName = "testCm1"
 
         try {
@@ -167,7 +168,8 @@ describe('cm create commands', () => {
         })
     })
 
-    it('can create a cm without guards (authority-only)', async () => {
+    it('can create a cm without guards (authority-only)', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const cmName = "testCmNoGuards"
 
         try {
@@ -200,7 +202,8 @@ describe('cm create commands', () => {
         }
     })
 
-    it('can create a cm with guards (wrapped)', async () => {
+    it('can create a cm with guards (wrapped)', async function () {
+        if (process.env.MPLX_TEST_WALLET_MODE === 'asset-signer') return this.skip()
         const cmName = "testCmWithGuards"
 
         try {

@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { runCli } from "../../runCli"
+import { runCli, runCliDirect } from "../../runCli"
 import { stripAnsi } from "./common"
 
 // Helper to extract tree address from message
@@ -74,7 +74,9 @@ const createBubblegumTree = async (options?: {
         cliInput.push('--name', options.name)
     }
 
-    const { stdout, stderr, code } = await runCli(cliInput)
+    // Tree creation allocates a large account — always use runCliDirect
+    // since this can't work via execute CPI.
+    const { stdout, stderr, code } = await runCliDirect(cliInput)
 
     const cleanStderr = stripAnsi(stderr)
     const cleanStdout = stripAnsi(stdout)

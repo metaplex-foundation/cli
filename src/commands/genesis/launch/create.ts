@@ -16,7 +16,7 @@ import { TransactionCommand } from '../../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../../explorers.js'
 import { readJsonSync } from '../../../lib/file.js'
 import { detectSvmNetwork, txSignatureToString } from '../../../lib/util.js'
-import { promptLaunchWizard } from '../../../lib/genesis/createGenesisWizardPrompt.js'
+import { promptLaunchWizard, toISOTimestamp } from '../../../lib/genesis/createGenesisWizardPrompt.js'
 import { buildLaunchInput } from '../../../lib/genesis/launchApi.js'
 
 /* ------------------------------------------------------------------ */
@@ -300,8 +300,15 @@ Use --wizard for an interactive guided setup.`
       this.error(`Missing required flag${missingFlags.length > 1 ? 's' : ''}: ${missingFlags.map(f => `--${f}`).join(', ')}. Use --wizard for interactive setup.`)
     }
 
+    // Normalize depositStartTime to ISO string for the SDK (accepts Date | string)
+    const flagRecord: Record<string, unknown> = { ...flags }
+    try {
+      flagRecord.depositStartTime = toISOTimestamp(flags.depositStartTime!)
+    } catch {
+      this.error('--depositStartTime must be a valid ISO date (e.g. 2025-06-01T00:00:00Z) or unix timestamp')
+    }
+
     const strategy = LAUNCH_STRATEGIES[flags.launchType]
-    const flagRecord: Record<string, unknown> = flags
 
     // Reject disallowed flags
     const present = strategy.disallowedFlags.filter(f => flagRecord[f] !== undefined)

@@ -277,7 +277,7 @@ export async function promptProjectConfig(quoteMint: string): Promise<{
     validate: (v) => {
       abortOrTrue(v)
       const n = Number(v)
-      if (isNaN(n) || n < 20 || n > 100) return 'Must be between 20 and 100'
+      if (isNaN(n) || !Number.isInteger(n) || n < 20 || n > 100) return 'Must be a whole number between 20 and 100'
       return true
     },
   })

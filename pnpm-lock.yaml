@@ -30,7 +30,7 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0(@metaplex-foundation/umi@1.5.1)
       '@metaplex-foundation/genesis':
-        specifier: ^0.26.1
+        specifier: ^0.26.2
         version: 0.26.2(@metaplex-foundation/umi@1.5.1)
       '@metaplex-foundation/mpl-agent-registry':
         specifier: ^0.2.1
@@ -13268,7 +13268,7 @@ snapshots:
     dependencies:
       '@adraffy/ens-normalize': 1.10.1
       '@noble/curves': 1.9.0
-      '@noble/hashes': 1.7.1
+      '@noble/hashes': 1.8.0
       '@scure/bip32': 1.6.2
       '@scure/bip39': 1.5.4
       abitype: 1.0.8(typescript@5.8.3)(zod@3.25.76)

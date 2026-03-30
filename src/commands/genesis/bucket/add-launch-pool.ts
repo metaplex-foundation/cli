@@ -102,7 +102,7 @@ Use Unix timestamps for absolute times.`
       required: false,
     }),
     claimSchedule: Flags.string({
-      description: 'Claim vesting schedule as JSON: {"startTime":0,"endTime":0,"period":0,"cliffTime":0,"cliffAmountBps":0}',
+      description: 'Claim schedule as JSON: {"startTime":0,"endTime":0,"period":0,"cliffTime":0,"cliffAmountBps":0}',
       required: false,
     }),
     allowlist: Flags.string({

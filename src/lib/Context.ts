@@ -44,7 +44,7 @@ export type ConfigJson = {
   payer?: string
   rpcUrl?: string
   storage?: {
-    name: 'irys' | 'cascade' | 'turbo'
+    name: 'irys' | 'cascade'
     options: IrysUploaderOptions
   }
   wallets?: WalletEntry[]

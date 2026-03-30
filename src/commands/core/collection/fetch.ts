@@ -1,8 +1,7 @@
 import { fetchCollection } from '@metaplex-foundation/mpl-core'
 import { Args, Flags } from '@oclif/core'
 
-import mime from 'mime-types'
-import fetch from 'node-fetch'
+import mime from 'mime'
 import fs from 'node:fs'
 import { basename } from 'node:path'
 import util from 'node:util'
@@ -67,7 +66,7 @@ export default class CoreCollectionFetch extends BaseCommand<typeof CoreCollecti
         .then(async (res) => {
           const contentType = res.headers.get('content-type')
 
-          const ext = contentType && mime.extension(contentType)
+          const ext = contentType && mime.getExtension(contentType)
 
           const fileName = basename(jsonFile.image) + (ext && `.${ext}`)
 

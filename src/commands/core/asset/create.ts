@@ -7,6 +7,7 @@ import { generateSigner, publicKey, Umi } from '@metaplex-foundation/umi'
 import { ExplorerType, generateCoreExplorerUrl, generateExplorerUrl } from '../../../explorers.js'
 import createAssetFromArgs, { AssetCreationResult } from '../../../lib/core/create/createAssetFromArgs.js'
 import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
+import prepareJsonMetadata from '../../../lib/core/create/prepareJsonMetadata.js'
 import uploadFile from '../../../lib/uploader/uploadFile.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
 import pluginConfigurator from '../../../prompts/pluginInquirer.js'
@@ -123,12 +124,10 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     })
     imageSpinner.succeed(`Image uploaded to ${imageUri.uri}`)
 
-    const jsonFile = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'))
-    jsonFile.image = imageUri.uri
-    jsonFile.properties.files[0] = {
-      uri: imageUri.uri,
-      type: imageUri.mimeType,
-    }
+    const jsonFile = prepareJsonMetadata(
+      JSON.parse(fs.readFileSync(jsonPath, 'utf-8')),
+      { uri: imageUri.uri, type: imageUri.mimeType }
+    )
 
     // TODO: Removing till further conversation on if this is correct behavior
     // fs.writeFileSync(jsonPath, JSON.stringify(jsonFile, null, 2))
@@ -146,7 +145,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
     const result = await createAssetFromArgs(umi, {
       assetSigner,
-      name: jsonFile.name,
+      name: jsonFile.name as string,
       uri: jsonUri,
       collection,
       owner,

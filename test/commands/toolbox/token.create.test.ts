@@ -11,15 +11,6 @@ const extractMintAddress = (str: string) => {
 }
 
 describe('toolbox token commands', () => {
-    before(async () => {
-        const { stdout, stderr, code } = await runCli(
-            ["toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"]
-        )
-
-        await new Promise(resolve => setTimeout(resolve, 10000))
-    })
-
-
     // Skipping this test for now due to command trying to upload jsons to storage.
     // Manuel test command:
     // mplx toolbox token create --name "Test Token" --symbol "TEST" --description "Test token description" --decimals 2 --mint-amount 1000000

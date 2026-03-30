@@ -8,20 +8,19 @@ import {shortenAddress} from '../../../lib/util.js'
 export default class ConfigRPCAddCommand extends Command {
   static enableJsonFlag = true
 
-  static override description = 'Set a config value from a key'
+  static override description = 'Add a new RPC endpoint to your configuration'
 
   static override args = {
     name: Args.string({
       description: 'Name of RPC (no spaces allowed)',
       required: true,
     }),
-    endpoint: Args.string({description: 'Path to keypair json file', required: true}),
+    endpoint: Args.string({description: 'RPC endpoint URL', required: true}),
   }
 
   static override examples = [
-    '<%= config.bin %> <%= command.id %> add dev1 /path/to/keypair.json',
-    '<%= config.bin %> <%= command.id %> set dev1',
-    '<%= config.bin %> <%= command.id %> remove dev1',
+    '<%= config.bin %> <%= command.id %> myRpc https://api.devnet.solana.com',
+    '<%= config.bin %> <%= command.id %> mainnet https://api.mainnet-beta.solana.com',
   ]
 
   public async run(): Promise<unknown> {

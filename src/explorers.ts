@@ -35,3 +35,8 @@ export const generateExplorerUrl = (explorer: ExplorerType, chain: RpcChain, sig
     const explorerObj = explorers[explorer]
     return explorerObj.baseUrl + explorerObj[type] + signatureOrAccount + (chain === RpcChain.Mainnet ? '' : explorerObj.devnet)
 }
+
+export const generateCoreExplorerUrl = (chain: RpcChain, address: string): string => {
+    const base = `https://core.metaplex.com/explorer/${address}`
+    return chain === RpcChain.Mainnet ? base : `${base}?env=devnet`
+}

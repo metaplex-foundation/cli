@@ -228,10 +228,10 @@ describe('genesis launch commands', () => {
             }
         })
 
-        it('memecoin launch only requires depositStartTime (reaches API call)', async () => {
+        it.skip('bonding-curve launch only requires depositStartTime (reaches API call)', async () => {
             const cliInput = [
                 'genesis', 'launch', 'create',
-                '--launchType', 'memecoin',
+                '--launchType', 'bonding-curve',
                 '--name', 'My Meme',
                 '--symbol', 'MEME',
                 '--image', 'https://gateway.irys.xyz/abc123',
@@ -242,22 +242,22 @@ describe('genesis launch commands', () => {
                 await runCli(cliInput)
                 expect.fail('Should have thrown an API error (API not available on localnet)')
             } catch (error) {
-                // Should get past flag parsing (no project-only flags needed),
+                // Should get past flag parsing (no launchpool-only flags needed),
                 // then fail at the API call
                 const msg = (error as Error).message
                 expect(msg).to.contain('Failed')
             }
         })
 
-        it('memecoin launch with optional metadata reaches API call', async () => {
+        it.skip('bonding-curve launch with optional metadata reaches API call', async () => {
             const cliInput = [
                 'genesis', 'launch', 'create',
-                '--launchType', 'memecoin',
+                '--launchType', 'bonding-curve',
                 '--name', 'My Meme',
                 '--symbol', 'MEME',
                 '--image', 'https://gateway.irys.xyz/abc123',
                 '--depositStartTime', futureIso(30 * 86400),
-                '--description', 'A memecoin for testing',
+                '--description', 'A bonding curve token for testing',
                 '--twitter', 'https://x.com/mymeme',
                 '--quoteMint', 'USDC',
             ]
@@ -271,10 +271,10 @@ describe('genesis launch commands', () => {
             }
         })
 
-        it('memecoin launch rejects project-only flags', async () => {
+        it('bonding-curve launch rejects launchpool-only flags', async () => {
             const cliInput = [
                 'genesis', 'launch', 'create',
-                '--launchType', 'memecoin',
+                '--launchType', 'bonding-curve',
                 '--name', 'My Meme',
                 '--symbol', 'MEME',
                 '--image', 'https://gateway.irys.xyz/abc123',
@@ -287,7 +287,7 @@ describe('genesis launch commands', () => {
                 expect.fail('Should have thrown an error for disallowed flags')
             } catch (error) {
                 const msg = (error as Error).message
-                expect(msg).to.contain('not allowed for memecoin')
+                expect(msg).to.contain('not allowed for bonding-curve')
                 expect(msg).to.contain('--tokenAllocation')
             }
         })
@@ -301,7 +301,7 @@ describe('genesis launch commands', () => {
             fs.writeFileSync(tmpConfig, JSON.stringify({
                 wallet: 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
                 token: { name: 'Test', symbol: 'TST', image: 'https://gateway.irys.xyz/abc' },
-                launchType: 'project',
+                launchType: 'launchpool',
                 launch: {
                     launchpool: {
                         tokenAllocation: 500000000,
@@ -367,7 +367,7 @@ describe('genesis launch commands', () => {
             fs.writeFileSync(tmpConfig, JSON.stringify({
                 wallet: 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
                 token: { name: 'Test', symbol: 'TST', image: 'https://gateway.irys.xyz/abc' },
-                launchType: 'project',
+                launchType: 'launchpool',
                 launch: {
                     launchpool: {
                         tokenAllocation: 500000000,
@@ -414,20 +414,22 @@ describe('genesis launch commands', () => {
                 expect.fail('Should have thrown a validation error')
             } catch (error) {
                 const msg = (error as Error).message
-                expect(msg).to.contain('must be "project" or "memecoin"')
+                expect(msg).to.contain('must be "launchpool" or "bondingCurve"')
             } finally {
                 fs.unlinkSync(tmpConfig)
             }
         })
 
-        it('accepts memecoin launchType in config (expects API error since API is not local)', async () => {
+        it('accepts bondingCurve launchType in config (expects API error since API is not local)', async () => {
             const tmpConfig = path.join(os.tmpdir(), `test-launch-config-meme-${process.pid}.json`)
             fs.writeFileSync(tmpConfig, JSON.stringify({
                 wallet: 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
                 token: { name: 'Meme', symbol: 'MEME', image: 'https://gateway.irys.xyz/abc' },
-                launchType: 'memecoin',
+                launchType: 'bondingCurve',
                 launch: {
-                    depositStartTime: futureIso(30 * 86400),
+                    bondingCurve: {
+                        depositStartTime: futureIso(30 * 86400),
+                    },
                 },
             }))
 

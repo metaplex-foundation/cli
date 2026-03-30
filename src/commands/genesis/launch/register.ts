@@ -90,21 +90,29 @@ provided as a JSON file via --launchConfig.`
         throw new Error('Launch config is missing required "launch" object')
       }
       if (config.launchType === undefined || config.launchType === null) {
-        config.launchType = 'project'
+        config.launchType = 'launchpool'
       }
-      if (config.launchType !== 'project' && config.launchType !== 'memecoin') {
-        throw new Error(`Launch config "launchType" must be "project" or "memecoin", got "${config.launchType}"`)
+      if (config.launchType !== 'launchpool' && config.launchType !== 'bondingCurve') {
+        throw new Error(`Launch config "launchType" must be "launchpool" or "bondingCurve", got "${config.launchType}"`)
       }
 
       // Validate required launch fields per type
       const launch = config.launch as Record<string, unknown>
-      if (config.launchType === 'project') {
-        if (!launch.launchpool || typeof launch.launchpool !== 'object') {
-          throw new Error('Project launch config requires a "launch.launchpool" object')
+      if (config.launchType === 'launchpool') {
+        if (!launch.launchpool || typeof launch.launchpool !== 'object' || Array.isArray(launch.launchpool)) {
+          throw new Error('Launchpool config requires a "launch.launchpool" object')
+        }
+        const pool = launch.launchpool as Record<string, unknown>
+        if (!pool.tokenAllocation || !pool.depositStartTime || !pool.raiseGoal || !pool.raydiumLiquidityBps || !pool.fundsRecipient) {
+          throw new Error('Launchpool config requires "tokenAllocation", "depositStartTime", "raiseGoal", "raydiumLiquidityBps", and "fundsRecipient" in launch.launchpool')
         }
       } else {
-        if (!launch.depositStartTime) {
-          throw new Error('Memecoin launch config requires "launch.depositStartTime"')
+        if (!launch.bondingCurve || typeof launch.bondingCurve !== 'object' || Array.isArray(launch.bondingCurve)) {
+          throw new Error('Bonding curve config requires a "launch.bondingCurve" object')
+        }
+        const curve = launch.bondingCurve as Record<string, unknown>
+        if (!curve.depositStartTime) {
+          throw new Error('Bonding curve config requires "depositStartTime" in launch.bondingCurve')
         }
       }
 

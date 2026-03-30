@@ -7,6 +7,7 @@ import umiSendAndConfirmTransaction from '../../umi/sendAndConfirm.js'
 import uploadFile from '../../uploader/uploadFile.js'
 import uploadJson from '../../uploader/uploadJson.js'
 import createAssetTx from './createTx.js'
+import prepareJsonMetadata from './prepareJsonMetadata.js'
 
 interface CreateAssetWithFilesOptions {
   owner?: string
@@ -44,11 +45,7 @@ const createAssetFromFiles = async (umi: Umi, options: CreateAssetWithFilesOptio
     throw new Error('Asset name not found in JSON file')
   }
 
-  jsonFile.image = imageUri.uri
-  jsonFile.properties.files[0] = {
-    uri: imageUri.uri,
-    type: imageUri.mimeType,
-  }
+  prepareJsonMetadata(jsonFile, { uri: imageUri.uri, type: imageUri.mimeType })
   fs.writeFileSync(options.jsonPath, JSON.stringify(jsonFile, null, 2))
 
   const jsonUri = await uploadJson(umi, jsonFile)

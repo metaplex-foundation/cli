@@ -5,12 +5,14 @@ import {
 } from '@metaplex-foundation/genesis'
 import { generateSigner, publicKey } from '@metaplex-foundation/umi'
 import { Flags } from '@oclif/core'
+import { confirm } from '@inquirer/prompts'
 import ora from 'ora'
 
 import { TransactionCommand } from '../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../explorers.js'
 import { txSignatureToString } from '../../lib/util.js'
 import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
+import { runApiWizard, runManualWizard, WizardContext, WizardLogger } from '../../lib/genesis/wizard.js'
 
 // Funding modes for Genesis
 const FUNDING_MODE = {
@@ -31,9 +33,12 @@ The Genesis account manages:
 
 Funding Modes:
 - new-mint: Creates a new token mint (default, most common)
-- transfer: Uses an existing mint and transfers tokens from your wallet`
+- transfer: Uses an existing mint and transfers tokens from your wallet
+
+Use --wizard for an interactive guided setup.`
 
   static override examples = [
+    '$ mplx genesis create --wizard',
     '$ mplx genesis create --name "My Token" --symbol "MTK" --totalSupply 1000000000',
     '$ mplx genesis create --name "My Token" --symbol "MTK" --totalSupply 1000000000 --uri "https://example.com/metadata.json"',
     '$ mplx genesis create --name "My Token" --symbol "MTK" --totalSupply 1000000000 --quoteMint "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v" --decimals 6',
@@ -41,19 +46,23 @@ Funding Modes:
   ]
 
   static override flags = {
+    wizard: Flags.boolean({
+      description: 'Interactive guided setup wizard',
+      default: false,
+    }),
     name: Flags.string({
       char: 'n',
       description: 'Name of the token',
-      required: true,
+      required: false,
     }),
     symbol: Flags.string({
       char: 's',
       description: 'Symbol of the token (e.g., MTK)',
-      required: true,
+      required: false,
     }),
     totalSupply: Flags.string({
       description: 'Total supply of tokens (in base units, e.g., 1000000000 for 1B tokens with 9 decimals)',
-      required: true,
+      required: false,
     }),
     uri: Flags.string({
       char: 'u',
@@ -82,12 +91,26 @@ Funding Modes:
       description: 'Genesis index (default: 0, increment if creating multiple launches for same mint)',
       default: 0,
     }),
+    apiUrl: Flags.string({
+      description: 'Genesis API base URL',
+      default: 'https://api.metaplex.com',
+      required: false,
+    }),
   }
 
   static override usage = 'genesis create [FLAGS]'
 
   public async run(): Promise<unknown> {
     const { flags } = await this.parse(GenesisCreate)
+
+    if (flags.wizard) {
+      return this.runWizard(flags)
+    }
+
+    // Non-wizard mode: validate required flags
+    if (!flags.name) this.error('Missing required flag --name. Use --wizard for interactive setup.')
+    if (!flags.symbol) this.error('Missing required flag --symbol. Use --wizard for interactive setup.')
+    if (!flags.totalSupply) this.error('Missing required flag --totalSupply. Use --wizard for interactive setup.')
 
     const spinner = ora('Creating Genesis account...').start()
 
@@ -192,5 +215,48 @@ Funding Modes:
       spinner.fail('Failed to create Genesis account')
       throw error
     }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Wizard                                                             */
+  /* ------------------------------------------------------------------ */
+
+  private async runWizard(flags: { apiUrl?: string }): Promise<unknown> {
+    this.log('')
+    this.log('============================================')
+    this.log('  Genesis Launch Wizard')
+    this.log('============================================')
+    this.log('')
+    this.log('This wizard will guide you through creating a Genesis token launch.')
+    this.log('Type "q" at any prompt to abort.')
+    this.log('')
+
+    const registerOnPlatform = await confirm({
+      message: 'Register on the Metaplex platform? (creates a public launch page)',
+      default: true,
+    })
+
+    const ctx: WizardContext = {
+      umi: this.context.umi,
+      identity: this.context.umi.identity,
+      payer: this.context.payer,
+      chain: this.context.chain,
+      commitment: this.context.commitment,
+      explorer: this.context.explorer,
+      apiUrl: flags.apiUrl ?? 'https://api.metaplex.com',
+    }
+
+    const logger: WizardLogger = {
+      log: (msg: string) => this.log(msg),
+      logSuccess: (msg: string) => this.logSuccess(msg),
+      warn: (msg: string) => this.warn(msg),
+      logJson: (obj: unknown) => this.logJson(obj),
+    }
+
+    if (registerOnPlatform) {
+      return runApiWizard(ctx, logger)
+    }
+
+    return runManualWizard(ctx, logger)
   }
 }

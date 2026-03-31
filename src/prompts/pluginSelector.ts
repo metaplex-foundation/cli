@@ -18,47 +18,14 @@ interface PluginOption {
 
 const pluginList: PluginOption[] = [
   {
-    name: 'Attributes Plugin',
-    value: 'attributes',
-    type: PluginFilterType.Common,
-    managed: PluginFilterType.Authority
-  },
-  {
-    name: 'Royalty Plugin',
-    value: 'royalties',
-    type: PluginFilterType.Common,
-    managed: PluginFilterType.Authority
-  },
-  {
-    name: 'Update Delegate Plugin',
-    value: 'update',
-    type: PluginFilterType.Common,
-    managed: PluginFilterType.Authority
-  },
-  {
-    name: 'Permanent Freeze Plugin',
-    value: 'pFreeze',
-    type: PluginFilterType.Common,
-  },
-  {
-    name: 'Permanent Transfer Plugin',
-    value: 'pTransfer',
-    type: PluginFilterType.Common,
-  },
-  {
-    name: 'Permanent Burn Plugin',
-    value: 'pBurn',
-    type: PluginFilterType.Common,
-  },
-  {
     name: 'Add Blocker Plugin',
     value: 'addBlocker',
     type: PluginFilterType.Common,
     managed: PluginFilterType.Authority
   },
   {
-    name: 'Immutable Metadata Plugin',
-    value: 'immutableMetadata',
+    name: 'Attributes Plugin',
+    value: 'attributes',
     type: PluginFilterType.Common,
     managed: PluginFilterType.Authority
   },
@@ -69,16 +36,16 @@ const pluginList: PluginOption[] = [
     managed: PluginFilterType.Owner
   },
   {
-    name: 'Verified Creators Plugin',
-    value: 'verifiedCreators',
-    type: PluginFilterType.Common,
-    managed: PluginFilterType.Owner
-  },
-  {
-    name: 'Master Edition Plugin',
-    value: 'masterEdition',
+    name: 'Bubblegum V2 Plugin',
+    value: 'bubblegumV2',
     type: PluginFilterType.Collection,
     managed: PluginFilterType.Authority
+  },
+  {
+    name: 'Burn Delegate Plugin',
+    value: 'burn',
+    type: PluginFilterType.Asset,
+    managed: PluginFilterType.Owner
   },
   {
     name: 'Edition Plugin',
@@ -93,15 +60,54 @@ const pluginList: PluginOption[] = [
     managed: PluginFilterType.Owner
   },
   {
-    name: 'Burn Delegate Plugin',
-    value: 'burn',
-    type: PluginFilterType.Asset,
-    managed: PluginFilterType.Owner
+    name: 'Immutable Metadata Plugin',
+    value: 'immutableMetadata',
+    type: PluginFilterType.Common,
+    managed: PluginFilterType.Authority
+  },
+  {
+    name: 'Master Edition Plugin',
+    value: 'masterEdition',
+    type: PluginFilterType.Collection,
+    managed: PluginFilterType.Authority
+  },
+  {
+    name: 'Permanent Burn Plugin',
+    value: 'pBurn',
+    type: PluginFilterType.Common,
+  },
+  {
+    name: 'Permanent Freeze Plugin',
+    value: 'pFreeze',
+    type: PluginFilterType.Common,
+  },
+  {
+    name: 'Permanent Transfer Plugin',
+    value: 'pTransfer',
+    type: PluginFilterType.Common,
+  },
+  {
+    name: 'Royalty Plugin',
+    value: 'royalties',
+    type: PluginFilterType.Common,
+    managed: PluginFilterType.Authority
   },
   {
     name: 'Transfer Delegate Plugin',
     value: 'transfer',
     type: PluginFilterType.Asset,
+    managed: PluginFilterType.Owner
+  },
+  {
+    name: 'Update Delegate Plugin',
+    value: 'update',
+    type: PluginFilterType.Common,
+    managed: PluginFilterType.Authority
+  },
+  {
+    name: 'Verified Creators Plugin',
+    value: 'verifiedCreators',
+    type: PluginFilterType.Common,
     managed: PluginFilterType.Owner
   },
 ]

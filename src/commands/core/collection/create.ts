@@ -6,7 +6,7 @@ import ora from 'ora'
 import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
 import { txSignatureToString } from '../../../lib/util.js'
 import pluginConfigurator, { mapPluginDataToArray } from '../../../prompts/pluginInquirer.js'
-import { PluginFilterType, pluginSelector, validatePluginCompatibility } from '../../../prompts/pluginSelector.js'
+import { PluginFilterType, pluginSelector, validatePluginCompatibility, pluginDataToPluginIds } from '../../../prompts/pluginSelector.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { ExplorerType, generateCoreExplorerUrl, generateExplorerUrl } from '../../../explorers.js'
 import createAssetPrompt, { CreateAssetPromptResult } from '../../../prompts/createAssetPrompt.js'
@@ -109,8 +109,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
     }
 
     if (pluginData) {
-      const selectedKeys = Object.keys(pluginData) as Plugin[]
-      const incompatibleError = validatePluginCompatibility(selectedKeys)
+      const incompatibleError = validatePluginCompatibility(pluginDataToPluginIds(pluginData))
       if (incompatibleError) {
         this.error(incompatibleError)
       }

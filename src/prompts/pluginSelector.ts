@@ -1,5 +1,5 @@
 import { checkbox } from '@inquirer/prompts'
-import { Plugin } from '../lib/types/pluginData.js'
+import { Plugin, PluginData } from '../lib/types/pluginData.js'
 
 export enum PluginFilterType {
   Common,
@@ -179,6 +179,36 @@ export const pluginSelector = async (options: PluginSelectorOptions): Promise<Pl
   })
 
   return selectedPlugin
+}
+
+// Maps plugin type discriminators (e.g. 'BubblegumV2', 'PermanentTransferDelegate')
+// back to canonical Plugin IDs (e.g. 'bubblegumV2', 'pTransfer').
+// This avoids relying on PluginData object keys which may have typos.
+const typeToPluginId: Record<string, Plugin> = {
+  'Attributes': 'attributes',
+  'Royalties': 'royalties',
+  'BurnDelegate': 'burn',
+  'TransferDelegate': 'transfer',
+  'FreezeDelegate': 'freeze',
+  'PermanentBurnDelegate': 'pBurn',
+  'PermanentTransferDelegate': 'pTransfer',
+  'PermanentFreezeDelegate': 'pFreeze',
+  'UpdateDelegate': 'update',
+  'MasterEdition': 'masterEdition',
+  'AddBlocker': 'addBlocker',
+  'ImmutableMetadata': 'immutableMetadata',
+  'Autograph': 'autograph',
+  'VerifiedCreators': 'verifiedCreators',
+  'Edition': 'edition',
+  'BubblegumV2': 'bubblegumV2',
+}
+
+// Extracts canonical Plugin IDs from a PluginData object by reading each
+// entry's type discriminator, avoiding reliance on potentially misspelled keys.
+export const pluginDataToPluginIds = (data: PluginData): Plugin[] => {
+  return Object.values(data)
+    .map((entry: any) => typeToPluginId[entry?.type])
+    .filter((id): id is Plugin => id !== undefined)
 }
 
 // Validates that a set of selected plugins are compatible with each other.

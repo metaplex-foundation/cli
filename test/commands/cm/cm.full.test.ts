@@ -54,8 +54,7 @@ describe('cm full lifecycle commands', () => {
             // Assert the insert command succeeded
             expect(cmInsertCode).to.equal(0)
             expect(cmInsertStdout).to.include('Asset cache updated successfully')
-            expect(cmInsertStderr).to.include('Sent')
-            expect(cmInsertStderr).to.include('Confirmed')
+            expect(cmInsertStderr).to.include('Processed')
             expect(cmInsertStderr).to.include('transactions')
 
             // Verify the asset cache file exists and was modified

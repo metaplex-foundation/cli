@@ -53,8 +53,7 @@ describe('cm insert commands', () => {
             // Assert the insert command succeeded
             expect(code).to.equal(0)
             expect(stdout).to.include('Asset cache updated successfully')
-            expect(stderr).to.include('Sent')
-            expect(stderr).to.include('Confirmed')
+            expect(stderr).to.include('Processed')
             expect(stderr).to.include('transactions')
 
             // Verify the asset cache file exists and was modified

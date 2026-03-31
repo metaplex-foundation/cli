@@ -1,8 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import mime from 'mime'
-import { createGenericFile, sol, Umi } from '@metaplex-foundation/umi'
-import { createIrysUploader } from '@metaplex-foundation/umi-uploader-irys'
+import { createGenericFile, GenericFile, Umi } from '@metaplex-foundation/umi'
 
 export interface UploadFileResult {
     index?: number
@@ -10,6 +9,9 @@ export interface UploadFileResult {
     uri?: string
     mimeType: string
 }
+
+const BATCH_SIZE = 50
+const MAX_RETRIES = 3
 
 const uploadFiles = async (umi: Umi, filePaths: string[], onProgress?: (progress: number) => void) => {
 
@@ -21,64 +23,47 @@ const uploadFiles = async (umi: Umi, filePaths: string[], onProgress?: (progress
         })
     })
 
-    const uploader = createIrysUploader(umi)
+    const uploadResults: UploadFileResult[] = new Array(files.length)
 
-    const cost = await umi.uploader.getUploadPrice(files)
+    // Upload in batches to avoid rate limiting.
+    // Each batch makes a single price check + fund call, and the Irys uploader
+    // handles concurrency internally via PromisePool.
+    for (let batchStart = 0; batchStart < files.length; batchStart += BATCH_SIZE) {
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, files.length)
+        const batchFiles = files.slice(batchStart, batchEnd)
 
-    // Check balance and fund if necessary with error handling
-    try {
-        const balance = await uploader.getBalance()
+        let retryCount = 0
+        let batchUris: string[] | undefined
 
-        if (balance < cost) {
-            console.log(`Insufficient balance. Current: ${balance.basisPoints}, Required: ${cost.basisPoints}. Funding account...`)
-            await uploader.fund(sol(Number(cost.basisPoints)), true)
-            console.log('Account funded successfully')
-        }
-    } catch (error) {
-        console.error('Failed to check balance or fund account:', error)
-        throw new Error(`Upload preparation failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    }
-
-    const uploadResults: UploadFileResult[] = []
-
-    // Upload each file individually with retry logic (sequentially to maintain order)
-    // Uses exponential backoff: 2^retry * 1000ms delay between retries
-    for (let index = 0; index < files.length; index++) {
-        const file = files[index]
-        let uploadErrorCount = 0
-        const maxRetries = 3
-
-        const result = {
-            index,
-            fileName: filePaths[index].split('/').pop() || '',
-            mimeType: files[index].tags?.find(tag => tag.name === 'content-type')?.value || '',
-            uri: undefined as string | undefined,
-        }
-
-        while (uploadErrorCount <= maxRetries) {
+        while (retryCount <= MAX_RETRIES) {
             try {
-                const uris = await umi.uploader.upload([file])
-
-                result.uri = uris[0]
-
-                uploadResults.push(result)
-                onProgress?.(index)
-                break // Success, exit retry loop
-
+                batchUris = await umi.uploader.upload(batchFiles)
+                break
             } catch (error) {
-                uploadErrorCount++
-                if (uploadErrorCount > maxRetries) {
-                    console.warn(`Upload failed for ${result.fileName} after ${maxRetries} retries:`, error)
-                    result.uri = undefined
-                    uploadResults.push(result)
-                    onProgress?.(index)
-                    break // Retry limit exceeded, marking upload as failed
+                retryCount++
+                if (retryCount > MAX_RETRIES) {
+                    const firstFile = filePaths[batchStart].split('/').pop()
+                    throw new Error(
+                        `Upload failed for batch starting at ${firstFile} after ${MAX_RETRIES} retries: ` +
+                        `${error instanceof Error ? error.message : String(error)}`
+                    )
                 }
-                // Exponential backoff: wait 2^retry seconds before next attempt
-                const backoffDelay = Math.pow(2, uploadErrorCount) * 1000
-                console.log(`Upload attempt ${uploadErrorCount} failed for ${result.fileName}, retrying in ${backoffDelay}ms...`)
+                const backoffDelay = Math.pow(2, retryCount) * 1000
+                console.log(`Batch upload attempt ${retryCount} failed, retrying in ${backoffDelay}ms...`)
                 await new Promise(resolve => setTimeout(resolve, backoffDelay))
             }
+        }
+
+        // Map batch results back to overall results
+        for (let i = 0; i < batchFiles.length; i++) {
+            const globalIndex = batchStart + i
+            uploadResults[globalIndex] = {
+                index: globalIndex,
+                fileName: filePaths[globalIndex].split('/').pop() || '',
+                mimeType: batchFiles[i].tags?.find(tag => tag.name === 'content-type')?.value || '',
+                uri: batchUris![i],
+            }
+            onProgress?.(globalIndex)
         }
     }
 

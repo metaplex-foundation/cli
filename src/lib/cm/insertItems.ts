@@ -1,6 +1,7 @@
 import { addConfigLines } from "@metaplex-foundation/mpl-core-candy-machine";
 import { publicKey, Umi } from "@metaplex-foundation/umi";
 import umiSendAllTransactionsAndConfirm from "../umi/sendAllTransactionsAndConfirm.js";
+import { ConfirmationStrategy } from "../umi/sendOptions.js";
 import { CandyMachineAssetCache, CandyMachineAssetCacheItem, CandyMachineConfig } from "./types.js";
 import { validateCacheUploads, ValidateCacheUploadsOptions } from "./validateCacheUploads.js";
 
@@ -147,6 +148,7 @@ const insertItems = async (umi: Umi, candyMachineConfig: CandyMachineConfig, ass
 
     const transactionResults = await umiSendAllTransactionsAndConfirm(umi, transactions, {
         message: 'Uploading Assets to Candy Machine...',
+        confirmationStrategy: ConfirmationStrategy.transactionStatus,
     })
 
     // Update asset cache based on transaction results

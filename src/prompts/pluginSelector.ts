@@ -112,6 +112,46 @@ const pluginList: PluginOption[] = [
   },
 ]
 
+// Defines which plugins are allowed to coexist.
+// Key = plugin that imposes constraints, Value = set of plugins it allows.
+// Plugins not listed here have no constraints.
+const pluginAllowLists: Partial<Record<Plugin, Set<Plugin>>> = {
+  bubblegumV2: new Set([
+    'attributes',
+    'royalties',
+    'update',
+    'pFreeze',
+    'pTransfer',
+    'pBurn',
+  ]),
+}
+
+// Given a set of selected plugins, returns the set of plugins still eligible.
+const getCompatiblePlugins = (selected: Plugin[]): Set<Plugin> | null => {
+  let allowed: Set<Plugin> | null = null
+
+  for (const plugin of selected) {
+    const allowList = pluginAllowLists[plugin]
+    if (!allowList) continue
+
+    // The plugin that owns the allow list is always compatible with itself
+    const withSelf = new Set<Plugin>([...allowList, plugin])
+
+    if (allowed === null) {
+      allowed = withSelf
+    } else {
+      // Intersect: only keep plugins allowed by all constraining plugins
+      const intersection = new Set<Plugin>()
+      for (const p of allowed) {
+        if (withSelf.has(p)) intersection.add(p)
+      }
+      allowed = intersection
+    }
+  }
+
+  return allowed
+}
+
 interface PluginSelectorOptions {
   filter: PluginFilterType.Asset | PluginFilterType.Collection,
   managedBy?: PluginFilterType.Authority | PluginFilterType.Owner,
@@ -135,8 +175,21 @@ export const pluginSelector = async (options: PluginSelectorOptions): Promise<Pl
       name: plugin.name,
       value: plugin.value
     }))
-    
+
   })
 
   return selectedPlugin
+}
+
+// Validates that a set of selected plugins are compatible with each other.
+// Returns an error message if incompatible, or null if valid.
+export const validatePluginCompatibility = (selected: Plugin[]): string | null => {
+  const compatible = getCompatiblePlugins(selected)
+  if (compatible === null) return null
+
+  const incompatible = selected.filter(p => !compatible.has(p))
+  if (incompatible.length === 0) return null
+
+  const constraining = selected.filter(p => pluginAllowLists[p])
+  return `Plugin(s) ${incompatible.join(', ')} cannot be used together with ${constraining.join(', ')}.`
 }

@@ -72,7 +72,6 @@ const sendAndConfirmInBatches = async (
 ): Promise<Array<UmiSendAndConfirmResponse>> => {
   const spinner = ora(message || 'Processing transactions...').start()
   const allResults: UmiSendAndConfirmResponse[] = []
-  let processedCount = 0
 
   const batchSize = sendOptions?.batchSize ?? DEFAULT_BATCH_SIZE
 
@@ -94,8 +93,6 @@ const sendAndConfirmInBatches = async (
         confirmation: confirmations[j],
       })
     }
-
-    processedCount += batch.length
   }
 
   spinner.succeed(`Processed ${transactions.length} transactions`)

@@ -9,7 +9,7 @@ export interface UmiSendOptions {
   priorityFee?: number | undefined
   commitment?: Commitment | undefined
   skipPreflight?: boolean | undefined
-  confirmationStrategy?: ConfirmationStrategy | undefined
+  confirmationStrategy?: ConfirmationStrategy
 }
 
 export interface UmiSendAllOptions extends UmiSendOptions {

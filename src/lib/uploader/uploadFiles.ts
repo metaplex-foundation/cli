@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import mime from 'mime'
-import { createGenericFile, GenericFile, Umi } from '@metaplex-foundation/umi'
+import { createGenericFile, Umi } from '@metaplex-foundation/umi'
 
 export interface UploadFileResult {
     index?: number
@@ -15,22 +15,19 @@ const MAX_RETRIES = 3
 
 const uploadFiles = async (umi: Umi, filePaths: string[], onProgress?: (progress: number) => void) => {
 
-    const files = filePaths.map(filePath => {
-        const file = fs.readFileSync(filePath)
-        const mimeType = mime.getType(filePath)
-        return createGenericFile(file, path.basename(filePath), {
-            tags: mimeType ? [{ name: 'content-type', value: mimeType }] : [],
+    const uploadResults: UploadFileResult[] = new Array(filePaths.length)
+
+    // Upload in batches to avoid rate limiting and reduce peak memory.
+    // Files are read from disk per batch so only one batch is in memory at a time.
+    for (let batchStart = 0; batchStart < filePaths.length; batchStart += BATCH_SIZE) {
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, filePaths.length)
+        const batchFiles = filePaths.slice(batchStart, batchEnd).map(filePath => {
+            const file = fs.readFileSync(filePath)
+            const mimeType = mime.getType(filePath)
+            return createGenericFile(file, path.basename(filePath), {
+                tags: mimeType ? [{ name: 'content-type', value: mimeType }] : [],
+            })
         })
-    })
-
-    const uploadResults: UploadFileResult[] = new Array(files.length)
-
-    // Upload in batches to avoid rate limiting.
-    // Each batch makes a single price check + fund call, and the Irys uploader
-    // handles concurrency internally via PromisePool.
-    for (let batchStart = 0; batchStart < files.length; batchStart += BATCH_SIZE) {
-        const batchEnd = Math.min(batchStart + BATCH_SIZE, files.length)
-        const batchFiles = files.slice(batchStart, batchEnd)
 
         let retryCount = 0
         let batchUris: string[] | undefined
@@ -42,7 +39,7 @@ const uploadFiles = async (umi: Umi, filePaths: string[], onProgress?: (progress
             } catch (error) {
                 retryCount++
                 if (retryCount > MAX_RETRIES) {
-                    const firstFile = filePaths[batchStart].split('/').pop()
+                    const firstFile = path.basename(filePaths[batchStart])
                     throw new Error(
                         `Upload failed for batch starting at ${firstFile} after ${MAX_RETRIES} retries: ` +
                         `${error instanceof Error ? error.message : String(error)}`
@@ -59,7 +56,7 @@ const uploadFiles = async (umi: Umi, filePaths: string[], onProgress?: (progress
             const globalIndex = batchStart + i
             uploadResults[globalIndex] = {
                 index: globalIndex,
-                fileName: filePaths[globalIndex].split('/').pop() || '',
+                fileName: path.basename(filePaths[globalIndex]),
                 mimeType: batchFiles[i].tags?.find(tag => tag.name === 'content-type')?.value || '',
                 uri: batchUris![i],
             }

@@ -70,9 +70,7 @@ const confirmAllByTransactionStatus = async (
 
   // Poll pending signatures in rounds until all confirmed or retries exhausted
   for (let round = 0; round < MAX_POLL_ROUNDS && pending.size > 0; round++) {
-    await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL))
-
-    for (const [index, signature] of pending) {
+    const pollPromises = Array.from(pending.entries()).map(async ([index, signature]) => {
       try {
         const txResult = await umi.rpc.getTransaction(signature)
 
@@ -88,6 +86,11 @@ const confirmAllByTransactionStatus = async (
       } catch {
         // RPC error — try again next round
       }
+    })
+    await Promise.all(pollPromises)
+
+    if (pending.size > 0) {
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL))
     }
   }
 

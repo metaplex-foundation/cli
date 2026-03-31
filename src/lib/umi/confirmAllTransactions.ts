@@ -68,24 +68,32 @@ const confirmAllByTransactionStatus = async (
     pending.set(i, signature as Uint8Array)
   }
 
-  // Poll pending signatures in rounds until all confirmed or retries exhausted
+  // Poll pending signatures in batched rounds using getSignatureStatuses
   for (let round = 0; round < MAX_POLL_ROUNDS && pending.size > 0; round++) {
-    for (const [index, signature] of pending) {
-      try {
-        const txResult = await umi.rpc.getTransaction(signature)
+    const pendingEntries = Array.from(pending.entries())
+    const signatures = pendingEntries.map(([, sig]) => sig)
 
-        if (txResult) {
-          if (txResult.meta.err) {
-            results[index] = { confirmed: false, error: txResult.meta.err }
+    try {
+      const statuses = await umi.rpc.getSignatureStatuses(signatures, {
+        searchTransactionHistory: true,
+      })
+
+      for (let i = 0; i < pendingEntries.length; i++) {
+        const [index] = pendingEntries[i]
+        const status = statuses[i]
+
+        if (status) {
+          if (status.error) {
+            results[index] = { confirmed: false, error: status.error }
           } else {
             results[index] = { confirmed: true, error: null }
           }
           pending.delete(index)
           onProgress?.(index, results[index])
         }
-      } catch {
-        // RPC error — try again next round
       }
+    } catch {
+      // RPC error — try again next round
     }
 
     if (pending.size > 0) {

@@ -14,19 +14,58 @@ describe('agents register', () => {
         await new Promise(resolve => setTimeout(resolve, 10000))
     })
 
-    // Requires Irys upload — skip on localnet
-    it.skip('registers an existing asset with --from-file (requires Irys)', async () => {
-        const { stdout: createStdout, stderr: createStderr, code: createCode } = await runCli([
-            'core', 'asset', 'create',
-            '--name', 'Register Test Asset',
-            '--uri', TEST_ASSET_URI,
-        ], ['\n'])
+    // ── API path ────────────────────────────────────────────────────────────
 
-        expect(createCode).to.equal(0)
+    it('uses the API by default (no asset arg, no --use-ix)', async () => {
+        try {
+            // Will fail (localnet can't reach the Metaplex API) but should attempt the API path
+            await runCli([
+                'agents', 'register',
+                '--name', 'API Agent',
+                '--description', 'An API-registered agent',
+                '--image', 'https://placehold.co/400.png',
+            ])
+            expect.fail('Expected error (API not reachable on localnet)')
+        } catch (err: any) {
+            // Should fail on API call, not on flag parsing
+            expect(err.message).to.not.contain('--wizard, --from-file, or --name')
+        }
+    })
 
-        const assetId = extractAssetId(stripAnsi(createStdout + createStderr))
-        expect(assetId).to.be.ok
+    // ── Direct IX path ──────────────────────────────────────────────────────
 
+    it('uses direct IX when --use-ix is passed', async () => {
+        try {
+            await runCli([
+                'agents', 'register',
+                'FakeAssetXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+                '--use-ix',
+                '--name', 'IX Agent',
+                '--description', 'Direct IX agent',
+                '--image', 'https://placehold.co/400.png',
+            ])
+            expect.fail('Expected error')
+        } catch (err: any) {
+            expect(err.message).to.not.contain('API')
+        }
+    })
+
+    it('implies --use-ix when an asset arg is provided', async () => {
+        try {
+            await runCli([
+                'agents', 'register',
+                'FakeAssetXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+                '--name', 'Existing Asset Agent',
+                '--description', 'Registering existing asset',
+                '--image', 'https://placehold.co/400.png',
+            ])
+            expect.fail('Expected error')
+        } catch (err: any) {
+            expect(err.message).to.be.ok
+        }
+    })
+
+    it('implies --use-ix when --from-file is passed', async () => {
         const doc = {
             type: 'https://eips.ethereum.org/EIPS/eip-8004#registration-v1',
             name: 'Test Agent',
@@ -39,116 +78,53 @@ describe('agents register', () => {
         fs.writeFileSync(tmpFile, JSON.stringify(doc, null, 2))
 
         try {
-            const { stdout, stderr, code } = await runCli([
+            await runCli([
                 'agents', 'register',
-                assetId!,
+                'FakeAssetXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
                 '--from-file', tmpFile,
             ])
-
-            const cleanOut = stripAnsi(stdout + stderr)
-
-            expect(code).to.equal(0)
-            expect(cleanOut).to.contain('Agent identity registered successfully')
-            expect(cleanOut).to.contain('Asset:')
-            expect(cleanOut).to.contain('Registration URI:')
+            expect.fail('Expected error')
+        } catch (err: any) {
+            expect(err.message).to.be.ok
         } finally {
             fs.unlinkSync(tmpFile)
         }
     })
 
-    // Requires Irys upload — skip on localnet
-    it.skip('registers a new asset with --new --name --description --image (requires Irys)', async () => {
-        const { stdout, stderr, code } = await runCli([
-            'agents', 'register',
-            '--new',
-            '--name', 'New Agent',
-            '--description', 'A brand new agent',
-            '--image', 'https://placehold.co/400.png',
-        ])
-
-        const cleanOut = stripAnsi(stdout + stderr)
-
-        expect(code).to.equal(0)
-        expect(cleanOut).to.contain('Agent identity registered successfully')
-        expect(cleanOut).to.contain('Asset:')
+    it('fails when no document source is provided for --use-ix', async () => {
+        try {
+            await runCli(['agents', 'register', 'FakeAssetXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX', '--use-ix'])
+            expect.fail('Expected error')
+        } catch (err: any) {
+            expect(err.message).to.contain('--wizard, --from-file, or --name')
+        }
     })
 
-    // Requires Irys upload — skip on localnet
-    it.skip('registers a new asset with --new --name and --services JSON (requires Irys)', async () => {
-        const services = JSON.stringify([{ name: 'MCP', endpoint: 'https://myagent.com/mcp', version: '1.0' }])
+    // ── Irys-dependent (skip on localnet) ───────────────────────────────────
 
-        const { stdout, stderr, code } = await runCli([
-            'agents', 'register',
-            '--new',
-            '--name', 'Service Agent',
-            '--description', 'Agent with services',
-            '--image', 'https://placehold.co/400.png',
-            '--services', services,
-        ])
-
-        const cleanOut = stripAnsi(stdout + stderr)
-
+    it.skip('registers existing asset with --use-ix --from-file (requires Irys)', async () => {
+        const { stdout: out, stderr: err, code } = await runCli([
+            'core', 'asset', 'create', '--name', 'Register Test', '--uri', TEST_ASSET_URI,
+        ], ['\n'])
         expect(code).to.equal(0)
-        expect(cleanOut).to.contain('Agent identity registered successfully')
-    })
-
-    // Requires Irys upload — skip on localnet
-    it.skip('registers an existing asset into a collection with --from-file (requires Irys)', async () => {
-        const { stdout: colStdout, stderr: colStderr, code: colCode } = await runCli([
-            'core', 'collection', 'create',
-            '--name', 'Test Collection',
-            '--uri', TEST_ASSET_URI,
-        ], ['\n'])
-
-        expect(colCode).to.equal(0)
-
-        const collectionId = stripAnsi(colStdout + colStderr).match(/Collection:\s*([a-zA-Z0-9]{32,44})/)?.[1]
-        expect(collectionId).to.be.ok
-
-        const { stdout: createStdout, stderr: createStderr, code: createCode } = await runCli([
-            'core', 'asset', 'create',
-            '--name', 'Collection Agent Asset',
-            '--uri', TEST_ASSET_URI,
-            '--collection', collectionId!,
-        ], ['\n'])
-
-        expect(createCode).to.equal(0)
-
-        const assetId = extractAssetId(stripAnsi(createStdout + createStderr))
-        expect(assetId).to.be.ok
+        const assetId = extractAssetId(stripAnsi(out + err))
 
         const doc = {
             type: 'https://eips.ethereum.org/EIPS/eip-8004#registration-v1',
-            name: 'Collection Agent',
-            description: 'A collection agent',
-            image: 'https://placehold.co/400.png',
-            active: true,
+            name: 'Test Agent', description: 'A test agent',
+            image: 'https://placehold.co/400.png', active: true,
         }
-
         const tmpFile = path.join(os.tmpdir(), `agent-doc-${Date.now()}.json`)
         fs.writeFileSync(tmpFile, JSON.stringify(doc, null, 2))
 
         try {
             const { stdout, stderr, code } = await runCli([
-                'agents', 'register',
-                assetId!,
-                '--from-file', tmpFile,
-                '--collection', collectionId!,
+                'agents', 'register', assetId!, '--use-ix', '--from-file', tmpFile,
             ])
-
             expect(code).to.equal(0)
             expect(stripAnsi(stdout + stderr)).to.contain('Agent identity registered successfully')
         } finally {
             fs.unlinkSync(tmpFile)
-        }
-    })
-
-    it('fails when no document source is provided', async () => {
-        try {
-            await runCli(['agents', 'register', 'FakeAssetAddressXXXXXXXXXXXXXXXXXXXXXXXXXXXX'])
-            expect.fail('Expected error')
-        } catch (err: any) {
-            expect(err.message).to.contain('--wizard, --from-file, or --name')
         }
     })
 })

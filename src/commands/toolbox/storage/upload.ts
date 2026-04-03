@@ -48,7 +48,7 @@ export default class ToolboxStorageUpload extends TransactionCommand<typeof Tool
 
             const progressSpinner = ora('Checking storage balance and funding if needed...').start()
             const onProgress = (progress: number) => {
-                progressSpinner.text = `Uploading files... ${Math.round(progress)}%`
+                progressSpinner.text = `Uploading files... ${progress + 1}/${filePaths.length}`
             }
             const uploadResult = await uploadFiles(umi, filePaths, onProgress)
             progressSpinner.succeed('Upload completed')

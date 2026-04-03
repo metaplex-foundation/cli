@@ -1,6 +1,7 @@
 import { addConfigLines } from "@metaplex-foundation/mpl-core-candy-machine";
-import { publicKey, Umi } from "@metaplex-foundation/umi";
+import { publicKey, TransactionBuilder, Umi } from "@metaplex-foundation/umi";
 import umiSendAllTransactionsAndConfirm from "../umi/sendAllTransactionsAndConfirm.js";
+import { ConfirmationStrategy } from "../umi/sendOptions.js";
 import { CandyMachineAssetCache, CandyMachineAssetCacheItem, CandyMachineConfig } from "./types.js";
 import { validateCacheUploads, ValidateCacheUploadsOptions } from "./validateCacheUploads.js";
 
@@ -56,7 +57,9 @@ const insertItems = async (umi: Umi, candyMachineConfig: CandyMachineConfig, ass
     let maxUriLength = 0
     let maxNameLength = 0
 
+    // Only measure unloaded items since those are the ones we'll send
     for (const item of Object.values(assetCache.assetItems)) {
+        if (item.loaded) continue
         if (item.jsonUri?.length && item.jsonUri.length > maxUriLength) {
             maxUriLength = item.jsonUri.length
         }
@@ -68,95 +71,110 @@ const insertItems = async (umi: Umi, candyMachineConfig: CandyMachineConfig, ass
     // TODO: Double check this calculation
     const maxConfigLinesPerInstruction = Math.floor((1232 - 200) / (maxUriLength + maxNameLength + 50))
 
-    const configLineGroups: { startingIndex: number, assetItems: CandyMachineAssetCacheItem[] }[] = []
+    // Filter to only unloaded items, then group into contiguous runs
+    // respecting maxConfigLinesPerInstruction. This avoids resubmitting
+    // already-loaded items when resuming after a partial failure.
+    const unloadedItems = Object.entries(assetCache.assetItems)
+        .map(([key, item]) => ({ index: Number(key), item }))
+        .filter(({ item }) => !item.loaded)
+        .sort((a, b) => a.index - b.index)
 
-    // Convert to array to ensure proper indexing
-    const assetItemsArray = Object.entries(assetCache.assetItems).map(([key, item]) => ({
-        index: Number(key),
-        item
-    })).sort((a, b) => a.index - b.index)
+    const configLineGroups: { startingIndex: number, items: { index: number, item: CandyMachineAssetCacheItem }[] }[] = []
+    let currentGroup: typeof configLineGroups[number] | null = null
 
-    let singleGroup: { startingIndex: number, assetItems: CandyMachineAssetCacheItem[] } = {
-        startingIndex: 0,
-        assetItems: []
-    }
+    for (const entry of unloadedItems) {
+        const isContiguous = currentGroup &&
+            entry.index === currentGroup.startingIndex + currentGroup.items.length &&
+            currentGroup.items.length < maxConfigLinesPerInstruction
 
-    for (let i = 0; i < assetItemsArray.length; i++) {
-        const { index, item } = assetItemsArray[i]
-
-        if (singleGroup.assetItems.length === 0) {
-            singleGroup.startingIndex = index
-        }
-
-        singleGroup.assetItems.push(item)
-
-        if (singleGroup.assetItems.length === maxConfigLinesPerInstruction || i === assetItemsArray.length - 1) {
-            configLineGroups.push(singleGroup)
-            singleGroup = { startingIndex: 0, assetItems: [] }
+        if (isContiguous) {
+            currentGroup!.items.push(entry)
+        } else {
+            if (currentGroup) configLineGroups.push(currentGroup)
+            currentGroup = { startingIndex: entry.index, items: [entry] }
         }
     }
+    if (currentGroup) configLineGroups.push(currentGroup)
 
-    const transactions = []
-    const transactionGroupMap: { startingIndex: number, groupSize: number }[] = []
+    // Build addConfigLines instructions for each group, then pack as many
+    // instructions as possible into each transaction to minimize tx count.
+    const instructions: { builder: TransactionBuilder, startingIndex: number, groupSize: number }[] = []
 
-    for (const configLineGroup of configLineGroups) {
-        // if all items are loaded into a group we can skip it
-        if (configLineGroup.assetItems.every(item => item.loaded)) {
-            continue
-        }
-
-        // else we need to add the config lines to the transaction
-        // Validate all items have required fields before building configLines
-        for (let i = 0; i < configLineGroup.assetItems.length; i++) {
-            const item = configLineGroup.assetItems[i];
-            const itemIndex = configLineGroup.startingIndex + i;
-
+    for (const group of configLineGroups) {
+        for (const { index, item } of group.items) {
             if (!item.name || item.name.trim() === '') {
                 throw new Error(
-                    `Item at index ${itemIndex} is missing required field 'name'. ` +
+                    `Item at index ${index} is missing required field 'name'. ` +
                     `Item details: ${JSON.stringify({ jsonUri: item.jsonUri, imageUri: item.imageUri })}`
                 );
             }
 
             if (!item.jsonUri || item.jsonUri.trim() === '') {
                 throw new Error(
-                    `Item at index ${itemIndex} is missing required field 'jsonUri'. ` +
+                    `Item at index ${index} is missing required field 'jsonUri'. ` +
                     `Item details: ${JSON.stringify({ name: item.name, imageUri: item.imageUri })}`
                 );
             }
         }
 
-        // Build configLines with validated values (type assertion safe after validation)
-        const configLines = configLineGroup.assetItems.map(item => ({
+        const configLines = group.items.map(({ item }) => ({
             name: item.name,
             uri: item.jsonUri as string,
         }))
 
-        const transaction = addConfigLines(umi, {
-            candyMachine: publicKey(candyMachineConfig.candyMachineId),
-            configLines,
-            index: configLineGroup.startingIndex,
+        instructions.push({
+            builder: addConfigLines(umi, {
+                candyMachine: publicKey(candyMachineConfig.candyMachineId),
+                configLines,
+                index: group.startingIndex,
+            }),
+            startingIndex: group.startingIndex,
+            groupSize: group.items.length,
         })
+    }
 
-        transactions.push(transaction)
-        transactionGroupMap.push({
-            startingIndex: configLineGroup.startingIndex,
-            groupSize: configLineGroup.assetItems.length
-        })
+    // Greedily pack instructions into transactions
+    const transactions: TransactionBuilder[] = []
+    const transactionGroupMap: { startingIndex: number, groupSize: number }[][] = []
+
+    let currentTx: TransactionBuilder | null = null
+    let currentGroups: { startingIndex: number, groupSize: number }[] = []
+
+    for (const ix of instructions) {
+        const merged: TransactionBuilder = currentTx ? currentTx.add(ix.builder) : ix.builder
+
+        if (merged.fitsInOneTransaction(umi)) {
+            currentTx = merged
+            currentGroups.push({ startingIndex: ix.startingIndex, groupSize: ix.groupSize })
+        } else {
+            if (currentTx) {
+                transactions.push(currentTx)
+                transactionGroupMap.push(currentGroups)
+            }
+            currentTx = ix.builder
+            currentGroups = [{ startingIndex: ix.startingIndex, groupSize: ix.groupSize }]
+        }
+    }
+    if (currentTx) {
+        transactions.push(currentTx)
+        transactionGroupMap.push(currentGroups)
     }
 
     const transactionResults = await umiSendAllTransactionsAndConfirm(umi, transactions, {
         message: 'Uploading Assets to Candy Machine...',
+        confirmationStrategy: ConfirmationStrategy.transactionStatus,
     })
 
     // Update asset cache based on transaction results
     for (let i = 0; i < transactionResults.length; i++) {
         const result = transactionResults[i]
-        const { startingIndex, groupSize } = transactionGroupMap[i]
+        const groups = transactionGroupMap[i]
 
-        for (let assetIndex = startingIndex; assetIndex < startingIndex + groupSize; assetIndex++) {
-            if (assetCache.assetItems[assetIndex]) {
-                assetCache.assetItems[assetIndex].loaded = result.confirmation?.confirmed || false
+        for (const { startingIndex, groupSize } of groups) {
+            for (let assetIndex = startingIndex; assetIndex < startingIndex + groupSize; assetIndex++) {
+                if (assetCache.assetItems[assetIndex]) {
+                    assetCache.assetItems[assetIndex].loaded = result.confirmation?.confirmed || false
+                }
             }
         }
     }

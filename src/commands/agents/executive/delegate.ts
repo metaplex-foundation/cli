@@ -5,8 +5,7 @@ import { publicKey } from '@metaplex-foundation/umi'
 import { generateExplorerUrl } from '../../../explorers.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { txSignatureToString } from '../../../lib/util.js'
-import { findAgentIdentityV1Pda } from '@metaplex-foundation/mpl-agent-registry/dist/src/generated/identity/index.js'
-import { delegateExecutionV1, findExecutiveProfileV1Pda } from '@metaplex-foundation/mpl-agent-registry/dist/src/generated/tools/index.js'
+import { findAgentIdentityV1Pda, delegateExecutionV1, findExecutiveProfileV1Pda } from '@metaplex-foundation/mpl-agent-registry'
 
 export default class AgentsExecutiveDelegate extends TransactionCommand<typeof AgentsExecutiveDelegate> {
   static override description = `Delegate execution of a registered agent to an executive profile.

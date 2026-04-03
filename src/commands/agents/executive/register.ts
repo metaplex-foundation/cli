@@ -3,7 +3,7 @@ import ora from 'ora'
 import { generateExplorerUrl } from '../../../explorers.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { txSignatureToString } from '../../../lib/util.js'
-import { findExecutiveProfileV1Pda, registerExecutiveV1 } from '@metaplex-foundation/mpl-agent-registry/dist/src/generated/tools/index.js'
+import { findExecutiveProfileV1Pda, registerExecutiveV1 } from '@metaplex-foundation/mpl-agent-registry'
 
 export default class AgentsExecutiveRegister extends TransactionCommand<typeof AgentsExecutiveRegister> {
   static override description = `Register an executive profile for agent execution.

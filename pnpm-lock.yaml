@@ -27,8 +27,8 @@ importers:
         specifier: ^0.26.2
         version: 0.26.2(@metaplex-foundation/umi@1.5.1)
       '@metaplex-foundation/mpl-agent-registry':
-        specifier: ^0.2.1
-        version: 0.2.1(@metaplex-foundation/umi@1.5.1)(@noble/hashes@1.8.0)
+        specifier: ^0.2.4
+        version: link:../mpl-agent/clients/js
       '@metaplex-foundation/mpl-bubblegum':
         specifier: ^5.0.2
         version: 5.0.2(@metaplex-foundation/umi@1.5.1)
@@ -759,11 +759,6 @@ packages:
     resolution: {integrity: sha512-bzuftabEduBPBzib9b7NESsX051bREOnhrKSl7ZIQ32+68lxcqQCXg7ChB1F+iJ/Nzfij5HtFL+ersbb2B3wkg==}
     peerDependencies:
       '@metaplex-foundation/umi': '>= 0.8.9 <= 1'
-
-  '@metaplex-foundation/mpl-agent-registry@0.2.1':
-    resolution: {integrity: sha512-Ss9QmZaNOBt/a+Wqib9wOHZqWDXs6Jiwepyzjz9WseW6XyWJnfQy7TwAS4WkoYFsRmfupU6NMvbLTyP39pnjyA==}
-    peerDependencies:
-      '@metaplex-foundation/umi': ^1.0
 
   '@metaplex-foundation/mpl-bubblegum@5.0.2':
     resolution: {integrity: sha512-VRkXf9FNRo2Dm1wsiNEn9xW039PjHA757z2Q2H4DwwmI5z/+iKVDNPux6NZPgMg8BJZfUq6nlOlOC/Ipcra5oA==}
@@ -1834,6 +1829,9 @@ packages:
 
   bignumber.js@9.3.0:
     resolution: {integrity: sha512-EM7aMFTXbptt/wZdMlBv2t8IViwQL+h6SLHosp8Yf0dqJMTnY6iL32opnAB6kAdL0SZPuvcAzFr31o0c/R3/RA==}
+
+  bignumber.js@9.3.1:
+    resolution: {integrity: sha512-Ko0uX15oIUS7wJ3Rb30Fs6SkVbLmPBAKdlm7q9+ak9bbIeFf0MwuBsQV6z7+X768/cHsfg+WlysDWJcmthjsjQ==}
 
   binary-extensions@2.3.0:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
@@ -5869,14 +5867,6 @@ snapshots:
       '@noble/hashes': 1.8.0
       merkletreejs: 0.3.11
 
-  '@metaplex-foundation/mpl-agent-registry@0.2.1(@metaplex-foundation/umi@1.5.1)(@noble/hashes@1.8.0)':
-    dependencies:
-      '@metaplex-foundation/mpl-core': 1.8.0(@metaplex-foundation/umi@1.5.1)(@noble/hashes@1.8.0)
-      '@metaplex-foundation/mpl-toolbox': 0.10.0(@metaplex-foundation/umi@1.5.1)
-      '@metaplex-foundation/umi': 1.5.1
-    transitivePeerDependencies:
-      - '@noble/hashes'
-
   '@metaplex-foundation/mpl-bubblegum@5.0.2(@metaplex-foundation/umi@1.5.1)':
     dependencies:
       '@metaplex-foundation/digital-asset-standard-api': 2.0.0(@metaplex-foundation/umi@1.5.1)
@@ -7185,7 +7175,7 @@ snapshots:
       arconnect: 0.4.2
       asn1.js: 5.4.1
       base64-js: 1.5.1
-      bignumber.js: 9.3.0
+      bignumber.js: 9.3.1
     optional: true
 
   asn1.js@5.4.1:
@@ -7257,6 +7247,9 @@ snapshots:
       bindings: 1.5.0
 
   bignumber.js@9.3.0: {}
+
+  bignumber.js@9.3.1:
+    optional: true
 
   binary-extensions@2.3.0: {}
 

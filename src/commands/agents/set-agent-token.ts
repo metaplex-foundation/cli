@@ -42,10 +42,16 @@ export default class AgentsSetAgentToken extends TransactionCommand<typeof Agent
 
     const spinner = ora('Setting agent token...').start()
 
-    const tx = await setAgentTokenV1(umi, {
-      asset: assetPk,
-      genesisAccount: genesisPk,
-    }).sendAndConfirm(umi)
+    let tx
+    try {
+      tx = await setAgentTokenV1(umi, {
+        asset: assetPk,
+        genesisAccount: genesisPk,
+      }).sendAndConfirm(umi)
+    } catch (err) {
+      spinner.fail('Failed to set agent token')
+      throw err
+    }
 
     const signature = txSignatureToString(tx.signature)
 

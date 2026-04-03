@@ -53,11 +53,17 @@ export default class AgentsExecutiveRevoke extends TransactionCommand<typeof Age
 
     const spinner = ora('Revoking execution delegation...').start()
 
-    const tx = await revokeExecutionV1(umi, {
-      executionDelegateRecord,
-      agentAsset: assetPk,
-      destination: flags.destination ? publicKey(flags.destination) : signer.publicKey,
-    }).sendAndConfirm(umi)
+    let tx
+    try {
+      tx = await revokeExecutionV1(umi, {
+        executionDelegateRecord,
+        agentAsset: assetPk,
+        destination: flags.destination ? publicKey(flags.destination) : signer.publicKey,
+      }).sendAndConfirm(umi)
+    } catch (err) {
+      spinner.fail('Failed to revoke execution delegation')
+      throw err
+    }
 
     const signature = txSignatureToString(tx.signature)
 

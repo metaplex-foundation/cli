@@ -5,7 +5,7 @@ import { publicKey } from '@metaplex-foundation/umi'
 import { generateExplorerUrl } from '../../explorers.js'
 import { TransactionCommand } from '../../TransactionCommand.js'
 import { txSignatureToString } from '../../lib/util.js'
-import { setAgentTokenV1 } from '@metaplex-foundation/mpl-agent-registry'
+import { setAgentTokenV1 } from '@metaplex-foundation/mpl-agent-registry/dist/src/generated/identity/index.js'
 
 export default class AgentsSetAgentToken extends TransactionCommand<typeof AgentsSetAgentToken> {
   static override description = `Link a Genesis token to a registered agent identity.

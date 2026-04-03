@@ -5,7 +5,7 @@ import { publicKey } from '@metaplex-foundation/umi'
 import { generateExplorerUrl } from '../../../explorers.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { txSignatureToString } from '../../../lib/util.js'
-import { findExecutiveProfileV1Pda, findExecutionDelegateRecordV1Pda, revokeExecutionV1 } from '@metaplex-foundation/mpl-agent-registry'
+import { findExecutiveProfileV1Pda, findExecutionDelegateRecordV1Pda, revokeExecutionV1 } from '@metaplex-foundation/mpl-agent-registry/dist/src/generated/tools/index.js'
 
 export default class AgentsExecutiveRevoke extends TransactionCommand<typeof AgentsExecutiveRevoke> {
   static override description = `Revoke an execution delegation for a registered agent.

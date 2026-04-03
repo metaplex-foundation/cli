@@ -1,5 +1,5 @@
 import { checkbox } from '@inquirer/prompts'
-import { Plugin } from '../lib/types/pluginData.js'
+import { Plugin, PluginData } from '../lib/types/pluginData.js'
 
 export enum PluginFilterType {
   Common,
@@ -18,47 +18,14 @@ interface PluginOption {
 
 const pluginList: PluginOption[] = [
   {
-    name: 'Attributes Plugin',
-    value: 'attributes',
-    type: PluginFilterType.Common,
-    managed: PluginFilterType.Authority
-  },
-  {
-    name: 'Royalty Plugin',
-    value: 'royalties',
-    type: PluginFilterType.Common,
-    managed: PluginFilterType.Authority
-  },
-  {
-    name: 'Update Delegate Plugin',
-    value: 'update',
-    type: PluginFilterType.Common,
-    managed: PluginFilterType.Authority
-  },
-  {
-    name: 'Permanent Freeze Plugin',
-    value: 'pFreeze',
-    type: PluginFilterType.Common,
-  },
-  {
-    name: 'Permanent Transfer Plugin',
-    value: 'pTransfer',
-    type: PluginFilterType.Common,
-  },
-  {
-    name: 'Permanent Burn Plugin',
-    value: 'pBurn',
-    type: PluginFilterType.Common,
-  },
-  {
     name: 'Add Blocker Plugin',
     value: 'addBlocker',
     type: PluginFilterType.Common,
     managed: PluginFilterType.Authority
   },
   {
-    name: 'Immutable Metadata Plugin',
-    value: 'immutableMetadata',
+    name: 'Attributes Plugin',
+    value: 'attributes',
     type: PluginFilterType.Common,
     managed: PluginFilterType.Authority
   },
@@ -69,16 +36,16 @@ const pluginList: PluginOption[] = [
     managed: PluginFilterType.Owner
   },
   {
-    name: 'Verified Creators Plugin',
-    value: 'verifiedCreators',
-    type: PluginFilterType.Common,
-    managed: PluginFilterType.Owner
-  },
-  {
-    name: 'Master Edition Plugin',
-    value: 'masterEdition',
+    name: 'Bubblegum V2 Plugin',
+    value: 'bubblegumV2',
     type: PluginFilterType.Collection,
     managed: PluginFilterType.Authority
+  },
+  {
+    name: 'Burn Delegate Plugin',
+    value: 'burn',
+    type: PluginFilterType.Asset,
+    managed: PluginFilterType.Owner
   },
   {
     name: 'Edition Plugin',
@@ -93,10 +60,37 @@ const pluginList: PluginOption[] = [
     managed: PluginFilterType.Owner
   },
   {
-    name: 'Burn Delegate Plugin',
-    value: 'burn',
-    type: PluginFilterType.Asset,
-    managed: PluginFilterType.Owner
+    name: 'Immutable Metadata Plugin',
+    value: 'immutableMetadata',
+    type: PluginFilterType.Common,
+    managed: PluginFilterType.Authority
+  },
+  {
+    name: 'Master Edition Plugin',
+    value: 'masterEdition',
+    type: PluginFilterType.Collection,
+    managed: PluginFilterType.Authority
+  },
+  {
+    name: 'Permanent Burn Plugin',
+    value: 'pBurn',
+    type: PluginFilterType.Common,
+  },
+  {
+    name: 'Permanent Freeze Plugin',
+    value: 'pFreeze',
+    type: PluginFilterType.Common,
+  },
+  {
+    name: 'Permanent Transfer Plugin',
+    value: 'pTransfer',
+    type: PluginFilterType.Common,
+  },
+  {
+    name: 'Royalty Plugin',
+    value: 'royalties',
+    type: PluginFilterType.Common,
+    managed: PluginFilterType.Authority
   },
   {
     name: 'Transfer Delegate Plugin',
@@ -104,7 +98,59 @@ const pluginList: PluginOption[] = [
     type: PluginFilterType.Asset,
     managed: PluginFilterType.Owner
   },
+  {
+    name: 'Update Delegate Plugin',
+    value: 'update',
+    type: PluginFilterType.Common,
+    managed: PluginFilterType.Authority
+  },
+  {
+    name: 'Verified Creators Plugin',
+    value: 'verifiedCreators',
+    type: PluginFilterType.Common,
+    managed: PluginFilterType.Owner
+  },
 ]
+
+// Defines which plugins are allowed to coexist.
+// Key = plugin that imposes constraints, Value = set of plugins it allows.
+// Plugins not listed here have no constraints.
+const pluginAllowLists: Partial<Record<Plugin, Set<Plugin>>> = {
+  bubblegumV2: new Set([
+    'attributes',
+    'royalties',
+    'update',
+    'pFreeze',
+    'pTransfer',
+    'pBurn',
+  ]),
+}
+
+// Given a set of selected plugins, returns the set of plugins still eligible.
+const getCompatiblePlugins = (selected: Plugin[]): Set<Plugin> | null => {
+  let allowed: Set<Plugin> | null = null
+
+  for (const plugin of selected) {
+    const allowList = pluginAllowLists[plugin]
+    if (!allowList) continue
+
+    // The plugin that owns the allow list is always compatible with itself
+    const withSelf = new Set<Plugin>([...allowList, plugin])
+
+    if (allowed === null) {
+      allowed = withSelf
+    } else {
+      // Intersect: only keep plugins allowed by all constraining plugins
+      const intersection = new Set<Plugin>()
+      for (const p of allowed) {
+        if (withSelf.has(p)) intersection.add(p)
+      }
+      allowed = intersection
+    }
+  }
+
+  return allowed
+}
 
 interface PluginSelectorOptions {
   filter: PluginFilterType.Asset | PluginFilterType.Collection,
@@ -129,8 +175,51 @@ export const pluginSelector = async (options: PluginSelectorOptions): Promise<Pl
       name: plugin.name,
       value: plugin.value
     }))
-    
+
   })
 
   return selectedPlugin
+}
+
+// Maps plugin type discriminators (e.g. 'BubblegumV2', 'PermanentTransferDelegate')
+// back to canonical Plugin IDs (e.g. 'bubblegumV2', 'pTransfer').
+// This avoids relying on PluginData object keys which may have typos.
+const typeToPluginId: Record<string, Plugin> = {
+  'Attributes': 'attributes',
+  'Royalties': 'royalties',
+  'BurnDelegate': 'burn',
+  'TransferDelegate': 'transfer',
+  'FreezeDelegate': 'freeze',
+  'PermanentBurnDelegate': 'pBurn',
+  'PermanentTransferDelegate': 'pTransfer',
+  'PermanentFreezeDelegate': 'pFreeze',
+  'UpdateDelegate': 'update',
+  'MasterEdition': 'masterEdition',
+  'AddBlocker': 'addBlocker',
+  'ImmutableMetadata': 'immutableMetadata',
+  'Autograph': 'autograph',
+  'VerifiedCreators': 'verifiedCreators',
+  'Edition': 'edition',
+  'BubblegumV2': 'bubblegumV2',
+}
+
+// Extracts canonical Plugin IDs from a PluginData object by reading each
+// entry's type discriminator, avoiding reliance on potentially misspelled keys.
+export const pluginDataToPluginIds = (data: PluginData): Plugin[] => {
+  return Object.values(data)
+    .map((entry: any) => typeToPluginId[entry?.type])
+    .filter((id): id is Plugin => id !== undefined)
+}
+
+// Validates that a set of selected plugins are compatible with each other.
+// Returns an error message if incompatible, or null if valid.
+export const validatePluginCompatibility = (selected: Plugin[]): string | null => {
+  const compatible = getCompatiblePlugins(selected)
+  if (compatible === null) return null
+
+  const incompatible = selected.filter(p => !compatible.has(p))
+  if (incompatible.length === 0) return null
+
+  const constraining = selected.filter(p => pluginAllowLists[p])
+  return `Plugin(s) ${incompatible.join(', ')} cannot be used together with ${constraining.join(', ')}.`
 }

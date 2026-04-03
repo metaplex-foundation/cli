@@ -406,6 +406,14 @@ const pluginConfigurator = async (plugins: Array<Plugin>): Promise<PluginData> =
         }
         break
       }
+      case 'bubblegumV2': {
+        console.log(terminalColors.FgGreen + 'Bubblegum V2 Plugin Configuration')
+        console.log(terminalColors.FgCyan + 'No configuration needed for Bubblegum V2 plugin.')
+        pluginData.bubblegumV2 = {
+          type: 'BubblegumV2',
+        }
+        break
+      }
       case 'edition': {
         console.log(terminalColors.FgGreen + 'Edition Plugin Configuration')
         let authority: string | undefined

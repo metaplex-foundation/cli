@@ -6,17 +6,12 @@ const TEST_WALLET = 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
 
 describe('agents set-agent-token', () => {
 
-    before(async () => {
-        await runCli(['toolbox', 'sol', 'airdrop', '100', TEST_WALLET])
-        await new Promise(resolve => setTimeout(resolve, 10000))
-    })
-
     it('fails when args are missing', async () => {
         try {
             await runCli(['agents', 'set-agent-token'])
             expect.fail('Expected error')
         } catch (err: any) {
-            expect(err.message).to.be.ok
+            expect(err.message).to.contain('Missing 2 required arg')
         }
     })
 

@@ -11,7 +11,7 @@ export default class AgentsExecutiveRevoke extends TransactionCommand<typeof Age
   static override description = `Revoke an execution delegation for a registered agent.
 
   Removes an existing execution delegation, closing the delegation record
-  and refunding its rent to the current signer.
+  and refunding its rent to --destination (defaults to the current signer).
 
   Either the asset owner or the executive authority can revoke a delegation.
   When --executive is omitted, defaults to the current signer (for executives revoking their own delegation).

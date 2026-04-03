@@ -4,15 +4,22 @@ import { stripAnsi, createRegisteredAgent, extractAssetId } from './agenthelpers
 
 const TEST_WALLET = 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'
 
-describe('agents executive revoke', () => {
+const createUndelegatedAsset = async (): Promise<string> => {
+    const { stdout, stderr, code } = await runCli(
+        ['core', 'asset', 'create', '--name', 'Temp Asset', '--uri', 'https://example.com/asset'],
+        ['\n']
+    )
+    expect(code).to.equal(0)
+    return extractAssetId(stripAnsi(stdout + stderr))!
+}
 
-    before(async () => {
-        await runCli(['toolbox', 'sol', 'airdrop', '100', TEST_WALLET])
-        await new Promise(resolve => setTimeout(resolve, 10000))
-    })
+describe('agents executive revoke', () => {
 
     // Requires Irys upload (createRegisteredAgent uses --from-file) — skip on localnet
     it.skip('revokes a delegation and refunds rent (requires Irys)', async () => {
+        await runCli(['toolbox', 'sol', 'airdrop', '100', TEST_WALLET])
+        await new Promise(resolve => setTimeout(resolve, 10000))
+
         const { assetId } = await createRegisteredAgent()
 
         try { await runCli(['agents', 'executive', 'register']) } catch { /* already registered */ }
@@ -29,42 +36,37 @@ describe('agents executive revoke', () => {
         expect(cleanOut).to.contain(assetId)
     })
 
-    it('defaults --executive to signer when omitted (fails on-chain, not on flag parsing)', async () => {
+    it('defaults --executive to signer when omitted', async () => {
+        const assetId = await createUndelegatedAsset()
+
         try {
-            await runCli(['agents', 'executive', 'revoke', 'FakeAssetXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'])
+            await runCli(['agents', 'executive', 'revoke', assetId])
             expect.fail('Expected error')
         } catch (err: any) {
-            // Should fail on-chain (no delegation), not on missing flag
             expect(err.message).to.not.contain('Missing required flag')
         }
     })
 
     it('accepts --destination flag', async () => {
+        const assetId = await createUndelegatedAsset()
+
         try {
             await runCli([
-                'agents', 'executive', 'revoke',
-                'FakeAssetXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+                'agents', 'executive', 'revoke', assetId,
                 '--executive', TEST_WALLET,
                 '--destination', TEST_WALLET,
             ])
             expect.fail('Expected error')
         } catch (err: any) {
-            // Should fail on-chain, not on flag parsing
             expect(err.message).to.not.contain('Unexpected flag')
         }
     })
 
     it('fails when no delegation record exists', async () => {
-        const { stdout: out, stderr: err, code } = await runCli([
-            'core', 'asset', 'create', '--name', 'Undelegated Asset', '--uri', 'https://example.com/asset',
-        ], ['\n'])
-        expect(code).to.equal(0)
-
-        const assetId = extractAssetId(stripAnsi(out + err))
-        expect(assetId).to.be.ok
+        const assetId = await createUndelegatedAsset()
 
         try {
-            await runCli(['agents', 'executive', 'revoke', assetId!, '--executive', TEST_WALLET])
+            await runCli(['agents', 'executive', 'revoke', assetId, '--executive', TEST_WALLET])
             expect.fail('Expected error')
         } catch (err: any) {
             expect(err.message).to.be.ok

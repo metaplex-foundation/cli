@@ -6,7 +6,7 @@ import { select, input } from '@inquirer/prompts'
 import { generateSigner, publicKey } from '@metaplex-foundation/umi'
 import { generateExplorerUrl } from '../../explorers.js'
 import { TransactionCommand } from '../../TransactionCommand.js'
-import { txSignatureToString, detectSvmNetwork } from '../../lib/util.js'
+import { txSignatureToString, detectSvmNetwork, RpcChain } from '../../lib/util.js'
 import { registerIdentityV1 } from '@metaplex-foundation/mpl-agent-registry/dist/src/generated/identity/index.js'
 import { mintAndSubmitAgent, isAgentApiError, isAgentApiNetworkError, isAgentValidationError } from '@metaplex-foundation/mpl-agent-registry/dist/src/api/index.js'
 import createAssetFromArgs from '../../lib/core/create/createAssetFromArgs.js'
@@ -326,6 +326,10 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
       }
     }
 
+    if (chain === RpcChain.Localnet) {
+      this.error('The Metaplex Agent API does not support localnet. Use --use-ix to register directly on-chain.')
+    }
+
     const spinner = ora('Minting agent via Metaplex API...').start()
 
     try {
@@ -382,8 +386,9 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
   public async run(): Promise<unknown> {
     const { args, flags } = await this.parse(AgentsRegister)
 
-    // wizard and from-file always need the IX path (they need document upload)
+    // These workflows require the direct IX path
     const useIx = flags['use-ix'] || flags.wizard || flags['from-file'] || args.asset
+      || flags.owner || flags.collection
 
     if (useIx) {
       return this.runOnChain(args, flags)

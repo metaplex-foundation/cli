@@ -27,8 +27,8 @@ importers:
         specifier: ^0.26.2
         version: 0.26.2(@metaplex-foundation/umi@1.5.1)
       '@metaplex-foundation/mpl-agent-registry':
-        specifier: ^0.2.4
-        version: link:../mpl-agent/clients/js
+        specifier: ^0.2.5
+        version: 0.2.5(@metaplex-foundation/umi@1.5.1)(@noble/hashes@1.8.0)
       '@metaplex-foundation/mpl-bubblegum':
         specifier: ^5.0.2
         version: 5.0.2(@metaplex-foundation/umi@1.5.1)
@@ -759,6 +759,11 @@ packages:
     resolution: {integrity: sha512-bzuftabEduBPBzib9b7NESsX051bREOnhrKSl7ZIQ32+68lxcqQCXg7ChB1F+iJ/Nzfij5HtFL+ersbb2B3wkg==}
     peerDependencies:
       '@metaplex-foundation/umi': '>= 0.8.9 <= 1'
+
+  '@metaplex-foundation/mpl-agent-registry@0.2.5':
+    resolution: {integrity: sha512-czRhhni8fjXGVsMxt0tlmHySzD6ZUs42T+kib6oLsdXE/TUUurDjgFtYGaYeS+31svTC5BV0rGv41bQs3mv3Eg==}
+    peerDependencies:
+      '@metaplex-foundation/umi': ^1.0
 
   '@metaplex-foundation/mpl-bubblegum@5.0.2':
     resolution: {integrity: sha512-VRkXf9FNRo2Dm1wsiNEn9xW039PjHA757z2Q2H4DwwmI5z/+iKVDNPux6NZPgMg8BJZfUq6nlOlOC/Ipcra5oA==}
@@ -5866,6 +5871,14 @@ snapshots:
       '@metaplex-foundation/umi': 1.5.1
       '@noble/hashes': 1.8.0
       merkletreejs: 0.3.11
+
+  '@metaplex-foundation/mpl-agent-registry@0.2.5(@metaplex-foundation/umi@1.5.1)(@noble/hashes@1.8.0)':
+    dependencies:
+      '@metaplex-foundation/mpl-core': 1.8.0(@metaplex-foundation/umi@1.5.1)(@noble/hashes@1.8.0)
+      '@metaplex-foundation/mpl-toolbox': 0.10.0(@metaplex-foundation/umi@1.5.1)
+      '@metaplex-foundation/umi': 1.5.1
+    transitivePeerDependencies:
+      - '@noble/hashes'
 
   '@metaplex-foundation/mpl-bubblegum@5.0.2(@metaplex-foundation/umi@1.5.1)':
     dependencies:

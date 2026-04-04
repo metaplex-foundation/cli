@@ -8,9 +8,10 @@ export default class Agents extends Command {
   and built-in wallets (Asset Signer PDAs).
 
   Commands:
-    register      Register an agent identity on a Core asset (can also create asset + document)
-    fetch         Fetch and display agent identity data
-    executive     Manage executive profiles and execution delegation
+    register        Register an agent identity on a Core asset (can also create asset + document)
+    fetch           Fetch and display agent identity data
+    set-agent-token Link a Genesis token to a registered agent identity
+    executive       Manage executive profiles and execution delegation
   `
 
   static override examples = [
@@ -19,6 +20,8 @@ export default class Agents extends Command {
     '<%= config.bin %> agents fetch <asset>',
     '<%= config.bin %> agents executive register',
     '<%= config.bin %> agents executive delegate <asset> --executive <wallet>',
+    '<%= config.bin %> agents executive revoke <asset> --executive <wallet>',
+    '<%= config.bin %> agents set-agent-token <agent-asset> <genesis-account>',
   ]
 
   static override flags = {

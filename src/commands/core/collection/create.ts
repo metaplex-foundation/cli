@@ -6,7 +6,7 @@ import ora from 'ora'
 import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
 import { txSignatureToString } from '../../../lib/util.js'
 import pluginConfigurator, { mapPluginDataToArray } from '../../../prompts/pluginInquirer.js'
-import { PluginFilterType, pluginSelector } from '../../../prompts/pluginSelector.js'
+import { PluginFilterType, pluginSelector, validatePluginCompatibility, pluginDataToPluginIds } from '../../../prompts/pluginSelector.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { ExplorerType, generateCoreExplorerUrl, generateExplorerUrl } from '../../../explorers.js'
 import createAssetPrompt, { CreateAssetPromptResult } from '../../../prompts/createAssetPrompt.js'
@@ -86,22 +86,36 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
   private async getPluginData(): Promise<PluginData | undefined> {
     const { flags } = await this.parse(CoreCollectionCreate)
 
+    let pluginData: PluginData | undefined
+
     if (flags.plugins) {
       const selectedPlugins = await pluginSelector({ filter: PluginFilterType.Collection })
       if (selectedPlugins) {
-        return await pluginConfigurator(selectedPlugins as Plugin[])
+        const incompatibleError = validatePluginCompatibility(selectedPlugins as Plugin[])
+        if (incompatibleError) {
+          this.error(incompatibleError)
+        }
+        pluginData = await pluginConfigurator(selectedPlugins as Plugin[])
       }
     } else if (flags.pluginsFile) {
       try {
         if (!fs.existsSync(flags.pluginsFile)) {
           throw new Error(`Plugin file not found: ${flags.pluginsFile}`)
         }
-        return JSON.parse(fs.readFileSync(flags.pluginsFile, 'utf-8')) as PluginData
+        pluginData = JSON.parse(fs.readFileSync(flags.pluginsFile, 'utf-8')) as PluginData
       } catch (err) {
         this.error(`Failed to read plugin data from file: ${err}`)
       }
     }
-    return undefined
+
+    if (pluginData) {
+      const incompatibleError = validatePluginCompatibility(pluginDataToPluginIds(pluginData))
+      if (incompatibleError) {
+        this.error(incompatibleError)
+      }
+    }
+
+    return pluginData
   }
 
   private async handleFileBasedCreation(umi: Umi, imagePath: string, jsonPath: string, explorer: ExplorerType) {

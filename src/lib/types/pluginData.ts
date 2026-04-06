@@ -34,6 +34,7 @@ export type Plugin =
   | 'autograph'
   | 'verifiedCreators'
   | 'edition'
+  | 'bubblegumV2'
 
 export interface PluginData {
   attributes?: {
@@ -96,4 +97,7 @@ export interface PluginData {
     type: 'Edition'
   } & BasePlugin &
     EditionPlugin
+  bubblegumV2?: {
+    type: 'BubblegumV2'
+  }
 }

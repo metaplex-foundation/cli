@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { Plugin, PluginData } from '../lib/types/pluginData.js'
 import pluginConfigurator from './pluginInquirer.js'
-import { PluginFilterType, pluginSelector } from './pluginSelector.js'
+import { PluginFilterType, pluginSelector, validatePluginCompatibility } from './pluginSelector.js'
 
 export type NftType = 'image' | 'video' | 'audio' | 'model'
 
@@ -168,6 +168,10 @@ const createAssetPrompt = async (isCollection = false): Promise<CreateAssetPromp
   if (wantsPlugins) {
     const selectedPlugins = await pluginSelector({ filter: isCollection ? PluginFilterType.Collection : PluginFilterType.Asset })
     if (selectedPlugins) {
+      const incompatibleError = validatePluginCompatibility(selectedPlugins as Plugin[])
+      if (incompatibleError) {
+        throw new Error(incompatibleError)
+      }
       result.plugins = await pluginConfigurator(selectedPlugins as Plugin[])
     }
   }

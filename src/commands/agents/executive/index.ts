@@ -10,11 +10,13 @@ export default class AgentsExecutive extends Command {
   Commands:
     register    Create an executive profile for the current wallet
     delegate    Authorize an executive wallet to act on behalf of a registered agent (asset owner only)
+    revoke      Remove an execution delegation for a registered agent
   `
 
   static override examples = [
     '<%= config.bin %> agents executive register',
     '<%= config.bin %> agents executive delegate <asset> --executive <wallet>',
+    '<%= config.bin %> agents executive revoke <asset> --executive <wallet>',
   ]
 
   static override flags = {

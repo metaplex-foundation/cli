@@ -6,8 +6,9 @@ import { select, input } from '@inquirer/prompts'
 import { generateSigner, publicKey } from '@metaplex-foundation/umi'
 import { generateExplorerUrl } from '../../explorers.js'
 import { TransactionCommand } from '../../TransactionCommand.js'
-import { txSignatureToString } from '../../lib/util.js'
+import { txSignatureToString, detectSvmNetwork, RpcChain } from '../../lib/util.js'
 import { registerIdentityV1 } from '@metaplex-foundation/mpl-agent-registry/dist/src/generated/identity/index.js'
+import { mintAndSubmitAgent, isAgentApiError, isAgentApiNetworkError, isAgentValidationError } from '@metaplex-foundation/mpl-agent-registry/dist/src/api/index.js'
 import createAssetFromArgs from '../../lib/core/create/createAssetFromArgs.js'
 import uploadJson from '../../lib/uploader/uploadJson.js'
 import { isUrl, resolveImageUri } from '../../lib/uploader/resolveImageUri.js'
@@ -16,35 +17,33 @@ import agentDocumentPrompt, { AGENT_REGISTRATION_TYPE, type AgentRegistrationDoc
 export default class AgentsRegister extends TransactionCommand<typeof AgentsRegister> {
   static override description = `Register an agent identity on a Core asset.
 
-  Binds an on-chain identity record to an MPL Core asset, creating a discoverable PDA
-  and attaching lifecycle hooks for Transfer, Update, and Execute operations.
+  By default, uses the Metaplex Agent API to create a Core asset and register
+  identity in a single transaction (no Irys upload needed).
 
-  Multiple workflows:
+  Use --use-ix to send the registerIdentityV1 instruction directly instead.
+  This is needed for existing assets or custom document workflows.
 
-  1. Full wizard (creates asset + document + registers):
+  Workflows:
+
+  1. API (default):
+     mplx agents register --name "My Agent" --description "..." --image "./avatar.png"
+
+  2. Direct IX with existing asset:
+     mplx agents register <asset> --use-ix --from-file "./agent-doc.json"
+
+  3. Direct IX with new asset:
+     mplx agents register --new --use-ix --name "My Agent" --description "..." --image "./avatar.png"
+
+  4. Interactive wizard (direct IX):
      mplx agents register --new --wizard
-
-  2. New asset with flags (creates asset + document + registers):
-     mplx agents register --new --name "My Agent" --description "..." --image "./avatar.png"
-     mplx agents register --new --name "My Agent" --description "..." --image "./avatar.png" --services '[{"name":"MCP","endpoint":"https://..."}]'
-
-  3. Existing asset with new document:
-     mplx agents register <asset> --name "My Agent" --description "..." --image "./avatar.png"
-
-  4. Existing asset with local document file:
-     mplx agents register <asset> --from-file "./agent-doc.json"
-
-  Registration is a one-time operation per asset. Already-registered assets cannot re-register.
   `
 
   static override examples = [
+    '$ mplx agents register --name "My Agent" --description "An AI agent" --image "./avatar.png"',
+    '$ mplx agents register --name "My Agent" --description "An AI agent" --image "./avatar.png" --services \'[{"name":"MCP","endpoint":"https://myagent.com/mcp"}]\'',
+    '$ mplx agents register <asset> --use-ix --from-file "./agent-doc.json"',
+    '$ mplx agents register --new --use-ix --name "My Agent" --description "An AI agent" --image "./avatar.png"',
     '$ mplx agents register --new --wizard',
-    '$ mplx agents register --new --name "My Agent" --description "An AI agent" --image "./avatar.png"',
-    '$ mplx agents register --new --name "My Agent" --description "An AI agent" --image "./avatar.png" --services \'[{"name":"MCP","endpoint":"https://myagent.com/mcp","version":"1.0"}]\'',
-    '$ mplx agents register --new --name "My Agent" --description "An AI agent" --image "./avatar.png" --supported-trust \'["reputation","tee-attestation"]\'',
-    '$ mplx agents register --new --name "My Agent" --description "An AI agent" --image "./avatar.png" --collection <collection>',
-    '$ mplx agents register <asset> --name "My Agent" --description "An AI agent" --image "https://arweave.net/..."',
-    '$ mplx agents register <asset> --from-file "./agent-doc.json"',
   ]
 
   static override usage = 'agents register [ASSET] [FLAGS]'
@@ -54,6 +53,12 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
   }
 
   static override flags = {
+    // Mode
+    'use-ix': Flags.boolean({
+      description: 'Send the registerIdentityV1 instruction directly instead of using the Metaplex API',
+      default: false,
+    }),
+
     // Asset creation
     new: Flags.boolean({
       description: 'Create a new Core asset and register it as an agent',
@@ -67,20 +72,20 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
       description: 'Collection address the asset belongs to',
     }),
 
-    // Document source: wizard, uri, from-file, or inline flags
+    // Document source: wizard, from-file, or inline flags
     wizard: Flags.boolean({
-      description: 'Use interactive wizard to build the registration document',
+      description: 'Use interactive wizard to build the registration document (implies --use-ix)',
       exclusive: ['from-file', 'name'],
     }),
     'from-file': Flags.string({
-      description: 'Path to a local agent registration JSON file to upload',
+      description: 'Path to a local agent registration JSON file to upload (implies --use-ix)',
       exclusive: ['wizard', 'name'],
     }),
 
-    // Inline document creation flags
+    // Inline document creation flags (used by both API and on-chain)
     name: Flags.string({
-      description: 'Agent name (for building the registration document)',
-      exclusive: ['wizard', 'uri', 'from-file'],
+      description: 'Agent name',
+      exclusive: ['wizard', 'from-file'],
     }),
     description: Flags.string({
       description: 'Agent description',
@@ -95,7 +100,7 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
       default: true,
     }),
     services: Flags.string({
-      description: 'Service endpoints as a JSON array, e.g. \'[{"name":"MCP","endpoint":"https://...","version":"1.0","skills":["search"]}]\'',
+      description: 'Service endpoints as a JSON array, e.g. \'[{"name":"MCP","endpoint":"https://..."}]\'',
       dependsOn: ['name'],
     }),
     'supported-trust': Flags.string({
@@ -109,12 +114,13 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
     }),
   }
 
+  // ─── On-chain path helpers ────────────────────────────────────────────────
+
   private async resolveDocumentUri(flags: Record<string, any>, assetAddress?: string): Promise<{ uri: string; document?: AgentRegistrationDocument }> {
     const { umi } = this.context
 
     let doc: AgentRegistrationDocument
 
-    // 1. Wizard
     if (flags.wizard) {
       const result = await agentDocumentPrompt()
       doc = result.document
@@ -125,9 +131,7 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
       if (doc.image && !isUrl(doc.image)) {
         doc.image = await resolveImageUri(this.context.umi, doc.image)
       }
-    }
-    // 3. From file
-    else if (flags['from-file']) {
+    } else if (flags['from-file']) {
       try {
         const raw = fs.readFileSync(flags['from-file'], 'utf-8')
         doc = JSON.parse(raw) as AgentRegistrationDocument
@@ -138,9 +142,7 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
       if (doc.type !== AGENT_REGISTRATION_TYPE) {
         this.error(`Invalid document: "type" must be "${AGENT_REGISTRATION_TYPE}"`)
       }
-    }
-    // 4. Inline flags
-    else if (flags.name) {
+    } else if (flags.name) {
       if (!flags.description) {
         this.error('--description is required when using --name')
       }
@@ -150,7 +152,6 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
 
       const imageUri = await resolveImageUri(this.context.umi, flags.image)
 
-      // Parse --services JSON or fall back to deprecated individual flags
       let services: AgentService[] = []
       if (flags.services) {
         try {
@@ -182,18 +183,15 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
       this.error('Provide --wizard, --from-file, or --name to specify the registration document.')
     }
 
-    // Auto-populate registrations from the known asset address
     if (assetAddress) {
       doc.registrations = [{ agentId: assetAddress, agentRegistry: 'solana:101:metaplex' }]
     }
 
-    // Save locally if requested
     if (flags['save-document']) {
       fs.writeFileSync(flags['save-document'], JSON.stringify(doc, null, 2))
       this.log(`Document saved to ${flags['save-document']}`)
     }
 
-    // Upload the document
     const uploadSpinner = ora('Uploading registration document...').start()
     const uri = await uploadJson(umi, doc).catch((err) => {
       uploadSpinner.fail(`Failed to upload document: ${err}`)
@@ -204,12 +202,10 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
     return { uri, document: doc }
   }
 
-  public async run(): Promise<unknown> {
-    const { args, flags } = await this.parse(AgentsRegister)
+  private async runOnChain(args: Record<string, any>, flags: Record<string, any>): Promise<unknown> {
     const { umi, explorer, chain } = this.context
 
-    // Step 1: Determine the asset address upfront so it can be embedded in the document
-    // If using the wizard with no asset info supplied, ask interactively
+    // Determine asset address
     if (flags.wizard && !flags.new && !args.asset) {
       const assetMode = await select({
         message: 'Register a new asset or an existing one?',
@@ -224,7 +220,7 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
       } else {
         args.asset = await input({
           message: 'Existing Asset Address?',
-          validate: (value) => value ? true : 'Asset address is required',
+          validate: (value: string) => value ? true : 'Asset address is required',
         })
       }
     }
@@ -241,10 +237,8 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
       assetAddress = args.asset
     }
 
-    // Step 2: Resolve the registration document URI (registrations auto-populated from assetAddress)
     const { uri, document } = await this.resolveDocumentUri(flags, assetAddress)
 
-    // Step 3: Create the asset if --new
     if (flags.new) {
       const assetName = document?.name ?? flags.name
       if (!assetName) {
@@ -267,7 +261,6 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
       assetSpinner.succeed(`Core asset created: ${assetAddress}`)
     }
 
-    // Step 3: Register the agent identity
     const registerSpinner = ora('Registering agent identity...').start()
 
     const tx = await registerIdentityV1(umi, {
@@ -296,5 +289,111 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
       signature,
       explorer: explorerUrl,
     }
+  }
+
+  // ─── API path ─────────────────────────────────────────────────────────────
+
+  private async runApi(flags: Record<string, any>): Promise<unknown> {
+    const { umi, explorer, chain } = this.context
+
+    if (!flags.name) {
+      this.error('--name is required for API registration')
+    }
+    if (!flags.description) {
+      this.error('--description is required for API registration')
+    }
+    if (!flags.image) {
+      this.error('--image is required for API registration')
+    }
+
+    const imageUri = await resolveImageUri(umi, flags.image)
+
+    let services: Array<{ name: string; endpoint: string }> = []
+    if (flags.services) {
+      try {
+        services = JSON.parse(flags.services) as Array<{ name: string; endpoint: string }>
+      } catch {
+        this.error('--services must be a valid JSON array, e.g. \'[{"name":"MCP","endpoint":"https://..."}]\'')
+      }
+    }
+
+    let supportedTrust: string[] = []
+    if (flags['supported-trust']) {
+      try {
+        supportedTrust = JSON.parse(flags['supported-trust']) as string[]
+      } catch {
+        this.error('--supported-trust must be a valid JSON array, e.g. \'["reputation","tee-attestation"]\'')
+      }
+    }
+
+    if (chain === RpcChain.Localnet) {
+      this.error('The Metaplex Agent API does not support localnet. Use --use-ix to register directly on-chain.')
+    }
+
+    const spinner = ora('Minting agent via Metaplex API...').start()
+
+    try {
+      const network = detectSvmNetwork(chain)
+
+      const result = await mintAndSubmitAgent(umi, {}, {
+        wallet: umi.identity.publicKey,
+        network,
+        name: flags.name,
+        uri: imageUri,
+        agentMetadata: {
+          type: 'agent',
+          name: flags.name,
+          description: flags.description,
+          services,
+          registrations: [],
+          supportedTrust,
+        },
+      })
+
+      const signature = txSignatureToString(result.signature)
+
+      spinner.succeed('Agent registered successfully via API')
+
+      const explorerUrl = generateExplorerUrl(explorer, chain, signature, 'transaction')
+
+      this.log(`--------------------------------
+  Asset: ${result.assetAddress}
+  Signature: ${signature}
+  Explorer: ${explorerUrl}
+--------------------------------`)
+
+      return {
+        asset: result.assetAddress,
+        signature,
+        explorer: explorerUrl,
+      }
+    } catch (err) {
+      spinner.fail('Agent registration failed')
+
+      if (isAgentValidationError(err)) {
+        this.error(`Validation error on field "${(err as any).field}": ${(err as Error).message}`)
+      } else if (isAgentApiNetworkError(err)) {
+        this.error(`Network error: ${(err as Error).message}`)
+      } else if (isAgentApiError(err)) {
+        this.error(`API error (${(err as any).statusCode}): ${(err as Error).message}`)
+      }
+      throw err
+    }
+  }
+
+  // ─── Entry point ──────────────────────────────────────────────────────────
+
+  public async run(): Promise<unknown> {
+    const { args, flags } = await this.parse(AgentsRegister)
+
+    // These workflows require the direct IX path
+    const useIx = flags['use-ix'] || flags.wizard || flags['from-file'] || args.asset
+      || flags.owner || flags.collection
+
+    if (useIx) {
+      return this.runOnChain(args, flags)
+    }
+
+    return this.runApi(flags)
   }
 }

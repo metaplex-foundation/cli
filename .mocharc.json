@@ -12,5 +12,8 @@
   "node-option": [
     "loader=ts-node/esm",
     "experimental-specifier-resolution=node"
+  ],
+  "ignore": [
+    "test/commands/distro/**"
   ]
 }

@@ -32,6 +32,32 @@ jobs:
         with:
           node-version: ${{ matrix.node_version }}
           cache: pnpm
+      - name: Install Solana CLI
+        uses: metaplex-foundation/actions/install-solana@v1
+        with:
+          version: ${{ env.SOLANA_VERSION }}
+          cache: true
+      - name: Dump latest programs from Devnet
+        run: |
+          declare -A PROGRAMS=(
+            [".amman/mpl_token_metadata.so"]="metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+            [".amman/mpl_core.so"]="CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d"
+            [".amman/mpl_distro.so"]="D1STRoZTUiEa6r8TLg2aAbG4nSRT5cDBmgG7jDqCZvU8"
+            [".amman/mpl_core_candy_machine.so"]="CMACYFENjoBMHzapRXyo1JZkVS6EtaDDzkjMrmQLvr4J"
+            [".amman/mpl_core_candy_guard.so"]="CMAGAKJ67e9hRZgfC5SFTbZH8MgEmtqazKXjmkaJjWTJ"
+            [".amman/mpl_bubblegum.so"]="BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY"
+            [".amman/spl_noop.so"]="noopb9bkMVfRPU8AsbpTUg8AQkHtKwMYZiFUjNRtMmV"
+            [".amman/mpl_noop.so"]="mnoopTCrg4p8ry25e4bcWA9XZjbNjMTfgYVGGEdRsf3"
+            [".amman/mpl_account_compression.so"]="mcmt6YrQEMKw8Mw43FmpRLmf7BqRnFMKmAcbxE3xkAW"
+            [".amman/spl_account_compression.so"]="cmtDvXumGCrqC1Age74AVPhSRVXJMd8PJS91L8KbNCK"
+            [".amman/genesis.so"]="GNS1S5J5AspKXgpjz6SvKL66kPaKWAhaGRhCqPRxii2B"
+            [".amman/mpl_agent_identity.so"]="1DREGFgysWYxLnRnKQnwrxnJQeSMk2HmGaC6whw2B2p"
+            [".amman/mpl_agent_tools.so"]="TLREGni9ZEyGC3vnPZtqUh95xQ8oPqJSvNjvB7FGK8S"
+          )
+          for file in "${!PROGRAMS[@]}"; do
+            echo "Dumping ${PROGRAMS[$file]} -> $file"
+            solana program dump -u devnet "${PROGRAMS[$file]}" "$file"
+          done
       - name: Start validator
         uses: metaplex-foundation/actions/start-validator@v1
         with:

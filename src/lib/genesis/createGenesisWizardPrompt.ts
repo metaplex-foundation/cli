@@ -355,7 +355,7 @@ export async function promptBondingCurveConfig(): Promise<{
         abortOrTrue(v)
         if (!v.trim()) return 'Required'
         const n = Number(v)
-        if (isNaN(n) || n <= 0) return 'Must be a positive number'
+        if (isNaN(n) || !Number.isFinite(n) || n <= 0) return 'Must be a finite positive number'
         return true
       },
     })

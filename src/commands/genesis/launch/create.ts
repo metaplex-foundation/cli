@@ -357,8 +357,8 @@ Use --wizard for an interactive guided setup.`
     // Parse firstBuyAmount as a number
     if (flags.firstBuyAmount) {
       const amount = Number(flags.firstBuyAmount)
-      if (isNaN(amount) || amount < 0) {
-        this.error('--firstBuyAmount must be a non-negative number (e.g. 0.1)')
+      if (isNaN(amount) || !Number.isFinite(amount) || amount < 0) {
+        this.error('--firstBuyAmount must be a finite, non-negative number (e.g. 0.1)')
       }
       flagRecord.firstBuyAmount = amount
     }

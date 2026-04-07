@@ -25,7 +25,7 @@ export type UnlockedBucketResult = AddUnlockedParams
 export type BucketChoice = 'launch-pool' | 'presale' | 'unlocked' | 'done'
 
 export interface LaunchWizardResult {
-  launchType: 'launchpool'
+  launchType: 'launchpool' | 'bondingCurve'
   name: string
   symbol: string
   image: string
@@ -34,11 +34,18 @@ export interface LaunchWizardResult {
   twitter?: string
   telegram?: string
   quoteMint: string
-  depositStartTime: string
-  tokenAllocation: number
-  raiseGoal: number
-  raydiumLiquidityBps: number
-  fundsRecipient: string
+  // launchpool-specific
+  depositStartTime?: string
+  tokenAllocation?: number
+  raiseGoal?: number
+  raydiumLiquidityBps?: number
+  fundsRecipient?: string
+  // bonding-curve-specific
+  creatorFeeWallet?: string
+  firstBuyAmount?: number
+  // agent support
+  agentMint?: string
+  agentSetToken?: boolean
 }
 
 export interface RegisterLaunchResult {
@@ -130,6 +137,13 @@ function validateOptionalNonNegativeInt(v: string): string | true {
 function validatePublicKey(v: string): string | true {
   abortOrTrue(v)
   if (!v.trim()) return 'Required'
+  if (!isPublicKey(v.trim())) return 'Invalid Solana public key'
+  return true
+}
+
+function validateOptionalPublicKey(v: string): string | true {
+  abortOrTrue(v)
+  if (!v.trim()) return true
   if (!isPublicKey(v.trim())) return 'Invalid Solana public key'
   return true
 }
@@ -286,6 +300,72 @@ export async function promptProjectConfig(quoteMint: string): Promise<{
   const fundsRecipient = await promptPublicKeyInput('Funds recipient wallet address:')
 
   return { tokenAllocation, raiseGoal, raydiumLiquidityBps, fundsRecipient }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Agent prompts                                                      */
+/* ------------------------------------------------------------------ */
+
+export async function promptAgentConfig(): Promise<{ agentMint?: string; agentSetToken?: boolean }> {
+  const useAgent = await confirm({
+    message: 'Launch as an agent? (wraps transactions for on-chain agent execution)',
+    default: false,
+  })
+
+  if (!useAgent) return {}
+
+  const agentMint = await promptPublicKeyInput('Agent NFT mint address:')
+
+  const agentSetToken = await confirm({
+    message: 'Set the launched token on the agent NFT?',
+    default: true,
+  })
+
+  return { agentMint, agentSetToken }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Bonding curve prompts                                              */
+/* ------------------------------------------------------------------ */
+
+export async function promptBondingCurveConfig(): Promise<{
+  creatorFeeWallet?: string
+  firstBuyAmount?: number
+}> {
+  const customFeeWallet = await confirm({
+    message: 'Set a custom creator fee wallet? (defaults to launching wallet)',
+    default: false,
+  })
+
+  let creatorFeeWallet: string | undefined
+  if (customFeeWallet) {
+    creatorFeeWallet = await promptPublicKeyInput('Creator fee wallet address:')
+  }
+
+  const doFirstBuy = await confirm({
+    message: 'Make a mandatory first buy on the bonding curve?',
+    default: false,
+  })
+
+  let firstBuyAmount: number | undefined
+  if (doFirstBuy) {
+    const amountStr = await input({
+      message: 'First buy amount in SOL (e.g. 0.1):',
+      validate: (v) => {
+        abortOrTrue(v)
+        if (!v.trim()) return 'Required'
+        const n = Number(v)
+        if (isNaN(n) || n <= 0) return 'Must be a positive number'
+        return true
+      },
+    })
+    firstBuyAmount = Number(amountStr)
+  }
+
+  return {
+    ...(creatorFeeWallet && { creatorFeeWallet }),
+    ...(firstBuyAmount !== undefined && { firstBuyAmount }),
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -485,6 +565,16 @@ export async function promptBucketChoice(): Promise<BucketChoice> {
 
 export async function promptLaunchWizard(): Promise<LaunchWizardResult> {
   console.log('')
+  console.log('--- Launch Type ---')
+  const launchType = await select({
+    message: 'Choose launch type:',
+    choices: [
+      { name: 'LaunchPool — Project-style launch with deposit period, raise goal, and Raydium LP', value: 'launchpool' as const },
+      { name: 'Bonding Curve — Instant bonding curve launch with optional first buy and creator fees', value: 'bondingCurve' as const },
+    ],
+  })
+
+  console.log('')
   console.log('--- Token Metadata ---')
   const tokenMeta = await promptTokenMetadata()
 
@@ -500,17 +590,44 @@ export async function promptLaunchWizard(): Promise<LaunchWizardResult> {
   const resolvedQuoteMint = KNOWN_QUOTE_MINTS[quoteMintChoice] ?? quoteMintChoice
   const quoteName = Object.entries(KNOWN_QUOTE_MINTS).find(([, v]) => v === resolvedQuoteMint)?.[0] ?? 'custom'
 
-  const depositStartStr = await input({
-    message: 'Deposit start time (ISO date or unix timestamp):',
-    validate: (v) => validateTimestamp(v, { requireFuture: true }),
-  })
-  const depositStartTime = toISOTimestamp(depositStartStr)
+  let depositStartTime: string | undefined
+  let tokenAllocation: number | undefined
+  let raiseGoal: number | undefined
+  let raydiumLiquidityBps: number | undefined
+  let fundsRecipient: string | undefined
+  let creatorFeeWallet: string | undefined
+  let firstBuyAmount: number | undefined
 
-  const projectConfig = await promptProjectConfig(resolvedQuoteMint)
+  if (launchType === 'launchpool') {
+    const depositStartStr = await input({
+      message: 'Deposit start time (ISO date or unix timestamp):',
+      validate: (v) => validateTimestamp(v, { requireFuture: true }),
+    })
+    depositStartTime = toISOTimestamp(depositStartStr)
+
+    const projectConfig = await promptProjectConfig(resolvedQuoteMint)
+    tokenAllocation = projectConfig.tokenAllocation
+    raiseGoal = projectConfig.raiseGoal
+    raydiumLiquidityBps = projectConfig.raydiumLiquidityBps
+    fundsRecipient = projectConfig.fundsRecipient
+  } else {
+    // Bonding curve config
+    console.log('')
+    console.log('--- Bonding Curve Options ---')
+    const bcConfig = await promptBondingCurveConfig()
+    creatorFeeWallet = bcConfig.creatorFeeWallet
+    firstBuyAmount = bcConfig.firstBuyAmount
+  }
+
+  // Agent config
+  console.log('')
+  console.log('--- Agent Configuration ---')
+  const agentConfig = await promptAgentConfig()
 
   // Summary
   console.log('')
   console.log('=== Launch Summary ===')
+  console.log(`  Launch Type: ${launchType === 'launchpool' ? 'LaunchPool' : 'Bonding Curve'}`)
   console.log(`  Token: ${tokenMeta.name} (${tokenMeta.symbol})`)
   console.log(`  Image: ${tokenMeta.image}`)
   if (tokenMeta.description) console.log(`  Description: ${tokenMeta.description}`)
@@ -518,11 +635,21 @@ export async function promptLaunchWizard(): Promise<LaunchWizardResult> {
   if (socials.twitter) console.log(`  Twitter: ${socials.twitter}`)
   if (socials.telegram) console.log(`  Telegram: ${socials.telegram}`)
   console.log(`  Quote Token: ${quoteName === 'custom' ? resolvedQuoteMint : quoteName}`)
-  console.log(`  Deposit Start: ${depositStartTime}`)
-  console.log(`  Token Allocation: ${projectConfig.tokenAllocation}`)
-  console.log(`  Raise Goal: ${projectConfig.raiseGoal} ${quoteName}`)
-  console.log(`  Raydium Liquidity: ${projectConfig.raydiumLiquidityBps / 100}%`)
-  console.log(`  Funds Recipient: ${projectConfig.fundsRecipient}`)
+  if (launchType === 'launchpool') {
+    console.log(`  Deposit Start: ${depositStartTime}`)
+    console.log(`  Token Allocation: ${tokenAllocation}`)
+    console.log(`  Raise Goal: ${raiseGoal} ${quoteName}`)
+    console.log(`  Raydium Liquidity: ${raydiumLiquidityBps! / 100}%`)
+    console.log(`  Funds Recipient: ${fundsRecipient}`)
+  } else {
+    if (creatorFeeWallet) console.log(`  Creator Fee Wallet: ${creatorFeeWallet}`)
+    if (firstBuyAmount) console.log(`  First Buy Amount: ${firstBuyAmount} SOL`)
+    if (!creatorFeeWallet && !firstBuyAmount) console.log('  Using default bonding curve settings')
+  }
+  if (agentConfig.agentMint) {
+    console.log(`  Agent Mint: ${agentConfig.agentMint}`)
+    console.log(`  Set Token on Agent: ${agentConfig.agentSetToken ? 'Yes' : 'No'}`)
+  }
   console.log('')
 
   const proceed = await confirm({ message: 'Create this launch?', default: true })
@@ -533,12 +660,19 @@ export async function promptLaunchWizard(): Promise<LaunchWizardResult> {
   }
 
   return {
-    launchType: 'launchpool',
+    launchType,
     ...tokenMeta,
     ...socials,
     quoteMint: quoteMintChoice,
-    depositStartTime,
-    ...projectConfig,
+    ...(depositStartTime && { depositStartTime }),
+    ...(tokenAllocation !== undefined && { tokenAllocation }),
+    ...(raiseGoal !== undefined && { raiseGoal }),
+    ...(raydiumLiquidityBps !== undefined && { raydiumLiquidityBps }),
+    ...(fundsRecipient && { fundsRecipient }),
+    ...(creatorFeeWallet && { creatorFeeWallet }),
+    ...(firstBuyAmount !== undefined && { firstBuyAmount }),
+    ...(agentConfig.agentMint && { agentMint: agentConfig.agentMint }),
+    ...(agentConfig.agentSetToken !== undefined && { agentSetToken: agentConfig.agentSetToken }),
   }
 }
 

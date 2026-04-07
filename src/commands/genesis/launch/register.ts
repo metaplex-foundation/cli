@@ -106,15 +106,9 @@ provided as a JSON file via --launchConfig.`
         if (!pool.tokenAllocation || !pool.depositStartTime || !pool.raiseGoal || !pool.raydiumLiquidityBps || !pool.fundsRecipient) {
           throw new Error('Launchpool config requires "tokenAllocation", "depositStartTime", "raiseGoal", "raydiumLiquidityBps", and "fundsRecipient" in launch.launchpool')
         }
-      } else {
-        if (!launch.bondingCurve || typeof launch.bondingCurve !== 'object' || Array.isArray(launch.bondingCurve)) {
-          throw new Error('Bonding curve config requires a "launch.bondingCurve" object')
-        }
-        const curve = launch.bondingCurve as Record<string, unknown>
-        if (!curve.depositStartTime) {
-          throw new Error('Bonding curve config requires "depositStartTime" in launch.bondingCurve')
-        }
       }
+      // Bonding curve: the launch field is a BondingCurveLaunchInput directly
+      // (optional fields: creatorFeeWallet, firstBuyAmount). No nested key required.
 
       const launchConfig = config as unknown as CreateLaunchInput
 

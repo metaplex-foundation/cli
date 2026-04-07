@@ -106,6 +106,12 @@ export async function runApiWizard(
       raiseGoal: wizardResult.raiseGoal,
       raydiumLiquidityBps: wizardResult.raydiumLiquidityBps,
       fundsRecipient: wizardResult.fundsRecipient,
+      creatorFeeWallet: wizardResult.creatorFeeWallet,
+      firstBuyAmount: wizardResult.firstBuyAmount,
+      agent: wizardResult.agentMint ? {
+        mint: wizardResult.agentMint,
+        setToken: wizardResult.agentSetToken ?? false,
+      } : undefined,
     },
   )
 

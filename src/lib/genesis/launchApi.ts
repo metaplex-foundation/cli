@@ -5,11 +5,19 @@ import {
   QuoteMintInput,
   SvmNetwork,
 } from '@metaplex-foundation/genesis'
+import { PublicKeyInput } from '@metaplex-foundation/umi'
 import { detectSvmNetwork, RpcChain } from '../util.js'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
+
+export interface AgentConfig {
+  /** Agent NFT mint address */
+  mint: PublicKeyInput
+  /** Whether to set the token on the agent */
+  setToken: boolean
+}
 
 export interface BuildLaunchInputParams {
   launchType: 'launchpool' | 'bondingCurve'
@@ -25,12 +33,17 @@ export interface BuildLaunchInputParams {
     telegram?: string
   }
   quoteMint?: string
-  depositStartTime: string
   // launchpool-specific
+  depositStartTime?: string
   tokenAllocation?: number
   raiseGoal?: number
   raydiumLiquidityBps?: number
   fundsRecipient?: string
+  // bonding-curve-specific
+  creatorFeeWallet?: string
+  firstBuyAmount?: number
+  // agent support
+  agent?: AgentConfig
 }
 
 /* ------------------------------------------------------------------ */
@@ -63,6 +76,7 @@ export function buildLaunchInput(
     ...(params.quoteMint && params.quoteMint !== 'SOL' && {
       quoteMint: params.quoteMint as QuoteMintInput,
     }),
+    ...(params.agent && { agent: params.agent }),
   }
 
   if (params.launchType === 'bondingCurve') {
@@ -70,16 +84,15 @@ export function buildLaunchInput(
       ...common,
       launchType: 'bondingCurve',
       launch: {
-        bondingCurve: {
-          depositStartTime: params.depositStartTime,
-        },
+        ...(params.creatorFeeWallet && { creatorFeeWallet: params.creatorFeeWallet }),
+        ...(params.firstBuyAmount !== undefined && params.firstBuyAmount > 0 && { firstBuyAmount: params.firstBuyAmount }),
       },
     } satisfies CreateBondingCurveLaunchInput
   }
 
   // launchpool
-  if (!params.tokenAllocation || !params.raiseGoal || !params.raydiumLiquidityBps || !params.fundsRecipient) {
-    throw new Error('Launchpool requires tokenAllocation, raiseGoal, raydiumLiquidityBps, and fundsRecipient')
+  if (!params.tokenAllocation || !params.raiseGoal || !params.raydiumLiquidityBps || !params.fundsRecipient || !params.depositStartTime) {
+    throw new Error('Launchpool requires tokenAllocation, raiseGoal, raydiumLiquidityBps, fundsRecipient, and depositStartTime')
   }
 
   return {

@@ -34,6 +34,10 @@ interface CommonLaunchParams {
   }
   network: SvmNetwork
   quoteMint?: QuoteMintInput
+  agent?: {
+    mint: string
+    setToken: boolean
+  }
 }
 
 interface LaunchStrategy {
@@ -46,7 +50,7 @@ interface LaunchStrategy {
 const LAUNCH_STRATEGIES: Record<string, LaunchStrategy> = {
   'launchpool': {
     requiredFlags: ['tokenAllocation', 'raiseGoal', 'raydiumLiquidityBps', 'fundsRecipient'],
-    disallowedFlags: [],
+    disallowedFlags: ['creatorFeeWallet', 'firstBuyAmount'],
 
     validate(flags) {
       const errors: string[] = []
@@ -91,10 +95,17 @@ const LAUNCH_STRATEGIES: Record<string, LaunchStrategy> = {
 
   'bonding-curve': {
     requiredFlags: [],
-    disallowedFlags: ['tokenAllocation', 'raiseGoal', 'raydiumLiquidityBps', 'fundsRecipient', 'lockedAllocations'],
+    disallowedFlags: ['tokenAllocation', 'raiseGoal', 'raydiumLiquidityBps', 'fundsRecipient', 'lockedAllocations', 'depositStartTime'],
 
-    validate() {
-      return []
+    validate(flags) {
+      const errors: string[] = []
+      if (typeof flags.creatorFeeWallet === 'string' && !isPublicKey(flags.creatorFeeWallet)) {
+        errors.push('--creatorFeeWallet must be a valid public key')
+      }
+      if (typeof flags.firstBuyAmount === 'number' && flags.firstBuyAmount < 0) {
+        errors.push('--firstBuyAmount must be non-negative')
+      }
+      return errors
     },
 
     buildInput(common, flags): CreateBondingCurveLaunchInput {
@@ -102,9 +113,8 @@ const LAUNCH_STRATEGIES: Record<string, LaunchStrategy> = {
         ...common,
         launchType: 'bondingCurve',
         launch: {
-          bondingCurve: {
-            depositStartTime: flags.depositStartTime as string,
-          },
+          ...(typeof flags.creatorFeeWallet === 'string' && { creatorFeeWallet: flags.creatorFeeWallet }),
+          ...(typeof flags.firstBuyAmount === 'number' && flags.firstBuyAmount > 0 && { firstBuyAmount: flags.firstBuyAmount }),
         },
       }
     },
@@ -185,12 +195,21 @@ This is an all-in-one command that:
 The Genesis API handles creating the genesis account, mint, launch pool bucket,
 and optional locked allocations in a single flow.
 
+Supports two launch types:
+  - launchpool: Project-style launch with deposit period, raise goal, and Raydium LP
+  - bonding-curve: Instant bonding curve launch with optional first buy and creator fees
+
+Agent mode (--agentMint) wraps transactions for execution by an on-chain agent,
+enabling AI agents to launch tokens autonomously.
+
 Use --wizard for an interactive guided setup.`
 
   static override examples = [
     '$ mplx genesis launch create --wizard',
     '$ mplx genesis launch create --name "My Token" --symbol "MTK" --image "https://gateway.irys.xyz/abc123" --tokenAllocation 500000000 --depositStartTime 2025-03-01T00:00:00Z --raiseGoal 200 --raydiumLiquidityBps 5000 --fundsRecipient <ADDRESS>',
-    '$ mplx genesis launch create --launchType bonding-curve --name "My Meme" --symbol "MEME" --image "https://gateway.irys.xyz/abc123" --depositStartTime 2025-03-01T00:00:00Z',
+    '$ mplx genesis launch create --launchType bonding-curve --name "My Meme" --symbol "MEME" --image "https://gateway.irys.xyz/abc123"',
+    '$ mplx genesis launch create --launchType bonding-curve --name "My Meme" --symbol "MEME" --image "https://gateway.irys.xyz/abc123" --creatorFeeWallet <ADDRESS> --firstBuyAmount 0.1',
+    '$ mplx genesis launch create --launchType bonding-curve --name "Agent Token" --symbol "AGT" --image "https://gateway.irys.xyz/abc123" --agentMint <AGENT_NFT_ADDRESS> --agentSetToken',
     '$ mplx genesis launch create --name "My Token" --symbol "MTK" --image "https://gateway.irys.xyz/abc123" --tokenAllocation 500000000 --depositStartTime 2025-03-01T00:00:00Z --raiseGoal 200 --raydiumLiquidityBps 5000 --fundsRecipient <ADDRESS> --lockedAllocations allocations.json',
   ]
 
@@ -242,31 +261,51 @@ Use --wizard for an interactive guided setup.`
 
     // Shared config
     depositStartTime: Flags.string({
-      description: 'Deposit start time (ISO date string or unix timestamp). Project: 48h deposit. Memecoin: 1h deposit.',
+      description: '[launchpool only] Deposit start time (ISO date string or unix timestamp). 48h deposit period.',
       required: false,
     }),
 
     // Project-only launchpool config
     tokenAllocation: Flags.integer({
-      description: '[project only] Launch pool token allocation (portion of 1B total supply)',
+      description: '[launchpool only] Launch pool token allocation (portion of 1B total supply)',
       required: false,
     }),
     raiseGoal: Flags.integer({
-      description: '[project only] Raise goal in whole units (e.g., 200 for 200 SOL)',
+      description: '[launchpool only] Raise goal in whole units (e.g., 200 for 200 SOL)',
       required: false,
     }),
     raydiumLiquidityBps: Flags.integer({
-      description: '[project only] Raydium liquidity in basis points (2000-10000, i.e. 20%-100%)',
+      description: '[launchpool only] Raydium liquidity in basis points (2000-10000, i.e. 20%-100%)',
       required: false,
     }),
     fundsRecipient: Flags.string({
-      description: '[project only] Funds recipient wallet address',
+      description: '[launchpool only] Funds recipient wallet address',
       required: false,
+    }),
+
+    // Bonding curve config
+    creatorFeeWallet: Flags.string({
+      description: '[bonding-curve only] Wallet address to receive creator fees (defaults to launching wallet)',
+      required: false,
+    }),
+    firstBuyAmount: Flags.string({
+      description: '[bonding-curve only] SOL amount for mandatory first buy (e.g. 0.1 for 0.1 SOL). Omit to disable.',
+      required: false,
+    }),
+
+    // Agent mode
+    agentMint: Flags.string({
+      description: 'Agent NFT mint address. Wraps transactions for agent execution, enabling AI agents to launch tokens.',
+      required: false,
+    }),
+    agentSetToken: Flags.boolean({
+      description: 'When using --agentMint, set the launched token on the agent NFT.',
+      default: false,
     }),
 
     // Optional
     lockedAllocations: Flags.string({
-      description: '[project only] Path to JSON file with locked allocation configs',
+      description: '[launchpool only] Path to JSON file with locked allocation configs',
       required: false,
     }),
     quoteMint: Flags.string({
@@ -295,17 +334,33 @@ Use --wizard for an interactive guided setup.`
     }
 
     // Non-wizard mode: validate required flags
-    const missingFlags = (['name', 'symbol', 'image', 'depositStartTime'] as const).filter(f => !flags[f])
+    const missingFlags = (['name', 'symbol', 'image'] as const).filter(f => !flags[f])
     if (missingFlags.length > 0) {
       this.error(`Missing required flag${missingFlags.length > 1 ? 's' : ''}: ${missingFlags.map(f => `--${f}`).join(', ')}. Use --wizard for interactive setup.`)
     }
 
+    // depositStartTime is required for launchpool only
+    if (flags.launchType === 'launchpool' && !flags.depositStartTime) {
+      this.error('Missing required flag: --depositStartTime. Required for launchpool launches.')
+    }
+
     // Normalize depositStartTime to ISO string for the SDK (accepts Date | string)
     const flagRecord: Record<string, unknown> = { ...flags }
-    try {
-      flagRecord.depositStartTime = toISOTimestamp(flags.depositStartTime!)
-    } catch {
-      this.error('--depositStartTime must be a valid ISO date (e.g. 2025-06-01T00:00:00Z) or unix timestamp')
+    if (flags.depositStartTime) {
+      try {
+        flagRecord.depositStartTime = toISOTimestamp(flags.depositStartTime)
+      } catch {
+        this.error('--depositStartTime must be a valid ISO date (e.g. 2025-06-01T00:00:00Z) or unix timestamp')
+      }
+    }
+
+    // Parse firstBuyAmount as a number
+    if (flags.firstBuyAmount) {
+      const amount = Number(flags.firstBuyAmount)
+      if (isNaN(amount) || amount < 0) {
+        this.error('--firstBuyAmount must be a non-negative number (e.g. 0.1)')
+      }
+      flagRecord.firstBuyAmount = amount
     }
 
     const strategy = LAUNCH_STRATEGIES[flags.launchType]
@@ -326,6 +381,14 @@ Use --wizard for an interactive guided setup.`
     const errors = strategy.validate(flagRecord)
     if (errors.length > 0) {
       this.error(errors.join('\n'))
+    }
+
+    // Validate agent flags
+    if (flags.agentMint && !isPublicKey(flags.agentMint)) {
+      this.error('--agentMint must be a valid public key (agent NFT mint address)')
+    }
+    if (flags.agentSetToken && !flags.agentMint) {
+      this.error('--agentSetToken requires --agentMint')
     }
 
     // Detect network from chain if not specified
@@ -354,6 +417,12 @@ Use --wizard for an interactive guided setup.`
       },
       network,
       ...(flags.quoteMint !== 'SOL' && { quoteMint: flags.quoteMint as QuoteMintInput }),
+      ...(flags.agentMint && {
+        agent: {
+          mint: flags.agentMint,
+          setToken: flags.agentSetToken,
+        },
+      }),
     }
 
     const launchInput = strategy.buildInput(common, flagRecord)
@@ -401,6 +470,12 @@ Use --wizard for an interactive guided setup.`
         raiseGoal: wizardResult.raiseGoal,
         raydiumLiquidityBps: wizardResult.raydiumLiquidityBps,
         fundsRecipient: wizardResult.fundsRecipient,
+        creatorFeeWallet: wizardResult.creatorFeeWallet,
+        firstBuyAmount: wizardResult.firstBuyAmount,
+        agent: wizardResult.agentMint ? {
+          mint: wizardResult.agentMint,
+          setToken: wizardResult.agentSetToken ?? false,
+        } : undefined,
       },
       networkOverride,
     )
@@ -442,6 +517,9 @@ Use --wizard for an interactive guided setup.`
       this.log(`Launch ID: ${result.launch.id}`)
       this.log(`Launch Link: ${result.launch.link}`)
       this.log(`Token ID: ${result.token.id}`)
+      if (launchInput.agent) {
+        this.log(`Agent Mint: ${typeof launchInput.agent.mint === 'string' ? launchInput.agent.mint : launchInput.agent.mint.toString()}`)
+      }
       this.log('')
       this.log('Transactions:')
       for (const sig of result.signatures) {

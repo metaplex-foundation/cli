@@ -47,6 +47,19 @@ export interface BuildLaunchInputParams {
 }
 
 /* ------------------------------------------------------------------ */
+/*  API URL helpers                                                    */
+/* ------------------------------------------------------------------ */
+
+const API_URLS: Record<SvmNetwork, string> = {
+  'solana-mainnet': 'https://api.metaplex.com',
+  'solana-devnet': 'https://api.metaplex.dev',
+}
+
+export function getDefaultApiUrl(network: SvmNetwork): string {
+  return API_URLS[network] ?? API_URLS['solana-mainnet']
+}
+
+/* ------------------------------------------------------------------ */
 /*  Build function                                                     */
 /* ------------------------------------------------------------------ */
 

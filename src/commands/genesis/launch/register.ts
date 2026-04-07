@@ -10,6 +10,7 @@ import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { readJsonSync } from '../../../lib/file.js'
 import { detectSvmNetwork } from '../../../lib/util.js'
+import { getDefaultApiUrl } from '../../../lib/genesis/launchApi.js'
 
 export default class GenesisLaunchRegister extends TransactionCommand<typeof GenesisLaunchRegister> {
   static override description = `Register an existing genesis account with the Metaplex platform.
@@ -44,8 +45,7 @@ provided as a JSON file via --launchConfig.`
       required: false,
     })(),
     apiUrl: Flags.string({
-      description: 'Genesis API base URL',
-      default: 'https://api.metaplex.com',
+      description: 'Genesis API base URL (defaults to https://api.metaplex.com for mainnet, https://api.metaplex.dev for devnet)',
       required: false,
     }),
   }
@@ -132,7 +132,7 @@ provided as a JSON file via --launchConfig.`
       }
 
       const apiConfig: GenesisApiConfig = {
-        baseUrl: flags.apiUrl,
+        baseUrl: flags.apiUrl ?? getDefaultApiUrl(network),
       }
 
       const result = await registerLaunch(this.context.umi, apiConfig, {

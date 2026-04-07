@@ -17,7 +17,7 @@ import { generateExplorerUrl } from '../../../explorers.js'
 import { readJsonSync } from '../../../lib/file.js'
 import { detectSvmNetwork, txSignatureToString } from '../../../lib/util.js'
 import { promptLaunchWizard, toISOTimestamp } from '../../../lib/genesis/createGenesisWizardPrompt.js'
-import { buildLaunchInput } from '../../../lib/genesis/launchApi.js'
+import { buildLaunchInput, getDefaultApiUrl } from '../../../lib/genesis/launchApi.js'
 
 /* ------------------------------------------------------------------ */
 /*  Launch strategy types & implementations                            */
@@ -318,8 +318,7 @@ Use --wizard for an interactive guided setup.`
       required: false,
     })(),
     apiUrl: Flags.string({
-      description: 'Genesis API base URL',
-      default: 'https://api.metaplex.com',
+      description: 'Genesis API base URL (defaults to https://api.metaplex.com for mainnet, https://api.metaplex.dev for devnet)',
       required: false,
     }),
   }
@@ -427,7 +426,7 @@ Use --wizard for an interactive guided setup.`
 
     const launchInput = strategy.buildInput(common, flagRecord)
 
-    return this.sendLaunch(launchInput, flags.apiUrl)
+    return this.sendLaunch(launchInput, flags.apiUrl ?? getDefaultApiUrl(network))
   }
 
   /* ------------------------------------------------------------------ */
@@ -447,6 +446,7 @@ Use --wizard for an interactive guided setup.`
     const wizardResult = await promptLaunchWizard()
 
     const networkOverride = flags.network as SvmNetwork | undefined
+    const network: SvmNetwork = networkOverride ?? detectSvmNetwork(this.context.chain)
 
     const launchInput = buildLaunchInput(
       this.context.umi.identity.publicKey.toString(),
@@ -480,19 +480,19 @@ Use --wizard for an interactive guided setup.`
       networkOverride,
     )
 
-    return this.sendLaunch(launchInput, flags.apiUrl as string | undefined)
+    return this.sendLaunch(launchInput, (flags.apiUrl as string | undefined) ?? getDefaultApiUrl(network))
   }
 
   /* ------------------------------------------------------------------ */
   /*  Send launch (shared by wizard and flag modes)                      */
   /* ------------------------------------------------------------------ */
 
-  private async sendLaunch(launchInput: CreateLaunchInput, apiUrl?: string): Promise<unknown> {
+  private async sendLaunch(launchInput: CreateLaunchInput, apiUrl: string): Promise<unknown> {
     const spinner = ora('Creating token launch via Genesis API...').start()
 
     try {
       const apiConfig: GenesisApiConfig = {
-        baseUrl: apiUrl ?? 'https://api.metaplex.com',
+        baseUrl: apiUrl,
       }
 
       spinner.text = 'Building transactions via Genesis API...'

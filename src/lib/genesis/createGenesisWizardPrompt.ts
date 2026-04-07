@@ -183,8 +183,8 @@ export async function promptTokenMetadata(): Promise<{ name: string; symbol: str
   })
 
   const image = await input({
-    message: 'Token image URL (must start with https://gateway.irys.xyz/):',
-    validate: (v) => { abortOrTrue(v); if (!v.startsWith('https://gateway.irys.xyz/')) return 'Must start with https://gateway.irys.xyz/'; return true },
+    message: 'Token image URL:',
+    validate: (v) => { abortOrTrue(v); if (!v.startsWith('https://')) return 'Must be a valid https URL'; return true },
   })
 
   const description = await input({
@@ -549,8 +549,8 @@ export async function promptRegisterLaunch(): Promise<RegisterLaunchResult> {
   console.log('')
 
   const image = await input({
-    message: 'Token image URL (must start with https://gateway.irys.xyz/):',
-    validate: (v) => { abortOrTrue(v); if (!v.startsWith('https://gateway.irys.xyz/')) return 'Must start with https://gateway.irys.xyz/'; return true },
+    message: 'Token image URL:',
+    validate: (v) => { abortOrTrue(v); if (!v.startsWith('https://')) return 'Must be a valid https URL'; return true },
   })
 
   const description = await input({

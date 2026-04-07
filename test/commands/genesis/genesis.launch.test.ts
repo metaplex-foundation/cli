@@ -30,6 +30,21 @@ describe('genesis launch commands', () => {
                 expect(msg).to.contain('name')
                 expect(msg).to.contain('symbol')
                 expect(msg).to.contain('image')
+            }
+        })
+
+        it('fails when depositStartTime is missing for launchpool', async () => {
+            try {
+                await runCli([
+                    'genesis', 'launch', 'create',
+                    '--name', 'My Token',
+                    '--symbol', 'MTK',
+                    '--image', 'https://gateway.irys.xyz/abc123',
+                ])
+                expect.fail('Should have thrown an error for missing depositStartTime')
+            } catch (error) {
+                const msg = (error as Error).message
+                expect(msg).to.contain('Missing required flag')
                 expect(msg).to.contain('depositStartTime')
             }
         })
@@ -39,7 +54,6 @@ describe('genesis launch commands', () => {
             name: ['--name', 'My Token'],
             symbol: ['--symbol', 'MTK'],
             image: ['--image', 'https://gateway.irys.xyz/abc123'],
-            depositStartTime: ['--depositStartTime', futureIso(7 * 86400)],
         }
 
         for (const omitted of Object.keys(sharedRequiredFlags)) {
@@ -59,8 +73,9 @@ describe('genesis launch commands', () => {
             })
         }
 
-        // Project-only flags validated at runtime
+        // Project-only flags validated at runtime (includes depositStartTime for launchpool)
         const projectOnlyFlags: Record<string, string[]> = {
+            depositStartTime: ['--depositStartTime', futureIso(7 * 86400)],
             tokenAllocation: ['--tokenAllocation', '500000000'],
             raiseGoal: ['--raiseGoal', '200'],
             raydiumLiquidityBps: ['--raydiumLiquidityBps', '5000'],
@@ -228,14 +243,13 @@ describe('genesis launch commands', () => {
             }
         })
 
-        it.skip('bonding-curve launch only requires depositStartTime (reaches API call)', async () => {
+        it.skip('bonding-curve launch requires only name, symbol, image (reaches API call)', async () => {
             const cliInput = [
                 'genesis', 'launch', 'create',
                 '--launchType', 'bonding-curve',
                 '--name', 'My Meme',
                 '--symbol', 'MEME',
                 '--image', 'https://gateway.irys.xyz/abc123',
-                '--depositStartTime', futureIso(30 * 86400),
             ]
 
             try {
@@ -249,17 +263,38 @@ describe('genesis launch commands', () => {
             }
         })
 
-        it.skip('bonding-curve launch with optional metadata reaches API call', async () => {
+        it.skip('bonding-curve launch with optional flags reaches API call', async () => {
             const cliInput = [
                 'genesis', 'launch', 'create',
                 '--launchType', 'bonding-curve',
                 '--name', 'My Meme',
                 '--symbol', 'MEME',
                 '--image', 'https://gateway.irys.xyz/abc123',
-                '--depositStartTime', futureIso(30 * 86400),
                 '--description', 'A bonding curve token for testing',
                 '--twitter', 'https://x.com/mymeme',
                 '--quoteMint', 'USDC',
+                '--creatorFeeWallet', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
+                '--firstBuyAmount', '0.1',
+            ]
+
+            try {
+                await runCli(cliInput)
+                expect.fail('Should have thrown an API error (API not available on localnet)')
+            } catch (error) {
+                const msg = (error as Error).message
+                expect(msg).to.contain('Failed')
+            }
+        })
+
+        it.skip('bonding-curve launch with agent flags reaches API call', async () => {
+            const cliInput = [
+                'genesis', 'launch', 'create',
+                '--launchType', 'bonding-curve',
+                '--name', 'Agent Token',
+                '--symbol', 'AGT',
+                '--image', 'https://gateway.irys.xyz/abc123',
+                '--agentMint', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
+                '--agentSetToken',
             ]
 
             try {
@@ -278,7 +313,6 @@ describe('genesis launch commands', () => {
                 '--name', 'My Meme',
                 '--symbol', 'MEME',
                 '--image', 'https://gateway.irys.xyz/abc123',
-                '--depositStartTime', futureIso(30 * 86400),
                 '--tokenAllocation', '500000000',
             ]
 
@@ -289,6 +323,49 @@ describe('genesis launch commands', () => {
                 const msg = (error as Error).message
                 expect(msg).to.contain('not allowed for bonding-curve')
                 expect(msg).to.contain('--tokenAllocation')
+            }
+        })
+
+        it('bonding-curve launch rejects depositStartTime', async () => {
+            const cliInput = [
+                'genesis', 'launch', 'create',
+                '--launchType', 'bonding-curve',
+                '--name', 'My Meme',
+                '--symbol', 'MEME',
+                '--image', 'https://gateway.irys.xyz/abc123',
+                '--depositStartTime', futureIso(30 * 86400),
+            ]
+
+            try {
+                await runCli(cliInput)
+                expect.fail('Should have thrown an error for disallowed flags')
+            } catch (error) {
+                const msg = (error as Error).message
+                expect(msg).to.contain('not allowed for bonding-curve')
+                expect(msg).to.contain('--depositStartTime')
+            }
+        })
+
+        it('rejects --agentSetToken without --agentMint', async () => {
+            const cliInput = [
+                'genesis', 'launch', 'create',
+                '--name', 'My Token',
+                '--symbol', 'MTK',
+                '--image', 'https://gateway.irys.xyz/abc123',
+                '--depositStartTime', futureIso(7 * 86400),
+                '--tokenAllocation', '500000000',
+                '--raiseGoal', '200',
+                '--raydiumLiquidityBps', '5000',
+                '--fundsRecipient', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
+                '--agentSetToken',
+            ]
+
+            try {
+                await runCli(cliInput)
+                expect.fail('Should have thrown an error for agentSetToken without agentMint')
+            } catch (error) {
+                const msg = (error as Error).message
+                expect(msg).to.contain('--agentSetToken requires --agentMint')
             }
         })
     })
@@ -427,9 +504,7 @@ describe('genesis launch commands', () => {
                 token: { name: 'Meme', symbol: 'MEME', image: 'https://gateway.irys.xyz/abc' },
                 launchType: 'bondingCurve',
                 launch: {
-                    bondingCurve: {
-                        depositStartTime: futureIso(30 * 86400),
-                    },
+                    creatorFeeWallet: 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
                 },
             }))
 

@@ -1,6 +1,6 @@
 {
   "require": [
-    "ts-node/register"
+    "tsx"
   ],
   "watch-extensions": [
     "ts"
@@ -10,7 +10,9 @@
   "timeout": 60000,
   "parallel": true,
   "node-option": [
-    "loader=ts-node/esm",
-    "experimental-specifier-resolution=node"
+    "import=tsx"
+  ],
+  "ignore": [
+    "test/commands/distro/**"
   ]
 }

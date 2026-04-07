@@ -10,6 +10,7 @@ import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { readJsonSync } from '../../../lib/file.js'
 import { detectSvmNetwork } from '../../../lib/util.js'
+import { getDefaultApiUrl } from '../../../lib/genesis/launchApi.js'
 
 export default class GenesisLaunchRegister extends TransactionCommand<typeof GenesisLaunchRegister> {
   static override description = `Register an existing genesis account with the Metaplex platform.
@@ -44,8 +45,7 @@ provided as a JSON file via --launchConfig.`
       required: false,
     })(),
     apiUrl: Flags.string({
-      description: 'Genesis API base URL',
-      default: 'https://api.metaplex.com',
+      description: 'Genesis API base URL (defaults to https://api.metaplex.com for mainnet, https://api.metaplex.dev for devnet)',
       required: false,
     }),
   }
@@ -107,12 +107,17 @@ provided as a JSON file via --launchConfig.`
           throw new Error('Launchpool config requires "tokenAllocation", "depositStartTime", "raiseGoal", "raydiumLiquidityBps", and "fundsRecipient" in launch.launchpool')
         }
       } else {
-        if (!launch.bondingCurve || typeof launch.bondingCurve !== 'object' || Array.isArray(launch.bondingCurve)) {
-          throw new Error('Bonding curve config requires a "launch.bondingCurve" object')
+        // Bonding curve: validate optional fields when present
+        if (launch.creatorFeeWallet !== undefined) {
+          if (typeof launch.creatorFeeWallet !== 'string' || launch.creatorFeeWallet.length === 0) {
+            throw new Error('Bonding curve "launch.creatorFeeWallet" must be a non-empty string (public key)')
+          }
         }
-        const curve = launch.bondingCurve as Record<string, unknown>
-        if (!curve.depositStartTime) {
-          throw new Error('Bonding curve config requires "depositStartTime" in launch.bondingCurve')
+        if (launch.firstBuyAmount !== undefined) {
+          const amount = Number(launch.firstBuyAmount)
+          if (isNaN(amount) || !Number.isFinite(amount) || amount < 0) {
+            throw new Error('Bonding curve "launch.firstBuyAmount" must be a finite, non-negative number')
+          }
         }
       }
 
@@ -127,7 +132,7 @@ provided as a JSON file via --launchConfig.`
       }
 
       const apiConfig: GenesisApiConfig = {
-        baseUrl: flags.apiUrl,
+        baseUrl: flags.apiUrl ?? getDefaultApiUrl(network),
       }
 
       const result = await registerLaunch(this.context.umi, apiConfig, {

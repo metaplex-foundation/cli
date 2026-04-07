@@ -22,6 +22,9 @@ package-lock.json
 
 .claude/
 
+# Program binaries (pulled fresh from Devnet in CI)
+.amman/*.so
+
 # Known created test folders
 candy1
 testCm1

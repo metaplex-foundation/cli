@@ -220,7 +220,7 @@ Use --wizard for an interactive guided setup.`
       required: false,
     }),
     image: Flags.string({
-      description: 'Token image URL (must start with https://gateway.irys.xyz/)',
+      description: 'Token image URL',
       required: false,
     }),
     description: Flags.string({

@@ -12,12 +12,12 @@ export default class CollectionAdd extends TransactionCommand<typeof CollectionA
   static override description = 'Add an existing MPL Core Asset to a Collection'
 
   static override examples = [
-    '<%= config.bin %> <%= command.id %> <collectionId> <assetId>',
+    '<%= config.bin %> <%= command.id %> <collection> <asset>',
   ]
 
   static override args = {
-    collectionId: Args.string({ description: 'Collection to add the asset to', required: true }),
-    assetId: Args.string({ description: 'Asset to add to the collection', required: true }),
+    collection: Args.string({ description: 'Collection to add the asset to', required: true }),
+    asset: Args.string({ description: 'Asset to add to the collection', required: true }),
   }
 
   public async run(): Promise<unknown> {
@@ -27,12 +27,12 @@ export default class CollectionAdd extends TransactionCommand<typeof CollectionA
     const spinner = ora('Fetching asset and collection...').start()
 
     try {
-      const asset = await fetchAsset(umi, publicKey(args.assetId))
-      const collection = await fetchCollection(umi, publicKey(args.collectionId))
+      const asset = await fetchAsset(umi, publicKey(args.asset))
+      const collection = await fetchCollection(umi, publicKey(args.collection))
 
       if (asset.updateAuthority.type === 'Collection') {
         spinner.fail('Asset is already in a collection')
-        this.error(`Asset ${args.assetId} already belongs to collection ${asset.updateAuthority.address}`)
+        this.error(`Asset ${args.asset} already belongs to collection ${asset.updateAuthority.address}`)
       }
 
       spinner.text = 'Adding asset to collection...'
@@ -49,15 +49,15 @@ export default class CollectionAdd extends TransactionCommand<typeof CollectionA
 
       spinner.succeed(`Asset added to collection`)
       this.logSuccess(`--------------------------------
-  Asset:      ${args.assetId}
-  Collection: ${args.collectionId}
+  Asset:      ${args.asset}
+  Collection: ${args.collection}
   Signature:  ${signature}
   Explorer:   ${explorerUrl}
 --------------------------------`)
 
       return {
-        asset: args.assetId,
-        collection: args.collectionId,
+        asset: args.asset,
+        collection: args.collection,
         signature,
         explorer: explorerUrl,
       }

@@ -1,18 +1,18 @@
 import {
-  swapBondingCurveV2,
-  safeFetchGenesisAccountV2,
-  findBondingCurveBucketV2Pda,
-  safeFetchBondingCurveBucketV2,
-  WRAPPED_SOL_MINT,
   SwapDirection,
-  getSwapResult,
+  WRAPPED_SOL_MINT,
   applySlippage,
-  isFirstBuyPending,
-  isSwappable,
-  isSoldOut,
+  findBondingCurveBucketV2Pda,
   getCurrentPrice,
   getCurrentPriceQuotePerBase,
   getFillPercentage,
+  getSwapResult,
+  isFirstBuyPending,
+  isSoldOut,
+  isSwappable,
+  safeFetchBondingCurveBucketV2,
+  safeFetchGenesisAccountV2,
+  swapBondingCurveV2,
 } from '@metaplex-foundation/genesis'
 import {
   createAssociatedToken,
@@ -20,18 +20,25 @@ import {
   syncNative,
   transferSol,
 } from '@metaplex-foundation/mpl-toolbox'
-import { publicKey, lamports, TransactionBuilder } from '@metaplex-foundation/umi'
+import { TransactionBuilder, lamports, publicKey } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
 
 import { TransactionCommand } from '../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../explorers.js'
-import { txSignatureToString } from '../../lib/util.js'
 import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
+import { txSignatureToString } from '../../lib/util.js'
 
 const NATIVE_MINT = publicKey(WRAPPED_SOL_MINT)
 
 export default class GenesisSwap extends TransactionCommand<typeof GenesisSwap> {
+  static override args = {
+    genesis: Args.string({
+      description: 'The Genesis account address',
+      required: true,
+    }),
+  }
+
   static override description = `Swap on a Genesis bonding curve.
 
 Buy tokens with quote tokens (e.g. SOL) or sell tokens back for quote tokens.
@@ -54,38 +61,31 @@ Combine --info with --buyAmount or --sellAmount to get a quote without swapping.
     '$ mplx genesis swap GenesisAddress... --info --sellAmount 500000000000',
   ]
 
-  static override usage = 'genesis swap [GENESIS] [FLAGS]'
-
-  static override args = {
-    genesis: Args.string({
-      description: 'The Genesis account address',
-      required: true,
-    }),
-  }
-
   static override flags = {
+    bucketIndex: Flags.integer({
+      char: 'b',
+      default: 0,
+      description: 'Index of the bonding curve bucket (default: 0)',
+    }),
     buyAmount: Flags.string({
       description: 'Amount of quote tokens to spend on buying base tokens (e.g. lamports for SOL)',
       required: false,
+    }),
+    info: Flags.boolean({
+      default: false,
+      description: 'Display curve status and price quotes without executing a swap',
     }),
     sellAmount: Flags.string({
       description: 'Amount of base tokens to sell for quote tokens',
       required: false,
     }),
     slippage: Flags.integer({
-      description: 'Slippage tolerance in basis points (default: 200 = 2%)',
       default: 200,
-    }),
-    bucketIndex: Flags.integer({
-      char: 'b',
-      description: 'Index of the bonding curve bucket (default: 0)',
-      default: 0,
-    }),
-    info: Flags.boolean({
-      description: 'Display curve status and price quotes without executing a swap',
-      default: false,
+      description: 'Slippage tolerance in basis points (default: 200 = 2%)',
     }),
   }
+
+  static override usage = 'genesis swap [GENESIS] [FLAGS]'
 
   public async run(): Promise<unknown> {
     const { args, flags } = await this.parse(GenesisSwap)
@@ -98,11 +98,12 @@ Combine --info with --buyAmount or --sellAmount to get a quote without swapping.
     if (!flags.buyAmount && !flags.sellAmount) {
       this.error('Either --buyAmount or --sellAmount is required. Use --info to view curve status without swapping.')
     }
+
     if (flags.buyAmount && flags.sellAmount) {
       this.error('Cannot specify both --buyAmount and --sellAmount. Use one or the other.')
     }
 
-    const isBuy = !!flags.buyAmount
+    const isBuy = Boolean(flags.buyAmount)
     const rawAmount = (flags.buyAmount ?? flags.sellAmount)!
 
     const spinner = ora('Processing swap...').start()
@@ -120,8 +121,8 @@ Combine --info with --buyAmount or --sellAmount to get a quote without swapping.
 
       // Fetch bonding curve bucket
       const [bucketPda] = findBondingCurveBucketV2Pda(this.context.umi, {
-        genesisAccount: genesisAddress,
         bucketIndex: flags.bucketIndex,
+        genesisAccount: genesisAddress,
       })
 
       spinner.text = 'Fetching bonding curve bucket...'
@@ -138,6 +139,7 @@ Combine --info with --buyAmount or --sellAmount to get a quote without swapping.
       } catch {
         this.error(`Invalid amount "${rawAmount}". Must be a non-negative integer.`)
       }
+
       if (amount <= 0n) {
         this.error('Swap amount must be greater than 0.')
       }
@@ -163,7 +165,7 @@ Combine --info with --buyAmount or --sellAmount to get a quote without swapping.
         const totalNeeded = amount + quote.fee + quote.creatorFee
         let currentBalance = 0n
         if (ataAccount && ataAccount.exists) {
-          const data = ataAccount.data
+          const {data} = ataAccount
           currentBalance = data.length >= 72
             ? BigInt(new DataView(data.buffer, data.byteOffset + 64, 8).getBigUint64(0, true))
             : 0n
@@ -194,14 +196,14 @@ Combine --info with --buyAmount or --sellAmount to get a quote without swapping.
       spinner.text = `Swapping ${isBuy ? 'quote → base' : 'base → quote'} tokens...`
 
       const swapIx = swapBondingCurveV2(this.context.umi, {
-        genesisAccount: genesisAddress,
-        bucket: bucketPda,
-        baseMint: genesisAccount.baseMint,
-        quoteMint: genesisAccount.quoteMint,
-        payer: this.context.payer,
-        swapDirection,
         amount,
+        baseMint: genesisAccount.baseMint,
+        bucket: bucketPda,
+        genesisAccount: genesisAddress,
         minAmountOutScaled: minAmountOut,
+        payer: this.context.payer,
+        quoteMint: genesisAccount.quoteMint,
+        swapDirection,
       })
 
       const transaction = wrapTx.add(swapIx)
@@ -228,16 +230,16 @@ Combine --info with --buyAmount or --sellAmount to get a quote without swapping.
       this.log(generateExplorerUrl(this.context.explorer, this.context.chain, sig, 'transaction'))
 
       return {
-        genesisAccount: genesisAddress.toString(),
-        bucket: bucketPda.toString(),
-        direction,
         amountIn: amount.toString(),
-        expectedOut: quote.amountOut.toString(),
-        minOut: minAmountOut.toString(),
-        fee: quote.fee.toString(),
+        bucket: bucketPda.toString(),
         creatorFee: quote.creatorFee.toString(),
-        signature: sig,
+        direction,
+        expectedOut: quote.amountOut.toString(),
         explorer: generateExplorerUrl(this.context.explorer, this.context.chain, sig, 'transaction'),
+        fee: quote.fee.toString(),
+        genesisAccount: genesisAddress.toString(),
+        minOut: minAmountOut.toString(),
+        signature: sig,
       }
     } catch (error) {
       spinner.fail('Failed to swap')
@@ -259,8 +261,8 @@ Combine --info with --buyAmount or --sellAmount to get a quote without swapping.
       }
 
       const [bucketPda] = findBondingCurveBucketV2Pda(this.context.umi, {
-        genesisAccount: genesisAddress,
         bucketIndex,
+        genesisAccount: genesisAddress,
       })
 
       const bucket = await safeFetchBondingCurveBucketV2(this.context.umi, bucketPda)
@@ -299,14 +301,14 @@ Combine --info with --buyAmount or --sellAmount to get a quote without swapping.
       this.log(`  Fill: ${fillPct.toFixed(2)}%`)
 
       const result: Record<string, unknown> = {
-        genesisAccount: genesisAddress.toString(),
         bucket: bucketPda.toString(),
+        fillPercentage: fillPct,
+        firstBuyPending: firstBuy,
+        genesisAccount: genesisAddress.toString(),
         price: price.toString(),
         priceQuotePerBase: priceQpB.toString(),
-        firstBuyPending: firstBuy,
-        swappable,
         soldOut,
-        fillPercentage: fillPct,
+        swappable,
       }
 
       // Buy quote
@@ -317,6 +319,7 @@ Combine --info with --buyAmount or --sellAmount to get a quote without swapping.
         } catch {
           this.error(`Invalid --buyAmount "${flags.buyAmount}". Must be a non-negative integer.`)
         }
+
         const buyQuote = getSwapResult(bucket, buyAmt, SwapDirection.Buy, firstBuy)
         const minOut = applySlippage(buyQuote.amountOut, (flags.slippage as number) ?? 200)
         this.log('')
@@ -328,8 +331,8 @@ Combine --info with --buyAmount or --sellAmount to get a quote without swapping.
         result.buyQuote = {
           amountIn: buyAmt.toString(),
           amountOut: buyQuote.amountOut.toString(),
-          fee: buyQuote.fee.toString(),
           creatorFee: buyQuote.creatorFee.toString(),
+          fee: buyQuote.fee.toString(),
           minOut: minOut.toString(),
         }
       }
@@ -342,6 +345,7 @@ Combine --info with --buyAmount or --sellAmount to get a quote without swapping.
         } catch {
           this.error(`Invalid --sellAmount "${flags.sellAmount}". Must be a non-negative integer.`)
         }
+
         const sellQuote = getSwapResult(bucket, sellAmt, SwapDirection.Sell, false)
         const minOut = applySlippage(sellQuote.amountOut, (flags.slippage as number) ?? 200)
         this.log('')
@@ -353,8 +357,8 @@ Combine --info with --buyAmount or --sellAmount to get a quote without swapping.
         result.sellQuote = {
           amountIn: sellAmt.toString(),
           amountOut: sellQuote.amountOut.toString(),
-          fee: sellQuote.fee.toString(),
           creatorFee: sellQuote.creatorFee.toString(),
+          fee: sellQuote.fee.toString(),
           minOut: minOut.toString(),
         }
       }

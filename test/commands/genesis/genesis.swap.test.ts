@@ -2,6 +2,7 @@ import { expect } from 'chai'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+
 import { runCli } from '../../runCli'
 import { createGenesisAccount } from './genesishelpers'
 
@@ -9,7 +10,7 @@ describe('genesis swap and bonding curve commands', () => {
 
     before(async () => {
         await runCli(['toolbox', 'sol', 'airdrop', '100', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx'])
-        await new Promise(resolve => setTimeout(resolve, 5000))
+        await new Promise<void>(resolve => { setTimeout(resolve, 5000) })
         await runCli(['toolbox', 'sol', 'wrap', '50'])
     })
 
@@ -112,10 +113,10 @@ describe('genesis swap and bonding curve commands', () => {
 
         it('reports not found for non-existent bonding curve bucket', async () => {
             const result = await createGenesisAccount({
+                decimals: 9,
                 name: 'BC Fetch Test',
                 symbol: 'BFT',
                 totalSupply: '1000000000',
-                decimals: 9,
             })
 
             try {
@@ -178,10 +179,10 @@ describe('genesis swap and bonding curve commands', () => {
         it('rejects invalid --creatorWallet on register', async () => {
             const tmpFile = path.join(os.tmpdir(), `test-reg-cw-${process.pid}.json`)
             fs.writeFileSync(tmpFile, JSON.stringify({
-                wallet: 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
-                token: { name: 'Test', symbol: 'TST', image: 'https://gateway.irys.xyz/abc' },
-                launchType: 'bondingCurve',
                 launch: {},
+                launchType: 'bondingCurve',
+                token: { image: 'https://gateway.irys.xyz/abc', name: 'Test', symbol: 'TST' },
+                wallet: 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
             }))
 
             try {
@@ -203,10 +204,10 @@ describe('genesis swap and bonding curve commands', () => {
         it('accepts valid --creatorWallet on register (reaches API call)', async () => {
             const tmpFile = path.join(os.tmpdir(), `test-reg-cw-ok-${process.pid}.json`)
             fs.writeFileSync(tmpFile, JSON.stringify({
-                wallet: 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
-                token: { name: 'Test', symbol: 'TST', image: 'https://gateway.irys.xyz/abc' },
-                launchType: 'bondingCurve',
                 launch: {},
+                launchType: 'bondingCurve',
+                token: { image: 'https://gateway.irys.xyz/abc', name: 'Test', symbol: 'TST' },
+                wallet: 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
             }))
 
             try {

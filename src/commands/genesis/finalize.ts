@@ -1,6 +1,7 @@
 import {
   finalizeV2,
   safeFetchGenesisAccountV2,
+  findBondingCurveBucketV2Pda,
   findLaunchPoolBucketV2Pda,
   findPresaleBucketV2Pda,
   findUnlockedBucketV2Pda,
@@ -63,6 +64,7 @@ Requirements:
       // Discover all bucket PDAs to pass as remaining accounts
       spinner.text = 'Discovering bucket accounts...'
       const pdaFinders = [
+        findBondingCurveBucketV2Pda,
         findLaunchPoolBucketV2Pda,
         findPresaleBucketV2Pda,
         findUnlockedBucketV2Pda,

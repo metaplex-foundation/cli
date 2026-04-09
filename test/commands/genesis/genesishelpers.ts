@@ -1,4 +1,22 @@
 import { expect } from 'chai'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import {
+    addConstantProductBondingCurveBucketV2,
+    addUnlockedBucketV2,
+    createTimeAbsoluteCondition,
+    createTriggeredCondition,
+    finalizeV2,
+    findBondingCurveBucketV2Pda,
+    findGenesisAccountV2Pda,
+    findUnlockedBucketV2Pda,
+    genesis,
+    initializeV2,
+    WRAPPED_SOL_MINT,
+} from '@metaplex-foundation/genesis'
+import { mplToolbox } from '@metaplex-foundation/mpl-toolbox'
+import { publicKey, signerIdentity, signerPayer, createSignerFromKeypair, generateSigner } from '@metaplex-foundation/umi'
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
 import { runCli } from '../../runCli'
 
 // Helper to strip ANSI color codes
@@ -251,6 +269,80 @@ const addUnlockedBucket = async (
     return { bucketAddress }
 }
 
+/**
+ * Creates a full bonding curve genesis on localnet matching the API defaults.
+ * Uses SDK directly for all steps (genesis, bonding curve bucket, unlocked bucket).
+ * Does NOT finalize — the bonding curve requires a graduation behavior (Raydium LP)
+ * which can't be set up on localnet. Swaps still work on an unfinalized account.
+ * Decimals = 6, total supply = 1,000,000,000 (display) = 1e15 raw.
+ */
+const createBondingCurveGenesis = async (options?: {
+    name?: string
+    symbol?: string
+}): Promise<{ genesisAddress: string; baseMint: string }> => {
+    const name = options?.name ?? 'BC Test Token'
+    const symbol = options?.symbol ?? 'BCT'
+
+    const TEST_RPC = 'http://127.0.0.1:8899'
+    const KEYPAIR_PATH = join(process.cwd(), 'test-files', 'key.json')
+    const keyBytes = new Uint8Array(JSON.parse(readFileSync(KEYPAIR_PATH, 'utf8')))
+
+    const umi = createUmi(TEST_RPC).use(mplToolbox()).use(genesis())
+    const kp = umi.eddsa.createKeypairFromSecretKey(keyBytes)
+    const signer = createSignerFromKeypair(umi, kp)
+    umi.use(signerIdentity(signer)).use(signerPayer(signer))
+
+    // API defaults: decimals=6, totalSupply=1e15 raw
+    const TOTAL_SUPPLY = 1000000000000000n
+    const BC_SUPPLY = 717948717948717n
+    const BC_VIRTUAL_BASE = 464555052790349n
+    const BC_VIRTUAL_QUOTE = 55000000000n
+
+    // Create genesis account
+    const baseMintSigner = generateSigner(umi)
+    const [genesisAccountPda] = findGenesisAccountV2Pda(umi, { baseMint: baseMintSigner.publicKey, index: 0 })
+
+    await initializeV2(umi, {
+        genesisAccount: genesisAccountPda,
+        baseMint: baseMintSigner,
+        quoteMint: publicKey(WRAPPED_SOL_MINT),
+        name,
+        symbol,
+        uri: '',
+        decimals: 6,
+        totalSupplyBaseToken: TOTAL_SUPPLY,
+        fundingMode: 0, // NewMint
+    }).sendAndConfirm(umi)
+
+    // Add bonding curve bucket
+    await addConstantProductBondingCurveBucketV2(umi, {
+        genesisAccount: genesisAccountPda,
+        baseMint: baseMintSigner.publicKey,
+        baseTokenAllocation: BC_SUPPLY,
+        swapStartCondition: { __kind: 'Always', padding: new Array(55).fill(0), triggeredTimestamp: null },
+        swapEndCondition: createTriggeredCondition(),
+        virtualSol: BC_VIRTUAL_QUOTE,
+        virtualTokens: BC_VIRTUAL_BASE,
+    }).sendAndConfirm(umi)
+
+    // Add unlocked bucket for remaining supply
+    const remaining = TOTAL_SUPPLY - BC_SUPPLY
+    const now = Math.floor(Date.now() / 1000)
+    await addUnlockedBucketV2(umi, {
+        genesisAccount: genesisAccountPda,
+        baseMint: baseMintSigner.publicKey,
+        recipient: signer.publicKey,
+        baseTokenAllocation: remaining,
+        claimStartCondition: createTimeAbsoluteCondition(now - 3600),
+        claimEndCondition: createTimeAbsoluteCondition(now + 86400 * 365),
+    }).sendAndConfirm(umi)
+
+    return {
+        genesisAddress: genesisAccountPda.toString(),
+        baseMint: baseMintSigner.publicKey.toString(),
+    }
+}
+
 export {
     stripAnsi,
     extractGenesisAddress,
@@ -260,4 +352,5 @@ export {
     addLaunchPoolBucket,
     addPresaleBucket,
     addUnlockedBucket,
+    createBondingCurveGenesis,
 }

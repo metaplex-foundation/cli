@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { runCli } from '../../runCli'
-import { createGenesisAccount } from './genesishelpers'
+import { createGenesisAccount, createBondingCurveGenesis, stripAnsi } from './genesishelpers'
 
 describe('genesis swap and bonding curve commands', () => {
 
@@ -170,6 +170,118 @@ describe('genesis swap and bonding curve commands', () => {
                 expect(msg).to.contain('Failed')
                 expect(msg).to.not.contain('--creatorWallet must be a valid public key')
             }
+        })
+    })
+
+    describe('bonding curve swap integration', () => {
+        let genesisAddress: string
+
+        before(async function () {
+            this.timeout(120000)
+            const result = await createBondingCurveGenesis({
+                name: 'Swap Test',
+                symbol: 'SWT',
+            })
+            genesisAddress = result.genesisAddress
+            await new Promise(resolve => setTimeout(resolve, 2000))
+        })
+
+        it('fetches bonding curve bucket via auto-detect', async () => {
+            const { stdout, stderr, code } = await runCli([
+                'genesis', 'bucket', 'fetch',
+                genesisAddress,
+            ])
+
+            const clean = stripAnsi(stdout + stderr)
+            expect(code).to.equal(0)
+            expect(clean).to.contain('Bonding Curve Bucket')
+            expect(clean).to.contain('Swappable: Yes')
+            expect(clean).to.contain('Fill Percentage: 0.00%')
+        })
+
+        it('shows curve info with --info', async () => {
+            const { stdout, stderr, code } = await runCli([
+                'genesis', 'swap', genesisAddress, '--info',
+            ])
+
+            const clean = stripAnsi(stdout + stderr)
+            expect(code).to.equal(0)
+            expect(clean).to.contain('Bonding Curve Info')
+            expect(clean).to.contain('Swappable: Yes')
+            expect(clean).to.contain('Sold Out: No')
+            expect(clean).to.contain('Fill: 0.00%')
+        })
+
+        it('shows buy quote with --info --buyAmount', async () => {
+            const { stdout, stderr, code } = await runCli([
+                'genesis', 'swap', genesisAddress,
+                '--info', '--buyAmount', '100000000',
+            ])
+
+            const clean = stripAnsi(stdout + stderr)
+            expect(code).to.equal(0)
+            expect(clean).to.contain('Buy Quote')
+            expect(clean).to.contain('Tokens out:')
+            expect(clean).to.contain('Fee:')
+        })
+
+        // Swap execution requires a finalized genesis account, which needs a Raydium LP
+        // graduation behavior. Raydium programs aren't available on localnet, so these
+        // tests are skipped. They pass on devnet where the API creates finalized curves.
+        it.skip('buys tokens on the bonding curve (requires finalized account - devnet only)', async () => {
+            const { stdout, stderr, code } = await runCli([
+                'genesis', 'swap', genesisAddress,
+                '--buyAmount', '100000000',
+            ])
+
+            const clean = stripAnsi(stdout + stderr)
+            expect(code).to.equal(0)
+            expect(clean).to.contain('Bought tokens on bonding curve')
+            expect(clean).to.contain('Direction: buy')
+            expect(clean).to.contain('Amount In: 100000000')
+            expect(clean).to.contain('Expected Out:')
+            expect(clean).to.contain('Transaction:')
+        })
+
+        it.skip('curve info reflects the buy (requires finalized account - devnet only)', async () => {
+            await new Promise(resolve => setTimeout(resolve, 2000))
+
+            const { stdout, stderr, code } = await runCli([
+                'genesis', 'swap', genesisAddress, '--info',
+            ])
+
+            const clean = stripAnsi(stdout + stderr)
+            expect(code).to.equal(0)
+            // Fill should be > 0 now
+            expect(clean).to.not.contain('Fill: 0.00%')
+        })
+
+        it.skip('sells tokens back on the bonding curve (requires finalized account - devnet only)', async () => {
+            const { stdout, stderr, code } = await runCli([
+                'genesis', 'swap', genesisAddress,
+                '--sellAmount', '500000000000',
+            ])
+
+            const clean = stripAnsi(stdout + stderr)
+            expect(code).to.equal(0)
+            expect(clean).to.contain('Sold tokens on bonding curve')
+            expect(clean).to.contain('Direction: sell')
+            expect(clean).to.contain('Amount In: 500000000000')
+            expect(clean).to.contain('Expected Out:')
+            expect(clean).to.contain('Transaction:')
+        })
+
+        it.skip('buys with custom slippage (requires finalized account - devnet only)', async () => {
+            const { stdout, stderr, code } = await runCli([
+                'genesis', 'swap', genesisAddress,
+                '--buyAmount', '50000000',
+                '--slippage', '100',
+            ])
+
+            const clean = stripAnsi(stdout + stderr)
+            expect(code).to.equal(0)
+            expect(clean).to.contain('Bought tokens on bonding curve')
+            expect(clean).to.contain('Min Out (with 100bps slippage)')
         })
     })
 

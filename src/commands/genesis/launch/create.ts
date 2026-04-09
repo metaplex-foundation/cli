@@ -5,6 +5,7 @@ import {
   GenesisApiConfig,
   LockedAllocation,
   QuoteMintInput,
+  RegisterLaunchInput,
   SvmNetwork,
   createAndRegisterLaunch,
 } from '@metaplex-foundation/genesis'
@@ -303,6 +304,16 @@ Use --wizard for an interactive guided setup.`
       default: false,
     }),
 
+    // Registration options
+    creatorWallet: Flags.string({
+      description: 'Override the launch owner wallet for registration (public key address)',
+      required: false,
+    }),
+    twitterVerificationToken: Flags.string({
+      description: 'Twitter verification token for verified badge on the launch page',
+      required: false,
+    }),
+
     // Optional
     lockedAllocations: Flags.string({
       description: '[launchpool only] Path to JSON file with locked allocation configs',
@@ -382,6 +393,11 @@ Use --wizard for an interactive guided setup.`
       this.error(errors.join('\n'))
     }
 
+    // Validate registration flags
+    if (flags.creatorWallet && !isPublicKey(flags.creatorWallet)) {
+      this.error('--creatorWallet must be a valid public key')
+    }
+
     // Validate agent flags
     if (flags.agentMint && !isPublicKey(flags.agentMint)) {
       this.error('--agentMint must be a valid public key (agent NFT mint address)')
@@ -426,7 +442,11 @@ Use --wizard for an interactive guided setup.`
 
     const launchInput = strategy.buildInput(common, flagRecord)
 
-    return this.sendLaunch(launchInput, flags.apiUrl ?? getDefaultApiUrl(network))
+    const registerOptions: Omit<RegisterLaunchInput, 'genesisAccount' | 'createLaunchInput'> = {}
+    if (flags.creatorWallet) registerOptions.creatorWallet = flags.creatorWallet
+    if (flags.twitterVerificationToken) registerOptions.twitterVerificationToken = flags.twitterVerificationToken
+
+    return this.sendLaunch(launchInput, flags.apiUrl ?? getDefaultApiUrl(network), registerOptions)
   }
 
   /* ------------------------------------------------------------------ */
@@ -480,14 +500,18 @@ Use --wizard for an interactive guided setup.`
       networkOverride,
     )
 
-    return this.sendLaunch(launchInput, (flags.apiUrl as string | undefined) ?? getDefaultApiUrl(network))
+    const registerOptions: Omit<RegisterLaunchInput, 'genesisAccount' | 'createLaunchInput'> = {}
+    if (flags.creatorWallet) registerOptions.creatorWallet = flags.creatorWallet as string
+    if (flags.twitterVerificationToken) registerOptions.twitterVerificationToken = flags.twitterVerificationToken as string
+
+    return this.sendLaunch(launchInput, (flags.apiUrl as string | undefined) ?? getDefaultApiUrl(network), registerOptions)
   }
 
   /* ------------------------------------------------------------------ */
   /*  Send launch (shared by wizard and flag modes)                      */
   /* ------------------------------------------------------------------ */
 
-  private async sendLaunch(launchInput: CreateLaunchInput, apiUrl: string): Promise<unknown> {
+  private async sendLaunch(launchInput: CreateLaunchInput, apiUrl: string, registerOptions?: Omit<RegisterLaunchInput, 'genesisAccount' | 'createLaunchInput'>): Promise<unknown> {
     const spinner = ora('Creating token launch via Genesis API...').start()
 
     try {
@@ -507,6 +531,7 @@ Use --wizard for an interactive guided setup.`
         apiConfig,
         launchInput,
         { commitment },
+        registerOptions,
       )
 
       spinner.succeed('Token launch created and registered successfully!')

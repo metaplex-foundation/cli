@@ -9,6 +9,8 @@ export default class Genesis extends Command {
     '<%= config.bin %> genesis deposit GenesisAddress123... --amount 1000',
     '<%= config.bin %> genesis claim GenesisAddress123...',
     '<%= config.bin %> genesis finalize GenesisAddress123...',
+    '<%= config.bin %> genesis swap GenesisAddress123... --direction buy --amount 100000000',
+    '<%= config.bin %> genesis swap GenesisAddress123... --info',
   ]
 
   public async run(): Promise<void> {
@@ -23,6 +25,7 @@ export default class Genesis extends Command {
     this.log('  genesis withdraw       Withdraw from a launch pool')
     this.log('  genesis claim          Claim tokens from a completed launch')
     this.log('  genesis claim-unlocked Claim tokens from an unlocked bucket')
+    this.log('  genesis swap           Buy/sell on a bonding curve (also: --info for status & quotes)')
     this.log('  genesis transition     Execute end behaviors for a bucket')
     this.log('  genesis finalize       Finalize a Genesis launch')
     this.log('  genesis revoke         Revoke/cancel a Genesis launch')

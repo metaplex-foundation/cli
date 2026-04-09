@@ -4,6 +4,7 @@ import {
   SvmNetwork,
   registerLaunch,
 } from '@metaplex-foundation/genesis'
+import { isPublicKey } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
 
@@ -46,6 +47,14 @@ provided as a JSON file via --launchConfig.`
     })(),
     apiUrl: Flags.string({
       description: 'Genesis API base URL (defaults to https://api.metaplex.com for mainnet, https://api.metaplex.dev for devnet)',
+      required: false,
+    }),
+    creatorWallet: Flags.string({
+      description: 'Override the launch owner wallet for registration (public key address)',
+      required: false,
+    }),
+    twitterVerificationToken: Flags.string({
+      description: 'Twitter verification token for verified badge on the launch page',
       required: false,
     }),
   }
@@ -135,9 +144,16 @@ provided as a JSON file via --launchConfig.`
         baseUrl: flags.apiUrl ?? getDefaultApiUrl(network),
       }
 
+      // Validate registration flags
+      if (flags.creatorWallet && !isPublicKey(flags.creatorWallet)) {
+        throw new Error('--creatorWallet must be a valid public key')
+      }
+
       const result = await registerLaunch(this.context.umi, apiConfig, {
         genesisAccount: args.genesisAccount,
         createLaunchInput: launchConfig,
+        ...(flags.creatorWallet && { creatorWallet: flags.creatorWallet }),
+        ...(flags.twitterVerificationToken && { twitterVerificationToken: flags.twitterVerificationToken }),
       })
 
       if (result.existing) {

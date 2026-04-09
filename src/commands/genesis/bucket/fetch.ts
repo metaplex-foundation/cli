@@ -6,6 +6,15 @@ import {
   safeFetchPresaleBucketV2,
   findUnlockedBucketV2Pda,
   safeFetchUnlockedBucketV2,
+  findBondingCurveBucketV2Pda,
+  safeFetchBondingCurveBucketV2,
+  getCurrentPrice,
+  getCurrentPriceQuotePerBase,
+  getCurrentPriceComponents,
+  isFirstBuyPending,
+  isSwappable,
+  isSoldOut,
+  getFillPercentage,
 } from '@metaplex-foundation/genesis'
 import { publicKey } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
@@ -28,12 +37,13 @@ export default class BucketFetch extends BaseCommand<typeof BucketFetch> {
   static override description = `Fetch a Genesis bucket by genesis address and bucket index.
 
 This command retrieves and displays information about a bucket in a Genesis account.
-Supports Launch Pool, Presale, and Unlocked bucket types.`
+Supports Launch Pool, Presale, Unlocked, and Bonding Curve bucket types.`
 
   static override examples = [
     '$ mplx genesis bucket fetch GenesisAddress... --bucketIndex 0',
     '$ mplx genesis bucket fetch GenesisAddress... -b 1 --type presale',
     '$ mplx genesis bucket fetch GenesisAddress... -b 2 --type unlocked',
+    '$ mplx genesis bucket fetch GenesisAddress... -b 0 --type bonding-curve',
   ]
 
   static override usage = 'genesis bucket fetch [GENESIS] [FLAGS]'
@@ -55,7 +65,7 @@ Supports Launch Pool, Presale, and Unlocked bucket types.`
       char: 't',
       description: 'Type of bucket to fetch',
       default: 'launch-pool',
-      options: ['launch-pool', 'presale', 'unlocked'] as const,
+      options: ['launch-pool', 'presale', 'unlocked', 'bonding-curve'] as const,
     })(),
   }
 
@@ -81,6 +91,8 @@ Supports Launch Pool, Presale, and Unlocked bucket types.`
         return await this.fetchPresaleBucket(genesisAddress, flags.bucketIndex, spinner)
       } else if (flags.type === 'unlocked') {
         return await this.fetchUnlockedBucket(genesisAddress, flags.bucketIndex, spinner)
+      } else if (flags.type === 'bonding-curve') {
+        return await this.fetchBondingCurveBucket(genesisAddress, flags.bucketIndex, spinner)
       } else {
         return await this.fetchLaunchPoolBucket(genesisAddress, flags.bucketIndex, spinner)
       }
@@ -223,6 +235,103 @@ Supports Launch Pool, Presale, and Unlocked bucket types.`
       baseTokenAllocation: bucket.bucket.baseTokenAllocation.toString(),
       baseTokenBalance: bucket.bucket.baseTokenBalance.toString(),
       allocationQuoteTokenCap: bucket.allocationQuoteTokenCap.toString(),
+      explorer: generateExplorerUrl(this.context.explorer, this.context.chain, bucketPda, 'account'),
+    }
+  }
+
+  private async fetchBondingCurveBucket(genesisAddress: ReturnType<typeof publicKey>, bucketIndex: number, spinner: ReturnType<typeof ora>): Promise<unknown> {
+    const [bucketPda] = findBondingCurveBucketV2Pda(this.context.umi, {
+      genesisAccount: genesisAddress,
+      bucketIndex,
+    })
+
+    const bucket = await safeFetchBondingCurveBucketV2(this.context.umi, bucketPda)
+
+    if (!bucket) {
+      spinner.fail('Bucket not found')
+      this.error(`Bonding curve bucket not found at index ${bucketIndex}. It may be a different bucket type or not exist.`)
+    }
+
+    spinner.succeed('Bucket fetched successfully!')
+
+    const price = getCurrentPrice(bucket)
+    const priceQuotePerBase = getCurrentPriceQuotePerBase(bucket)
+    const { baseReserves, quoteReserves } = getCurrentPriceComponents(bucket)
+    const firstBuyPending = isFirstBuyPending(bucket)
+    const swappable = isSwappable(bucket)
+    const soldOut = isSoldOut(bucket)
+    const fillPct = getFillPercentage(bucket)
+
+    this.log('')
+    this.logSuccess(`Bonding Curve Bucket`)
+    this.log('')
+    this.log('Bucket Details:')
+    this.log(`  Address: ${bucketPda}`)
+    this.log(`  Type: ${KEY_TYPES[bucket.key] || 'BondingCurveV2'}`)
+    this.log(`  Genesis Account: ${bucket.bucket.genesis}`)
+    this.log(`  Bucket Index: ${bucket.bucket.bucketIndex}`)
+    this.log('')
+    this.log('Allocation:')
+    this.log(`  Base Token Allocation: ${bucket.bucket.baseTokenAllocation.toString()}`)
+    this.log(`  Base Token Balance: ${bucket.bucket.baseTokenBalance.toString()}`)
+    this.log(`  Quote Token Deposit Total: ${bucket.quoteTokenDepositTotal.toString()}`)
+    this.log('')
+    this.log('Pricing:')
+    this.log(`  Current Price (tokens per quote): ${price.toString()}`)
+    this.log(`  Current Price (quote per token): ${priceQuotePerBase.toString()}`)
+    this.log(`  Base Reserves: ${baseReserves.toString()}`)
+    this.log(`  Quote Reserves: ${quoteReserves.toString()}`)
+    this.log('')
+    this.log('Constant Product Params:')
+    this.log(`  Virtual SOL: ${bucket.constantProductParams.virtualSol.toString()}`)
+    this.log(`  Virtual Tokens: ${bucket.constantProductParams.virtualTokens.toString()}`)
+    this.log('')
+    this.log('Status:')
+    this.log(`  First Buy Pending: ${firstBuyPending ? 'Yes' : 'No'}`)
+    this.log(`  Swappable: ${swappable ? 'Yes' : 'No'}`)
+    this.log(`  Sold Out: ${soldOut ? 'Yes' : 'No'}`)
+    this.log(`  Fill Percentage: ${fillPct.toFixed(2)}%`)
+    this.log('')
+    this.log('Conditions:')
+    this.log(`  Swap Start: ${formatCondition(bucket.swapStartCondition)}`)
+    this.log(`  Swap End: ${formatCondition(bucket.swapEndCondition)}`)
+    this.log('')
+    this.log('Fees:')
+    this.log(`  Deposit Fee: ${bucket.depositFee.toString()}`)
+    this.log(`  Withdraw Fee: ${bucket.withdrawFee.toString()}`)
+    this.log(`  Creator Fee Accrued: ${bucket.creatorFeeAccrued.toString()}`)
+    this.log(`  Creator Fee Claimed: ${bucket.creatorFeeClaimed.toString()}`)
+    this.log('')
+    this.log('View on Explorer:')
+    this.log(
+      generateExplorerUrl(
+        this.context.explorer,
+        this.context.chain,
+        bucketPda,
+        'account'
+      )
+    )
+
+    return {
+      type: 'bonding-curve',
+      address: bucketPda.toString(),
+      genesisAccount: bucket.bucket.genesis.toString(),
+      bucketIndex: bucket.bucket.bucketIndex,
+      baseTokenAllocation: bucket.bucket.baseTokenAllocation.toString(),
+      baseTokenBalance: bucket.bucket.baseTokenBalance.toString(),
+      quoteTokenDepositTotal: bucket.quoteTokenDepositTotal.toString(),
+      currentPrice: price.toString(),
+      currentPriceQuotePerBase: priceQuotePerBase.toString(),
+      baseReserves: baseReserves.toString(),
+      quoteReserves: quoteReserves.toString(),
+      virtualSol: bucket.constantProductParams.virtualSol.toString(),
+      virtualTokens: bucket.constantProductParams.virtualTokens.toString(),
+      firstBuyPending,
+      swappable,
+      soldOut,
+      fillPercentage: fillPct,
+      creatorFeeAccrued: bucket.creatorFeeAccrued.toString(),
+      creatorFeeClaimed: bucket.creatorFeeClaimed.toString(),
       explorer: generateExplorerUrl(this.context.explorer, this.context.chain, bucketPda, 'account'),
     }
   }

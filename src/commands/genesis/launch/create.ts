@@ -5,6 +5,7 @@ import {
   GenesisApiConfig,
   LockedAllocation,
   QuoteMintInput,
+  RegisterLaunchInput,
   SvmNetwork,
   createAndRegisterLaunch,
 } from '@metaplex-foundation/genesis'
@@ -15,61 +16,69 @@ import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../../explorers.js'
 import { readJsonSync } from '../../../lib/file.js'
-import { detectSvmNetwork, txSignatureToString } from '../../../lib/util.js'
 import { promptLaunchWizard, toISOTimestamp } from '../../../lib/genesis/createGenesisWizardPrompt.js'
 import { buildLaunchInput, getDefaultApiUrl } from '../../../lib/genesis/launchApi.js'
+import { detectSvmNetwork, txSignatureToString } from '../../../lib/util.js'
 
 /* ------------------------------------------------------------------ */
 /*  Launch strategy types & implementations                            */
 /* ------------------------------------------------------------------ */
 
 interface CommonLaunchParams {
-  wallet: string
-  token: {
-    name: string
-    symbol: string
-    image: string
-    description?: string
-    externalLinks?: Record<string, string>
-  }
-  network: SvmNetwork
-  quoteMint?: QuoteMintInput
   agent?: {
     mint: string
     setToken: boolean
   }
+  network: SvmNetwork
+  quoteMint?: QuoteMintInput
+  token: {
+    description?: string
+    externalLinks?: Record<string, string>
+    image: string
+    name: string
+    symbol: string
+  }
+  wallet: string
 }
 
 interface LaunchStrategy {
-  requiredFlags: string[]
-  disallowedFlags: string[]
-  validate(flags: Record<string, unknown>): string[]
   buildInput(common: CommonLaunchParams, flags: Record<string, unknown>): CreateLaunchInput
+  disallowedFlags: string[]
+  requiredFlags: string[]
+  validate(flags: Record<string, unknown>): string[]
 }
 
 const LAUNCH_STRATEGIES: Record<string, LaunchStrategy> = {
-  'launchpool': {
-    requiredFlags: ['tokenAllocation', 'raiseGoal', 'raydiumLiquidityBps', 'fundsRecipient'],
-    disallowedFlags: ['creatorFeeWallet', 'firstBuyAmount'],
+  'bonding-curve': {
+    buildInput(common, flags): CreateBondingCurveLaunchInput {
+      return {
+        ...common,
+        launch: {
+          ...(typeof flags.creatorFeeWallet === 'string' && { creatorFeeWallet: flags.creatorFeeWallet }),
+          ...(typeof flags.firstBuyAmount === 'number' && flags.firstBuyAmount > 0 && { firstBuyAmount: flags.firstBuyAmount }),
+        },
+        launchType: 'bondingCurve',
+      }
+    },
+    disallowedFlags: ['tokenAllocation', 'raiseGoal', 'raydiumLiquidityBps', 'fundsRecipient', 'lockedAllocations', 'depositStartTime'],
+
+    requiredFlags: [],
 
     validate(flags) {
       const errors: string[] = []
-      if (typeof flags.tokenAllocation === 'number' && flags.tokenAllocation <= 0) {
-        errors.push('--tokenAllocation must be a positive number')
+      if (typeof flags.creatorFeeWallet === 'string' && !isPublicKey(flags.creatorFeeWallet)) {
+        errors.push('--creatorFeeWallet must be a valid public key')
       }
-      if (typeof flags.raiseGoal === 'number' && flags.raiseGoal <= 0) {
-        errors.push('--raiseGoal must be a positive number')
+
+      if (typeof flags.firstBuyAmount === 'number' && flags.firstBuyAmount < 0) {
+        errors.push('--firstBuyAmount must be non-negative')
       }
-      if (typeof flags.raydiumLiquidityBps === 'number' &&
-          (flags.raydiumLiquidityBps < 2000 || flags.raydiumLiquidityBps > 10000)) {
-        errors.push('--raydiumLiquidityBps must be between 2000 and 10000 (20%-100%)')
-      }
-      if (typeof flags.fundsRecipient === 'string' && !isPublicKey(flags.fundsRecipient)) {
-        errors.push('--fundsRecipient must be a valid public key')
-      }
+
       return errors
     },
+  },
 
+  'launchpool': {
     buildInput(common, flags): CreateLaunchpoolLaunchInput {
       let lockedAllocations: LockedAllocation[] | undefined
       if (typeof flags.lockedAllocations === 'string') {
@@ -78,45 +87,43 @@ const LAUNCH_STRATEGIES: Record<string, LaunchStrategy> = {
 
       return {
         ...common,
-        launchType: 'launchpool',
         launch: {
           launchpool: {
-            tokenAllocation: flags.tokenAllocation as number,
             depositStartTime: flags.depositStartTime as string,
+            fundsRecipient: flags.fundsRecipient as string,
             raiseGoal: flags.raiseGoal as number,
             raydiumLiquidityBps: flags.raydiumLiquidityBps as number,
-            fundsRecipient: flags.fundsRecipient as string,
+            tokenAllocation: flags.tokenAllocation as number,
           },
           ...(lockedAllocations && { lockedAllocations }),
         },
+        launchType: 'launchpool',
       }
     },
-  },
+    disallowedFlags: ['creatorFeeWallet', 'firstBuyAmount'],
 
-  'bonding-curve': {
-    requiredFlags: [],
-    disallowedFlags: ['tokenAllocation', 'raiseGoal', 'raydiumLiquidityBps', 'fundsRecipient', 'lockedAllocations', 'depositStartTime'],
+    requiredFlags: ['tokenAllocation', 'raiseGoal', 'raydiumLiquidityBps', 'fundsRecipient'],
 
     validate(flags) {
       const errors: string[] = []
-      if (typeof flags.creatorFeeWallet === 'string' && !isPublicKey(flags.creatorFeeWallet)) {
-        errors.push('--creatorFeeWallet must be a valid public key')
+      if (typeof flags.tokenAllocation === 'number' && flags.tokenAllocation <= 0) {
+        errors.push('--tokenAllocation must be a positive number')
       }
-      if (typeof flags.firstBuyAmount === 'number' && flags.firstBuyAmount < 0) {
-        errors.push('--firstBuyAmount must be non-negative')
-      }
-      return errors
-    },
 
-    buildInput(common, flags): CreateBondingCurveLaunchInput {
-      return {
-        ...common,
-        launchType: 'bondingCurve',
-        launch: {
-          ...(typeof flags.creatorFeeWallet === 'string' && { creatorFeeWallet: flags.creatorFeeWallet }),
-          ...(typeof flags.firstBuyAmount === 'number' && flags.firstBuyAmount > 0 && { firstBuyAmount: flags.firstBuyAmount }),
-        },
+      if (typeof flags.raiseGoal === 'number' && flags.raiseGoal <= 0) {
+        errors.push('--raiseGoal must be a positive number')
       }
+
+      if (typeof flags.raydiumLiquidityBps === 'number' &&
+          (flags.raydiumLiquidityBps < 2000 || flags.raydiumLiquidityBps > 10_000)) {
+        errors.push('--raydiumLiquidityBps must be between 2000 and 10000 (20%-100%)')
+      }
+
+      if (typeof flags.fundsRecipient === 'string' && !isPublicKey(flags.fundsRecipient)) {
+        errors.push('--fundsRecipient must be a valid public key')
+      }
+
+      return errors
     },
   },
 }
@@ -129,48 +136,57 @@ function parseLockedAllocations(filePath: string): LockedAllocation[] {
   let parsed: unknown
   try {
     parsed = readJsonSync(filePath)
-  } catch (err) {
-    if (err && typeof err === 'object' && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && (error as NodeJS.ErrnoException).code === 'ENOENT') {
       throw new Error(`Locked allocations file not found: ${filePath}`)
     }
-    throw err
+
+    throw error
   }
 
   if (!Array.isArray(parsed)) {
-    throw new Error('Locked allocations file must contain a JSON array')
+    throw new TypeError('Locked allocations file must contain a JSON array')
   }
 
   const validTimeUnits = new Set(['SECOND', 'MINUTE', 'HOUR', 'DAY', 'WEEK', 'TWO_WEEKS', 'MONTH', 'QUARTER', 'YEAR'])
-  for (let i = 0; i < parsed.length; i++) {
-    const entry = parsed[i]
+  for (const [i, entry] of parsed.entries()) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
       throw new Error(`Locked allocation [${i}]: entry must be an object`)
     }
+
     if (typeof entry.name !== 'string' || entry.name.length === 0) {
       throw new Error(`Locked allocation [${i}]: "name" must be a non-empty string`)
     }
+
     if (typeof entry.recipient !== 'string' || !isPublicKey(entry.recipient)) {
       throw new Error(`Locked allocation [${i}]: "recipient" must be a valid public key`)
     }
+
     if (typeof entry.tokenAmount !== 'number' || entry.tokenAmount <= 0) {
       throw new Error(`Locked allocation [${i}]: "tokenAmount" must be a positive number`)
     }
+
     if (typeof entry.vestingStartTime !== 'string' || entry.vestingStartTime.length === 0) {
       throw new Error(`Locked allocation [${i}]: "vestingStartTime" must be a non-empty date string`)
     }
+
     if (!entry.vestingDuration || typeof entry.vestingDuration.value !== 'number' || !validTimeUnits.has(entry.vestingDuration.unit)) {
       throw new Error(`Locked allocation [${i}]: "vestingDuration" must have a numeric "value" and a valid "unit"`)
     }
+
     if (!validTimeUnits.has(entry.unlockSchedule)) {
       throw new Error(`Locked allocation [${i}]: "unlockSchedule" must be a valid time unit`)
     }
+
     if (entry.cliff !== undefined) {
       if (typeof entry.cliff !== 'object' || entry.cliff === null) {
         throw new Error(`Locked allocation [${i}]: "cliff" must be an object`)
       }
+
       if (!entry.cliff.duration || typeof entry.cliff.duration.value !== 'number' || !validTimeUnits.has(entry.cliff.duration.unit)) {
         throw new Error(`Locked allocation [${i}]: "cliff.duration" must have a numeric "value" and a valid "unit"`)
       }
+
       if (entry.cliff.unlockAmount !== undefined && (typeof entry.cliff.unlockAmount !== 'number' || entry.cliff.unlockAmount < 0)) {
         throw new Error(`Locked allocation [${i}]: "cliff.unlockAmount" must be a non-negative number`)
       }
@@ -214,68 +230,42 @@ Use --wizard for an interactive guided setup.`
   ]
 
   static override flags = {
-    // Wizard mode
-    wizard: Flags.boolean({
-      description: 'Interactive guided setup wizard',
+    // Agent mode
+    agentMint: Flags.string({
+      description: 'Agent NFT mint address. Wraps transactions for agent execution, enabling AI agents to launch tokens.',
+      required: false,
+    }),
+
+    agentSetToken: Flags.boolean({
       default: false,
+      description: 'When using --agentMint, set the launched token on the agent NFT.',
     }),
 
-    // Launch type
-    launchType: Flags.option({
-      description: 'Launch type: launchpool (default) or bonding-curve',
-      options: ['launchpool', 'bonding-curve'] as const,
-      default: 'launchpool' as const,
-    })(),
-
-    // Token metadata
-    name: Flags.string({
-      char: 'n',
-      description: 'Name of the token (1-32 characters)',
+    apiUrl: Flags.string({
+      description: 'Genesis API base URL (defaults to https://api.metaplex.com for mainnet, https://api.metaplex.dev for devnet)',
       required: false,
     }),
-    symbol: Flags.string({
-      char: 's',
-      description: 'Symbol of the token (1-10 characters)',
+    // Bonding curve config
+    creatorFeeWallet: Flags.string({
+      description: '[bonding-curve only] Wallet address to receive creator fees (defaults to launching wallet)',
       required: false,
     }),
-    image: Flags.string({
-      description: 'Token image URL',
+    // Registration options
+    creatorWallet: Flags.string({
+      description: 'Override the launch owner wallet for registration (public key address)',
+      required: false,
+    }),
+    // Shared config
+    depositStartTime: Flags.string({
+      description: '[launchpool only] Deposit start time (ISO date string or unix timestamp). 48h deposit period.',
       required: false,
     }),
     description: Flags.string({
       description: 'Token description (max 250 characters)',
       required: false,
     }),
-    website: Flags.string({
-      description: 'Project website URL',
-      required: false,
-    }),
-    twitter: Flags.string({
-      description: 'Project Twitter URL',
-      required: false,
-    }),
-    telegram: Flags.string({
-      description: 'Project Telegram URL',
-      required: false,
-    }),
-
-    // Shared config
-    depositStartTime: Flags.string({
-      description: '[launchpool only] Deposit start time (ISO date string or unix timestamp). 48h deposit period.',
-      required: false,
-    }),
-
-    // Project-only launchpool config
-    tokenAllocation: Flags.integer({
-      description: '[launchpool only] Launch pool token allocation (portion of 1B total supply)',
-      required: false,
-    }),
-    raiseGoal: Flags.integer({
-      description: '[launchpool only] Raise goal in whole units (e.g., 200 for 200 SOL)',
-      required: false,
-    }),
-    raydiumLiquidityBps: Flags.integer({
-      description: '[launchpool only] Raydium liquidity in basis points (2000-10000, i.e. 20%-100%)',
+    firstBuyAmount: Flags.string({
+      description: '[bonding-curve only] SOL amount for mandatory first buy (e.g. 0.1 for 0.1 SOL). Omit to disable.',
       required: false,
     }),
     fundsRecipient: Flags.string({
@@ -283,43 +273,79 @@ Use --wizard for an interactive guided setup.`
       required: false,
     }),
 
-    // Bonding curve config
-    creatorFeeWallet: Flags.string({
-      description: '[bonding-curve only] Wallet address to receive creator fees (defaults to launching wallet)',
-      required: false,
-    }),
-    firstBuyAmount: Flags.string({
-      description: '[bonding-curve only] SOL amount for mandatory first buy (e.g. 0.1 for 0.1 SOL). Omit to disable.',
+    image: Flags.string({
+      description: 'Token image URL',
       required: false,
     }),
 
-    // Agent mode
-    agentMint: Flags.string({
-      description: 'Agent NFT mint address. Wraps transactions for agent execution, enabling AI agents to launch tokens.',
-      required: false,
-    }),
-    agentSetToken: Flags.boolean({
-      description: 'When using --agentMint, set the launched token on the agent NFT.',
-      default: false,
-    }),
-
+    // Launch type
+    launchType: Flags.option({
+      default: 'launchpool' as const,
+      description: 'Launch type: launchpool (default) or bonding-curve',
+      options: ['launchpool', 'bonding-curve'] as const,
+    })(),
     // Optional
     lockedAllocations: Flags.string({
       description: '[launchpool only] Path to JSON file with locked allocation configs',
       required: false,
     }),
-    quoteMint: Flags.string({
-      description: 'Quote mint: SOL (default), USDC, or a mint address',
-      default: 'SOL',
+    // Token metadata
+    name: Flags.string({
+      char: 'n',
+      description: 'Name of the token (1-32 characters)',
+      required: false,
     }),
     network: Flags.option({
       description: 'Network override (auto-detected from RPC if not set)',
       options: ['solana-mainnet', 'solana-devnet'] as const,
       required: false,
     })(),
-    apiUrl: Flags.string({
-      description: 'Genesis API base URL (defaults to https://api.metaplex.com for mainnet, https://api.metaplex.dev for devnet)',
+
+    quoteMint: Flags.string({
+      default: 'SOL',
+      description: 'Quote mint: SOL (default), USDC, or a mint address',
+    }),
+    raiseGoal: Flags.integer({
+      description: '[launchpool only] Raise goal in whole units (e.g., 200 for 200 SOL)',
       required: false,
+    }),
+
+    raydiumLiquidityBps: Flags.integer({
+      description: '[launchpool only] Raydium liquidity in basis points (2000-10000, i.e. 20%-100%)',
+      required: false,
+    }),
+    symbol: Flags.string({
+      char: 's',
+      description: 'Symbol of the token (1-10 characters)',
+      required: false,
+    }),
+
+    telegram: Flags.string({
+      description: 'Project Telegram URL',
+      required: false,
+    }),
+    // Project-only launchpool config
+    tokenAllocation: Flags.integer({
+      description: '[launchpool only] Launch pool token allocation (portion of 1B total supply)',
+      required: false,
+    }),
+
+    twitter: Flags.string({
+      description: 'Project Twitter URL',
+      required: false,
+    }),
+    twitterVerificationToken: Flags.string({
+      description: 'Twitter verification token for verified badge on the launch page',
+      required: false,
+    }),
+    website: Flags.string({
+      description: 'Project website URL',
+      required: false,
+    }),
+    // Wizard mode
+    wizard: Flags.boolean({
+      default: false,
+      description: 'Interactive guided setup wizard',
     }),
   }
 
@@ -356,9 +382,10 @@ Use --wizard for an interactive guided setup.`
     // Parse firstBuyAmount as a number
     if (flags.firstBuyAmount) {
       const amount = Number(flags.firstBuyAmount)
-      if (isNaN(amount) || !Number.isFinite(amount) || amount < 0) {
+      if (Number.isNaN(amount) || !Number.isFinite(amount) || amount < 0) {
         this.error('--firstBuyAmount must be a finite, non-negative number (e.g. 0.1)')
       }
+
       flagRecord.firstBuyAmount = amount
     }
 
@@ -382,10 +409,16 @@ Use --wizard for an interactive guided setup.`
       this.error(errors.join('\n'))
     }
 
+    // Validate registration flags
+    if (flags.creatorWallet && !isPublicKey(flags.creatorWallet)) {
+      this.error('--creatorWallet must be a valid public key')
+    }
+
     // Validate agent flags
     if (flags.agentMint && !isPublicKey(flags.agentMint)) {
       this.error('--agentMint must be a valid public key (agent NFT mint address)')
     }
+
     if (flags.agentSetToken && !flags.agentMint) {
       this.error('--agentSetToken requires --agentMint')
     }
@@ -406,15 +439,15 @@ Use --wizard for an interactive guided setup.`
     const image = flags.image!
 
     const common: CommonLaunchParams = {
-      wallet: this.context.umi.identity.publicKey.toString(),
+      network,
       token: {
+        image,
         name,
         symbol,
-        image,
         ...(flags.description && { description: flags.description }),
         ...(Object.keys(externalLinks).length > 0 && { externalLinks }),
       },
-      network,
+      wallet: this.context.umi.identity.publicKey.toString(),
       ...(flags.quoteMint !== 'SOL' && { quoteMint: flags.quoteMint as QuoteMintInput }),
       ...(flags.agentMint && {
         agent: {
@@ -426,7 +459,11 @@ Use --wizard for an interactive guided setup.`
 
     const launchInput = strategy.buildInput(common, flagRecord)
 
-    return this.sendLaunch(launchInput, flags.apiUrl ?? getDefaultApiUrl(network))
+    const registerOptions: Omit<RegisterLaunchInput, 'createLaunchInput' | 'genesisAccount'> = {}
+    if (flags.creatorWallet) registerOptions.creatorWallet = flags.creatorWallet
+    if (flags.twitterVerificationToken) registerOptions.twitterVerificationToken = flags.twitterVerificationToken
+
+    return this.sendLaunch(launchInput, flags.apiUrl ?? getDefaultApiUrl(network), registerOptions)
   }
 
   /* ------------------------------------------------------------------ */
@@ -452,42 +489,46 @@ Use --wizard for an interactive guided setup.`
       this.context.umi.identity.publicKey.toString(),
       this.context.chain,
       {
+        agent: wizardResult.agentMint ? {
+          mint: wizardResult.agentMint,
+          setToken: wizardResult.agentSetToken ?? false,
+        } : undefined,
+        creatorFeeWallet: wizardResult.creatorFeeWallet,
+        depositStartTime: wizardResult.depositStartTime,
+        firstBuyAmount: wizardResult.firstBuyAmount,
+        fundsRecipient: wizardResult.fundsRecipient,
         launchType: wizardResult.launchType,
-        token: {
-          name: wizardResult.name,
-          symbol: wizardResult.symbol,
-          image: wizardResult.image,
-          ...(wizardResult.description && { description: wizardResult.description }),
-        },
+        quoteMint: wizardResult.quoteMint,
+        raiseGoal: wizardResult.raiseGoal,
+        raydiumLiquidityBps: wizardResult.raydiumLiquidityBps,
         socials: {
           ...(wizardResult.website && { website: wizardResult.website }),
           ...(wizardResult.twitter && { twitter: wizardResult.twitter }),
           ...(wizardResult.telegram && { telegram: wizardResult.telegram }),
         },
-        quoteMint: wizardResult.quoteMint,
-        depositStartTime: wizardResult.depositStartTime,
+        token: {
+          image: wizardResult.image,
+          name: wizardResult.name,
+          symbol: wizardResult.symbol,
+          ...(wizardResult.description && { description: wizardResult.description }),
+        },
         tokenAllocation: wizardResult.tokenAllocation,
-        raiseGoal: wizardResult.raiseGoal,
-        raydiumLiquidityBps: wizardResult.raydiumLiquidityBps,
-        fundsRecipient: wizardResult.fundsRecipient,
-        creatorFeeWallet: wizardResult.creatorFeeWallet,
-        firstBuyAmount: wizardResult.firstBuyAmount,
-        agent: wizardResult.agentMint ? {
-          mint: wizardResult.agentMint,
-          setToken: wizardResult.agentSetToken ?? false,
-        } : undefined,
       },
       networkOverride,
     )
 
-    return this.sendLaunch(launchInput, (flags.apiUrl as string | undefined) ?? getDefaultApiUrl(network))
+    const registerOptions: Omit<RegisterLaunchInput, 'createLaunchInput' | 'genesisAccount'> = {}
+    if (flags.creatorWallet) registerOptions.creatorWallet = flags.creatorWallet as string
+    if (flags.twitterVerificationToken) registerOptions.twitterVerificationToken = flags.twitterVerificationToken as string
+
+    return this.sendLaunch(launchInput, (flags.apiUrl as string | undefined) ?? getDefaultApiUrl(network), registerOptions)
   }
 
   /* ------------------------------------------------------------------ */
   /*  Send launch (shared by wizard and flag modes)                      */
   /* ------------------------------------------------------------------ */
 
-  private async sendLaunch(launchInput: CreateLaunchInput, apiUrl: string): Promise<unknown> {
+  private async sendLaunch(launchInput: CreateLaunchInput, apiUrl: string, registerOptions?: Omit<RegisterLaunchInput, 'createLaunchInput' | 'genesisAccount'>): Promise<unknown> {
     const spinner = ora('Creating token launch via Genesis API...').start()
 
     try {
@@ -507,6 +548,7 @@ Use --wizard for an interactive guided setup.`
         apiConfig,
         launchInput,
         { commitment },
+        registerOptions,
       )
 
       spinner.succeed('Token launch created and registered successfully!')
@@ -520,6 +562,7 @@ Use --wizard for an interactive guided setup.`
       if (launchInput.agent) {
         this.log(`Agent Mint: ${typeof launchInput.agent.mint === 'string' ? launchInput.agent.mint : launchInput.agent.mint.toString()}`)
       }
+
       this.log('')
       this.log('Transactions:')
       for (const sig of result.signatures) {
@@ -540,12 +583,12 @@ Use --wizard for an interactive guided setup.`
 
       return {
         genesisAccount: result.genesisAccount,
-        mintAddress: result.mintAddress,
         launchId: result.launch.id,
         launchLink: result.launch.link,
+        mintAddress: result.mintAddress,
         signatures: result.signatures.map((sig: Uint8Array) => {
           const sigStr = txSignatureToString(sig)
-          return { signature: sigStr, explorer: generateExplorerUrl(this.context.explorer, this.context.chain, sigStr, 'transaction') }
+          return { explorer: generateExplorerUrl(this.context.explorer, this.context.chain, sigStr, 'transaction'), signature: sigStr }
         }),
       }
     } catch (error) {

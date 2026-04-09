@@ -4,15 +4,23 @@ import {
   SvmNetwork,
   registerLaunch,
 } from '@metaplex-foundation/genesis'
+import { isPublicKey } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
 
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { readJsonSync } from '../../../lib/file.js'
-import { detectSvmNetwork } from '../../../lib/util.js'
 import { getDefaultApiUrl } from '../../../lib/genesis/launchApi.js'
+import { detectSvmNetwork } from '../../../lib/util.js'
 
 export default class GenesisLaunchRegister extends TransactionCommand<typeof GenesisLaunchRegister> {
+  static override args = {
+    genesisAccount: Args.string({
+      description: 'Genesis account address to register',
+      required: true,
+    }),
+  }
+
   static override description = `Register an existing genesis account with the Metaplex platform.
 
 Use this command if you created a genesis account using the low-level CLI commands
@@ -27,14 +35,15 @@ provided as a JSON file via --launchConfig.`
     '$ mplx genesis launch register <GENESIS_ACCOUNT> --launchConfig launch.json --network solana-devnet',
   ]
 
-  static override args = {
-    genesisAccount: Args.string({
-      description: 'Genesis account address to register',
-      required: true,
-    }),
-  }
-
   static override flags = {
+    apiUrl: Flags.string({
+      description: 'Genesis API base URL (defaults to https://api.metaplex.com for mainnet, https://api.metaplex.dev for devnet)',
+      required: false,
+    }),
+    creatorWallet: Flags.string({
+      description: 'Override the launch owner wallet for registration (public key address)',
+      required: false,
+    }),
     launchConfig: Flags.string({
       description: 'Path to JSON file with the launch configuration (same format as launch create input)',
       required: true,
@@ -44,8 +53,8 @@ provided as a JSON file via --launchConfig.`
       options: ['solana-mainnet', 'solana-devnet'] as const,
       required: false,
     })(),
-    apiUrl: Flags.string({
-      description: 'Genesis API base URL (defaults to https://api.metaplex.com for mainnet, https://api.metaplex.dev for devnet)',
+    twitterVerificationToken: Flags.string({
+      description: 'Twitter verification token for verified badge on the launch page',
       required: false,
     }),
   }
@@ -66,32 +75,38 @@ provided as a JSON file via --launchConfig.`
       let parsed: unknown
       try {
         parsed = readJsonSync(filePath)
-      } catch (err) {
-        if (err && typeof err === 'object' && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
+      } catch (error) {
+        if (error && typeof error === 'object' && 'code' in error && (error as NodeJS.ErrnoException).code === 'ENOENT') {
           throw new Error(`Launch config file not found: ${filePath}`)
         }
-        throw err
+
+        throw error
       }
 
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
         throw new Error('Launch config must be a JSON object')
       }
+
       const config = parsed as Record<string, unknown>
 
       // Validate required top-level fields
       if (!config.token || typeof config.token !== 'object' || Array.isArray(config.token)) {
         throw new Error('Launch config is missing required "token" object (must include name, symbol, image)')
       }
+
       const token = config.token as Record<string, unknown>
       if (typeof token.name !== 'string' || typeof token.symbol !== 'string' || typeof token.image !== 'string') {
-        throw new Error('Launch config token must include string fields: "name", "symbol", "image"')
+        throw new TypeError('Launch config token must include string fields: "name", "symbol", "image"')
       }
+
       if (!config.launch || typeof config.launch !== 'object' || Array.isArray(config.launch)) {
         throw new Error('Launch config is missing required "launch" object')
       }
+
       if (config.launchType === undefined || config.launchType === null) {
         config.launchType = 'launchpool'
       }
+
       if (config.launchType !== 'launchpool' && config.launchType !== 'bondingCurve') {
         throw new Error(`Launch config "launchType" must be "launchpool" or "bondingCurve", got "${config.launchType}"`)
       }
@@ -102,20 +117,20 @@ provided as a JSON file via --launchConfig.`
         if (!launch.launchpool || typeof launch.launchpool !== 'object' || Array.isArray(launch.launchpool)) {
           throw new Error('Launchpool config requires a "launch.launchpool" object')
         }
+
         const pool = launch.launchpool as Record<string, unknown>
         if (!pool.tokenAllocation || !pool.depositStartTime || !pool.raiseGoal || !pool.raydiumLiquidityBps || !pool.fundsRecipient) {
           throw new Error('Launchpool config requires "tokenAllocation", "depositStartTime", "raiseGoal", "raydiumLiquidityBps", and "fundsRecipient" in launch.launchpool')
         }
       } else {
         // Bonding curve: validate optional fields when present
-        if (launch.creatorFeeWallet !== undefined) {
-          if (typeof launch.creatorFeeWallet !== 'string' || launch.creatorFeeWallet.length === 0) {
+        if (launch.creatorFeeWallet !== undefined && (typeof launch.creatorFeeWallet !== 'string' || launch.creatorFeeWallet.length === 0)) {
             throw new Error('Bonding curve "launch.creatorFeeWallet" must be a non-empty string (public key)')
           }
-        }
+
         if (launch.firstBuyAmount !== undefined) {
           const amount = Number(launch.firstBuyAmount)
-          if (isNaN(amount) || !Number.isFinite(amount) || amount < 0) {
+          if (Number.isNaN(amount) || !Number.isFinite(amount) || amount < 0) {
             throw new Error('Bonding curve "launch.firstBuyAmount" must be a finite, non-negative number')
           }
         }
@@ -135,9 +150,16 @@ provided as a JSON file via --launchConfig.`
         baseUrl: flags.apiUrl ?? getDefaultApiUrl(network),
       }
 
+      // Validate registration flags
+      if (flags.creatorWallet && !isPublicKey(flags.creatorWallet)) {
+        throw new Error('--creatorWallet must be a valid public key')
+      }
+
       const result = await registerLaunch(this.context.umi, apiConfig, {
-        genesisAccount: args.genesisAccount,
         createLaunchInput: launchConfig,
+        genesisAccount: args.genesisAccount,
+        ...(flags.creatorWallet && { creatorWallet: flags.creatorWallet }),
+        ...(flags.twitterVerificationToken && { twitterVerificationToken: flags.twitterVerificationToken }),
       })
 
       if (result.existing) {
@@ -153,11 +175,11 @@ provided as a JSON file via --launchConfig.`
       this.log(`Mint Address: ${result.token.mintAddress}`)
 
       return {
+        existing: result.existing,
         launchId: result.launch.id,
         launchLink: result.launch.link,
-        tokenId: result.token.id,
         mintAddress: result.token.mintAddress,
-        existing: result.existing,
+        tokenId: result.token.id,
       }
     } catch (error) {
       spinner.fail('Failed to register genesis account')

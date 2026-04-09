@@ -28,49 +28,31 @@ describe('genesis swap and bonding curve commands', () => {
             }
         })
 
-        it('fails when --direction is missing for swap (no --info)', async () => {
+        it('fails when neither --buyAmount nor --sellAmount is provided', async () => {
             try {
                 await runCli([
                     'genesis', 'swap',
                     '11111111111111111111111111111111',
-                    '--amount', '100000000',
-                ])
-                expect.fail('Should have thrown an error for missing direction')
-            } catch (error) {
-                const msg = (error as Error).message
-                expect(msg).to.contain('--direction is required')
-            }
-        })
-
-        it('fails when --amount is missing for swap (no --info)', async () => {
-            try {
-                await runCli([
-                    'genesis', 'swap',
-                    '11111111111111111111111111111111',
-                    '--direction', 'buy',
                 ])
                 expect.fail('Should have thrown an error for missing amount')
             } catch (error) {
                 const msg = (error as Error).message
-                expect(msg).to.contain('--amount is required')
+                expect(msg).to.contain('--buyAmount or --sellAmount is required')
             }
         })
 
-        it('rejects invalid direction value', async () => {
+        it('fails when both --buyAmount and --sellAmount are provided', async () => {
             try {
                 await runCli([
                     'genesis', 'swap',
                     '11111111111111111111111111111111',
-                    '--direction', 'invalid' as any,
-                    '--amount', '100000000',
+                    '--buyAmount', '100000000',
+                    '--sellAmount', '500000000',
                 ])
-                expect.fail('Should have thrown an error for invalid direction')
+                expect.fail('Should have thrown an error for both amounts')
             } catch (error) {
                 const msg = (error as Error).message
-                expect(msg).to.satisfy(
-                    (m: string) => m.includes('Expected') || m.includes('buy') || m.includes('invalid'),
-                    'Expected error about invalid direction'
-                )
+                expect(msg).to.contain('Cannot specify both')
             }
         })
 
@@ -96,8 +78,7 @@ describe('genesis swap and bonding curve commands', () => {
                 await runCli([
                     'genesis', 'swap',
                     '11111111111111111111111111111111',
-                    '--direction', 'buy',
-                    '--amount', '100000000',
+                    '--buyAmount', '100000000',
                 ])
                 expect.fail('Should have thrown for non-existent account')
             } catch (error) {

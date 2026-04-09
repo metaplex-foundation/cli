@@ -37,13 +37,16 @@ export default class BucketFetch extends BaseCommand<typeof BucketFetch> {
   static override description = `Fetch a Genesis bucket by genesis address and bucket index.
 
 This command retrieves and displays information about a bucket in a Genesis account.
-Supports Launch Pool, Presale, Unlocked, and Bonding Curve bucket types.`
+Supports Launch Pool, Presale, Unlocked, and Bonding Curve bucket types.
+
+When --type is not specified, the command auto-detects the bucket type by trying
+all known types at the given index.`
 
   static override examples = [
-    '$ mplx genesis bucket fetch GenesisAddress... --bucketIndex 0',
-    '$ mplx genesis bucket fetch GenesisAddress... -b 1 --type presale',
-    '$ mplx genesis bucket fetch GenesisAddress... -b 2 --type unlocked',
-    '$ mplx genesis bucket fetch GenesisAddress... -b 0 --type bonding-curve',
+    '$ mplx genesis bucket fetch GenesisAddress...',
+    '$ mplx genesis bucket fetch GenesisAddress... -b 1',
+    '$ mplx genesis bucket fetch GenesisAddress... --type presale -b 0',
+    '$ mplx genesis bucket fetch GenesisAddress... --type bonding-curve',
   ]
 
   static override usage = 'genesis bucket fetch [GENESIS] [FLAGS]'
@@ -63,9 +66,9 @@ Supports Launch Pool, Presale, Unlocked, and Bonding Curve bucket types.`
     }),
     type: Flags.option({
       char: 't',
-      description: 'Type of bucket to fetch',
-      default: 'launch-pool',
+      description: 'Type of bucket to fetch (auto-detected if not specified)',
       options: ['launch-pool', 'presale', 'unlocked', 'bonding-curve'] as const,
+      required: false,
     })(),
   }
 
@@ -87,20 +90,61 @@ Supports Launch Pool, Presale, Unlocked, and Bonding Curve bucket types.`
 
       spinner.text = 'Fetching bucket details...'
 
-      if (flags.type === 'presale') {
-        return await this.fetchPresaleBucket(genesisAddress, flags.bucketIndex, spinner)
-      } else if (flags.type === 'unlocked') {
-        return await this.fetchUnlockedBucket(genesisAddress, flags.bucketIndex, spinner)
-      } else if (flags.type === 'bonding-curve') {
-        return await this.fetchBondingCurveBucket(genesisAddress, flags.bucketIndex, spinner)
-      } else {
-        return await this.fetchLaunchPoolBucket(genesisAddress, flags.bucketIndex, spinner)
+      if (flags.type) {
+        // Explicit type specified
+        if (flags.type === 'presale') {
+          return await this.fetchPresaleBucket(genesisAddress, flags.bucketIndex, spinner)
+        } else if (flags.type === 'unlocked') {
+          return await this.fetchUnlockedBucket(genesisAddress, flags.bucketIndex, spinner)
+        } else if (flags.type === 'bonding-curve') {
+          return await this.fetchBondingCurveBucket(genesisAddress, flags.bucketIndex, spinner)
+        } else {
+          return await this.fetchLaunchPoolBucket(genesisAddress, flags.bucketIndex, spinner)
+        }
       }
+
+      // Auto-detect: try all bucket types at this index
+      spinner.text = 'Detecting bucket type...'
+      return await this.fetchAutoDetect(genesisAddress, flags.bucketIndex, spinner)
 
     } catch (error) {
       spinner.fail('Failed to fetch bucket')
       throw error
     }
+  }
+
+  private async fetchAutoDetect(genesisAddress: ReturnType<typeof publicKey>, bucketIndex: number, spinner: ReturnType<typeof ora>): Promise<unknown> {
+    // Probe all bucket types at this index in parallel
+    const [bc, lp, pre, ul] = await Promise.all([
+      safeFetchBondingCurveBucketV2(this.context.umi, findBondingCurveBucketV2Pda(this.context.umi, { genesisAccount: genesisAddress, bucketIndex })[0]),
+      safeFetchLaunchPoolBucketV2(this.context.umi, findLaunchPoolBucketV2Pda(this.context.umi, { genesisAccount: genesisAddress, bucketIndex })[0]),
+      safeFetchPresaleBucketV2(this.context.umi, findPresaleBucketV2Pda(this.context.umi, { genesisAccount: genesisAddress, bucketIndex })[0]),
+      safeFetchUnlockedBucketV2(this.context.umi, findUnlockedBucketV2Pda(this.context.umi, { genesisAccount: genesisAddress, bucketIndex })[0]),
+    ])
+
+    const found: { type: string; fn: () => Promise<unknown> }[] = []
+    if (bc) found.push({ type: 'bonding-curve', fn: () => this.fetchBondingCurveBucket(genesisAddress, bucketIndex, spinner) })
+    if (lp) found.push({ type: 'launch-pool', fn: () => this.fetchLaunchPoolBucket(genesisAddress, bucketIndex, spinner) })
+    if (pre) found.push({ type: 'presale', fn: () => this.fetchPresaleBucket(genesisAddress, bucketIndex, spinner) })
+    if (ul) found.push({ type: 'unlocked', fn: () => this.fetchUnlockedBucket(genesisAddress, bucketIndex, spinner) })
+
+    if (found.length === 0) {
+      spinner.fail('Bucket not found')
+      this.error(`No bucket found at index ${bucketIndex}. Tried all bucket types (launch-pool, presale, unlocked, bonding-curve).`)
+    }
+
+    if (found.length === 1) {
+      return found[0].fn()
+    }
+
+    // Multiple bucket types at the same index — show all
+    spinner.succeed(`Found ${found.length} buckets at index ${bucketIndex}`)
+    const results: unknown[] = []
+    for (const { fn } of found) {
+      results.push(await fn())
+      this.log('')
+    }
+    return results
   }
 
   private async fetchLaunchPoolBucket(genesisAddress: ReturnType<typeof publicKey>, bucketIndex: number, spinner: ReturnType<typeof ora>): Promise<unknown> {

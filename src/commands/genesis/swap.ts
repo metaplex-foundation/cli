@@ -20,7 +20,7 @@ import {
   syncNative,
   transferSol,
 } from '@metaplex-foundation/mpl-toolbox'
-import { publicKey, sol, TransactionBuilder } from '@metaplex-foundation/umi'
+import { publicKey, lamports, TransactionBuilder } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
 
@@ -181,7 +181,7 @@ Combine --info with --buyAmount or --sellAmount to get a quote without swapping.
           }
 
           wrapTx = wrapTx.add(transferSol(this.context.umi, {
-            amount: sol(Number(deficit) / 1e9),
+            amount: lamports(deficit),
             destination: wsolAta,
           }))
           wrapTx = wrapTx.add(syncNative(this.context.umi, {
@@ -311,7 +311,12 @@ Combine --info with --buyAmount or --sellAmount to get a quote without swapping.
 
       // Buy quote
       if (typeof flags.buyAmount === 'string') {
-        const buyAmt = BigInt(flags.buyAmount)
+        let buyAmt: bigint
+        try {
+          buyAmt = BigInt(flags.buyAmount)
+        } catch {
+          this.error(`Invalid --buyAmount "${flags.buyAmount}". Must be a non-negative integer.`)
+        }
         const buyQuote = getSwapResult(bucket, buyAmt, SwapDirection.Buy, firstBuy)
         const minOut = applySlippage(buyQuote.amountOut, (flags.slippage as number) ?? 200)
         this.log('')
@@ -331,7 +336,12 @@ Combine --info with --buyAmount or --sellAmount to get a quote without swapping.
 
       // Sell quote
       if (typeof flags.sellAmount === 'string') {
-        const sellAmt = BigInt(flags.sellAmount)
+        let sellAmt: bigint
+        try {
+          sellAmt = BigInt(flags.sellAmount)
+        } catch {
+          this.error(`Invalid --sellAmount "${flags.sellAmount}". Must be a non-negative integer.`)
+        }
         const sellQuote = getSwapResult(bucket, sellAmt, SwapDirection.Sell, false)
         const minOut = applySlippage(sellQuote.amountOut, (flags.slippage as number) ?? 200)
         this.log('')

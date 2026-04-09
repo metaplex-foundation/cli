@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { runCli } from '../../runCli'
-import { stripAnsi, createGenesisAccount } from './genesishelpers'
+import { createGenesisAccount } from './genesishelpers'
 
 describe('genesis swap and bonding curve commands', () => {
 

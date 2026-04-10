@@ -24,8 +24,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0(@metaplex-foundation/umi@1.5.1)
       '@metaplex-foundation/genesis':
-        specifier: ^0.34.0
-        version: 0.34.0(@metaplex-foundation/umi@1.5.1)
+        specifier: ^0.35.0
+        version: 0.35.0(@metaplex-foundation/umi@1.5.1)
       '@metaplex-foundation/mpl-agent-registry':
         specifier: ^0.2.5
         version: 0.2.5(@metaplex-foundation/umi@1.5.1)(@noble/hashes@1.8.0)
@@ -909,8 +909,8 @@ packages:
     peerDependencies:
       '@metaplex-foundation/umi': '>= 0.8.2 <= 1'
 
-  '@metaplex-foundation/genesis@0.34.0':
-    resolution: {integrity: sha512-7ZbOFl6wi5e/fn5x1xQqNltFJejK3ndTQYEe38APwewh/Xf+Am4g5xt7mnBsts2DvZabm/R7nS8cFYbszmWaog==}
+  '@metaplex-foundation/genesis@0.35.0':
+    resolution: {integrity: sha512-rWba2yLrvMk5EdO0UkEekp0mzPNPIkoxS8qJLbsuIEQKd7oxxtV2F0ilPfnFOUVQITb609pucmyXGoMk4HJUiw==}
     peerDependencies:
       '@metaplex-foundation/umi': ^1.4.1
 
@@ -6105,7 +6105,7 @@ snapshots:
     dependencies:
       '@metaplex-foundation/umi': 1.5.1
 
-  '@metaplex-foundation/genesis@0.34.0(@metaplex-foundation/umi@1.5.1)':
+  '@metaplex-foundation/genesis@0.35.0(@metaplex-foundation/umi@1.5.1)':
     dependencies:
       '@metaplex-foundation/mpl-token-metadata': 3.4.0(@metaplex-foundation/umi@1.5.1)
       '@metaplex-foundation/mpl-toolbox': 0.10.0(@metaplex-foundation/umi@1.5.1)

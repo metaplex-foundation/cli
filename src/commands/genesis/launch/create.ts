@@ -11,6 +11,7 @@ import {
 } from '@metaplex-foundation/genesis'
 import { isPublicKey } from '@metaplex-foundation/umi'
 import { Flags } from '@oclif/core'
+import fs from 'node:fs'
 import ora from 'ora'
 
 import { TransactionCommand } from '../../../TransactionCommand.js'
@@ -18,6 +19,7 @@ import { generateExplorerUrl } from '../../../explorers.js'
 import { readJsonSync } from '../../../lib/file.js'
 import { promptLaunchWizard, toISOTimestamp } from '../../../lib/genesis/createGenesisWizardPrompt.js'
 import { buildLaunchInput, getDefaultApiUrl } from '../../../lib/genesis/launchApi.js'
+import imageUploader from '../../../lib/uploader/imageUploader.js'
 import { detectSvmNetwork, txSignatureToString } from '../../../lib/util.js'
 
 /* ------------------------------------------------------------------ */
@@ -274,7 +276,7 @@ Use --wizard for an interactive guided setup.`
     }),
 
     image: Flags.string({
-      description: 'Token image URL',
+      description: 'Token image — either a local file path (uploaded automatically) or a valid https:// URL',
       required: false,
     }),
 
@@ -436,7 +438,7 @@ Use --wizard for an interactive guided setup.`
     // Safe to assert — validated above
     const name = flags.name!
     const symbol = flags.symbol!
-    const image = flags.image!
+    const image = await this.resolveImage(flags.image!)
 
     const common: CommonLaunchParams = {
       network,
@@ -467,6 +469,30 @@ Use --wizard for an interactive guided setup.`
   }
 
   /* ------------------------------------------------------------------ */
+  /*  Image resolution                                                   */
+  /* ------------------------------------------------------------------ */
+
+  private async resolveImage(image: string): Promise<string> {
+    if (image.startsWith('https://') || image.startsWith('http://')) {
+      return image
+    }
+
+    if (!fs.existsSync(image)) {
+      this.error(`--image: file not found: ${image}`)
+    }
+
+    const spinner = ora(`Uploading image: ${image}`).start()
+    try {
+      const uri = await imageUploader(this.context.umi, image)
+      spinner.succeed(`Image uploaded: ${uri}`)
+      return uri
+    } catch (error) {
+      spinner.fail('Image upload failed')
+      throw error
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
   /*  Wizard                                                             */
   /* ------------------------------------------------------------------ */
 
@@ -484,6 +510,8 @@ Use --wizard for an interactive guided setup.`
 
     const networkOverride = flags.network as SvmNetwork | undefined
     const network: SvmNetwork = networkOverride ?? detectSvmNetwork(this.context.chain)
+
+    const resolvedImage = await this.resolveImage(wizardResult.image)
 
     const launchInput = buildLaunchInput(
       this.context.umi.identity.publicKey.toString(),
@@ -507,7 +535,7 @@ Use --wizard for an interactive guided setup.`
           ...(wizardResult.telegram && { telegram: wizardResult.telegram }),
         },
         token: {
-          image: wizardResult.image,
+          image: resolvedImage,
           name: wizardResult.name,
           symbol: wizardResult.symbol,
           ...(wizardResult.description && { description: wizardResult.description }),

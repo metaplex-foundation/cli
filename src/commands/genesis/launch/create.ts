@@ -473,8 +473,12 @@ Use --wizard for an interactive guided setup.`
   /* ------------------------------------------------------------------ */
 
   private async resolveImage(image: string): Promise<string> {
-    if (image.startsWith('https://') || image.startsWith('http://')) {
+    if (image.startsWith('https://')) {
       return image
+    }
+
+    if (image.startsWith('http://')) {
+      this.error('--image: remote URLs must use https://')
     }
 
     if (!fs.existsSync(image)) {

@@ -197,8 +197,14 @@ export async function promptTokenMetadata(): Promise<{ name: string; symbol: str
   })
 
   const image = await input({
-    message: 'Token image URL:',
-    validate: (v) => { abortOrTrue(v); if (!v.startsWith('https://')) return 'Must be a valid https URL'; return true },
+    message: 'Token image (https:// URL or local file path):',
+    validate: (v) => {
+      abortOrTrue(v)
+      if (v.startsWith('https://')) return true
+      if (v.startsWith('http://')) return 'Remote URLs must use https://'
+      if (v.trim().length > 0) return true
+      return 'Must be a valid https URL or a local file path'
+    },
   })
 
   const description = await input({
@@ -683,8 +689,14 @@ export async function promptRegisterLaunch(): Promise<RegisterLaunchResult> {
   console.log('')
 
   const image = await input({
-    message: 'Token image URL:',
-    validate: (v) => { abortOrTrue(v); if (!v.startsWith('https://')) return 'Must be a valid https URL'; return true },
+    message: 'Token image (https:// URL or local file path):',
+    validate: (v) => {
+      abortOrTrue(v)
+      if (v.startsWith('https://')) return true
+      if (v.startsWith('http://')) return 'Remote URLs must use https://'
+      if (v.trim().length > 0) return true
+      return 'Must be a valid https URL or a local file path'
+    },
   })
 
   const description = await input({

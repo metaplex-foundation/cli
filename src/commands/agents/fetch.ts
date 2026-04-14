@@ -5,10 +5,9 @@ import { publicKey } from '@metaplex-foundation/umi'
 import { fetchAssetV1, findAssetSignerPda } from '@metaplex-foundation/mpl-core'
 import { BaseCommand } from '../../BaseCommand.js'
 import {
-  fetchAgentIdentityV2,
   findAgentIdentityV2Pda,
-  Key,
   safeFetchAgentIdentityV1,
+  safeFetchAgentIdentityV2,
 } from '@metaplex-foundation/mpl-agent-registry/dist/src/generated/identity/index.js'
 
 export default class AgentsFetch extends BaseCommand<typeof AgentsFetch> {
@@ -37,24 +36,33 @@ export default class AgentsFetch extends BaseCommand<typeof AgentsFetch> {
 
     // Derive and fetch the agent identity PDA. V1 and V2 share the same PDA
     // seeds; V2 is the upgraded format that carries the canonical agent token.
+    // Try V2 first and fall back to V1 if deserialization fails (e.g. the
+    // account has not been upgraded yet).
     const [identityPda] = findAgentIdentityV2Pda(umi, { asset: assetPk })
-    const identity = await safeFetchAgentIdentityV1(umi, identityPda)
 
-    if (!identity) {
-      this.log('No agent identity found for this asset. The asset may not be registered.')
-      return { registered: false, asset: args.asset }
-    }
-
-    // If the on-chain account has been upgraded to V2, read the canonical
-    // agent token from the mpl-agent-registry.
     let hasAgentToken = false
     let agentToken: string | null = null
-    if (identity.key === Key.AgentIdentityV2) {
-      const identityV2 = await fetchAgentIdentityV2(umi, identityPda)
-      hasAgentToken = identityV2.agentToken.__option === 'Some'
-      if (identityV2.agentToken.__option === 'Some') {
-        agentToken = identityV2.agentToken.value.toString()
+    let identityExists = false
+
+    try {
+      const identityV2 = await safeFetchAgentIdentityV2(umi, identityPda)
+      if (identityV2) {
+        identityExists = true
+        hasAgentToken = identityV2.agentToken.__option === 'Some'
+        if (identityV2.agentToken.__option === 'Some') {
+          agentToken = identityV2.agentToken.value.toString()
+        }
       }
+    } catch {
+      const identityV1 = await safeFetchAgentIdentityV1(umi, identityPda)
+      if (identityV1) {
+        identityExists = true
+      }
+    }
+
+    if (!identityExists) {
+      this.log('No agent identity found for this asset. The asset may not be registered.')
+      return { registered: false, asset: args.asset }
     }
 
     // Derive the Asset Signer PDA (agent wallet)

@@ -1,4 +1,4 @@
-import { AssetV1, fetchAsset, fetchCollection, update } from '@metaplex-foundation/mpl-core'
+import { AssetV1, baseUpdateAuthority, fetchAsset, fetchCollection, update } from '@metaplex-foundation/mpl-core'
 import { fetchJsonMetadata, JsonMetadata } from '@metaplex-foundation/mpl-token-metadata'
 import { createGenericFile, publicKey, Umi } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
@@ -30,11 +30,14 @@ import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 */
 
 export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> {
-  static override description = `Update an MPL Core Asset's name, URI, image, or offchain metadata.
+  static override description = `Update an MPL Core Asset's name, URI, image, offchain metadata, or collection.
 
   Update specific fields with --name and/or --uri, or provide a metadata JSON file
   with --offchain to sync the on-chain name from the file. Use --image to upload and
-  assign a new image. Combinations like --offchain with --image are supported.`
+  assign a new image. Combinations like --offchain with --image are supported.
+
+  Use --collection to add the asset to a collection or move it to a different one.
+  Use --remove-collection to remove the asset from its current collection.`
 
   static examples = [
     'Single Asset Update:',
@@ -43,6 +46,9 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
     '<%= config.bin %> <%= command.id %> <assetId> --name "Updated Asset"',
     '<%= config.bin %> <%= command.id %> <assetId> --image ./asset/image.jpg',
     '<%= config.bin %> <%= command.id %> <assetId> --offchain ./asset/metadata.json',
+    'Collection operations:',
+    '<%= config.bin %> <%= command.id %> <assetId> --collection <collectionId>',
+    '<%= config.bin %> <%= command.id %> <assetId> --remove-collection',
   ]
 
   static override flags = {
@@ -50,7 +56,8 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
     uri: Flags.string({ name: "uri", description: 'URI of the Asset metadata', exclusive: ['offchain'] }),
     image: Flags.string({ name: "image", description: 'Path to image file' }),
     offchain: Flags.string({ name: "offchain", description: 'Path to JSON offchain metadata file', exclusive: ['name', 'uri'] }),
-    collectionId: Flags.string({ description: 'Collection ID' }),
+    collection: Flags.string({ description: 'Add or move the asset to this collection', exclusive: ['remove-collection'] }),
+    'remove-collection': Flags.boolean({ description: 'Remove the asset from its current collection', exclusive: ['collection'], default: false }),
   }
 
   static override args = {
@@ -61,13 +68,18 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
     const { args, flags } = await this.parse(AssetUpdate)
     const umi = this.context.umi
     const assetId = args.assetId
-    const { name, uri, image, offchain: metadataFile } = flags
+    const { name, uri, image, offchain: metadataFile, collection: collectionFlag, 'remove-collection': removeCollection } = flags
 
-    if (!name && !uri && !image && !metadataFile) {
-      this.error('You must provide at least one update flag: --name, --uri, --image, or --offchain')
+    if (!name && !uri && !image && !metadataFile && !collectionFlag && !removeCollection) {
+      this.error('You must provide at least one update flag: --name, --uri, --image, --offchain, --collection, or --remove-collection')
     }
 
     const asset = await fetchAsset(umi, publicKey(assetId))
+
+    // Handle collection-only operations (no metadata changes)
+    if ((collectionFlag || removeCollection) && !name && !uri && !image && !metadataFile) {
+      return await this.updateAsset(umi, asset, asset.name, asset.uri)
+    }
 
     if (uri) {
       // uri flag is seperate because it doesn't require modification of the original metadata.
@@ -188,17 +200,41 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
   }
 
   private async updateAsset(umi: Umi, asset: AssetV1, name: string, uri: string): Promise<unknown> {
+    const { collection: collectionFlag, 'remove-collection': removeCollection } = (await this.parse(AssetUpdate)).flags
     const spinner = ora('Updating Asset on-chain...').start()
     try {
       let collection
       if (asset.updateAuthority.type === 'Collection' && asset.updateAuthority.address) {
         collection = await fetchCollection(umi, publicKey(asset.updateAuthority.address))
       }
-      const txBuilder = update(umi, { asset, collection, name, uri })
+
+      const updateArgs: Parameters<typeof update>[1] = { asset, collection, name, uri }
+
+      if (collectionFlag) {
+        const newCollection = await fetchCollection(umi, publicKey(collectionFlag))
+        updateArgs.newCollection = newCollection.publicKey
+        updateArgs.newUpdateAuthority = baseUpdateAuthority('Collection', [newCollection.publicKey])
+      } else if (removeCollection) {
+        if (asset.updateAuthority.type !== 'Collection') {
+          spinner.fail('Asset is not in a collection')
+          this.error('Cannot remove from collection: asset does not belong to a collection')
+        }
+        updateArgs.newUpdateAuthority = baseUpdateAuthority('Address', [umi.identity.publicKey])
+      }
+
+      const txBuilder = update(umi, updateArgs)
       const tx = await umiSendAndConfirmTransaction(umi, txBuilder)
       const signature = txSignatureToString(tx.transaction.signature as Uint8Array)
       const explorerUrl = generateExplorerUrl(this.context.explorer, this.context.chain, signature, 'transaction')
-      spinner.succeed(`Asset updated: ${asset.publicKey} (Tx: ${signature})`)
+
+      let successMessage = `Asset updated: ${asset.publicKey}`
+      if (collectionFlag) {
+        successMessage = collection ? `Asset moved to new collection` : `Asset added to collection`
+      } else if (removeCollection) {
+        successMessage = `Asset removed from collection`
+      }
+      spinner.succeed(`${successMessage} (Tx: ${signature})`)
+
       return {
         asset: asset.publicKey.toString(),
         signature,
@@ -209,4 +245,5 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
       throw error
     }
   }
+
 }

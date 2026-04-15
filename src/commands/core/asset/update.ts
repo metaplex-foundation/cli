@@ -78,7 +78,7 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
 
     // Handle collection-only operations (no metadata changes)
     if ((collectionFlag || removeCollection) && !name && !uri && !image && !metadataFile) {
-      return await this.updateAsset(umi, asset, asset.name, asset.uri)
+      return await this.updateAsset(umi, asset, asset.name, asset.uri, { collectionFlag, removeCollection })
     }
 
     if (uri) {
@@ -92,7 +92,7 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
       // use the new uri name
       const assetName = name || asset.name
 
-      return await this.updateAsset(umi, asset, assetName, uri)
+      return await this.updateAsset(umi, asset, assetName, uri, { collectionFlag, removeCollection })
     } else {
       // name, image, and metadata flags require modification of the original metadata and a new metadata upload.
 
@@ -129,7 +129,7 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
 
       const metadataUri = await this.uploadJson(umi, metadata)
 
-      return await this.updateAsset(umi, asset, updatedName, metadataUri)
+      return await this.updateAsset(umi, asset, updatedName, metadataUri, { collectionFlag, removeCollection })
     }
   }
 
@@ -199,8 +199,8 @@ export default class AssetUpdate extends TransactionCommand<typeof AssetUpdate> 
     }
   }
 
-  private async updateAsset(umi: Umi, asset: AssetV1, name: string, uri: string): Promise<unknown> {
-    const { collection: collectionFlag, 'remove-collection': removeCollection } = (await this.parse(AssetUpdate)).flags
+  private async updateAsset(umi: Umi, asset: AssetV1, name: string, uri: string, options?: { collectionFlag?: string; removeCollection?: boolean }): Promise<unknown> {
+    const { collectionFlag, removeCollection } = options ?? {}
     const spinner = ora('Updating Asset on-chain...').start()
     try {
       let collection

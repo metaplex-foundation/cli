@@ -16,7 +16,7 @@ export default class CollectionAdd extends TransactionCommand<typeof CollectionA
 
   public async run(): Promise<unknown> {
     const { args } = await this.parse(CollectionAdd)
-    const { rpc, keypair, payer, commitment, config: configPath } = this.flags as Record<string, string | undefined>
+    const { rpc, keypair, payer, commitment, config: configPath, 'log-level': logLevel } = this.flags as Record<string, string | undefined>
 
     this.log('Note: This command is an alias for `mplx core asset update <asset> --collection <collection>`')
 
@@ -26,6 +26,7 @@ export default class CollectionAdd extends TransactionCommand<typeof CollectionA
     if (payer) argv.push('--payer', payer)
     if (commitment) argv.push('--commitment', commitment)
     if (configPath) argv.push('--config', configPath)
+    if (logLevel) argv.push('--log-level', logLevel)
 
     return this.config.runCommand('core:asset:update', argv)
   }

@@ -86,7 +86,6 @@ describe('core asset update --collection / --remove-collection', () => {
         ])
 
         const cleanStderr = stripAnsi(stderr)
-        const cleanStdout = stripAnsi(stdout)
         expect(code).to.equal(0)
         expect(cleanStderr).to.contain('Asset added to collection')
 

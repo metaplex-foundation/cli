@@ -1,5 +1,5 @@
 import { DefaultGuardSet } from "@metaplex-foundation/mpl-core-candy-machine"
-import { publicKey, sol, some } from "@metaplex-foundation/umi"
+import { lamports as createLamports, publicKey, some } from "@metaplex-foundation/umi"
 import { 
     CandyMachineConfig, 
     RawGuardConfig, 
@@ -393,7 +393,7 @@ const parseGuard = (guardName: string, guardValue: unknown): Partial<DefaultGuar
             }
             const validatedGuard = guardValue as RawBotTax;
             parsedGuard.botTax = some({
-                lamports: sol(Number(validatedGuard.lamports) / 10 ** 9),
+                lamports: createLamports(validatedGuard.lamports),
                 lastInstruction: validatedGuard.lastInstruction
             });
             break;
@@ -418,7 +418,7 @@ const parseGuard = (guardName: string, guardValue: unknown): Partial<DefaultGuar
             }
             const validatedGuard = guardValue as RawFreezeSolPayment;
             parsedGuard.freezeSolPayment = some({
-                lamports: sol(Number(validatedGuard.lamports) / 10 ** 9),
+                lamports: createLamports(validatedGuard.lamports),
                 destination: publicKey(validatedGuard.destination),
                 period: BigInt(validatedGuard.period)
             });
@@ -510,7 +510,7 @@ const parseGuard = (guardName: string, guardValue: unknown): Partial<DefaultGuar
             }
             const validatedGuard = guardValue as RawSolFixedFee;
             parsedGuard.solFixedFee = some({
-                lamports: sol(Number(validatedGuard.lamports) / 10 ** 9),
+                lamports: createLamports(validatedGuard.lamports),
                 destination: publicKey(validatedGuard.destination)
             });
             break;
@@ -521,7 +521,7 @@ const parseGuard = (guardName: string, guardValue: unknown): Partial<DefaultGuar
             }
             const validatedGuard = guardValue as RawSolPayment;
             parsedGuard.solPayment = some({
-                lamports: sol(Number(validatedGuard.lamports) / 10 ** 9),
+                lamports: createLamports(validatedGuard.lamports),
                 destination: publicKey(validatedGuard.destination)
             });
             break;

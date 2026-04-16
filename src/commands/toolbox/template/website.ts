@@ -16,7 +16,7 @@ export default class ToolboxWebsiteTemplate extends Command {
     static override description = 'Download a MPLX website template'
 
     static override flags = {
-        '--template': Flags.string({
+        template: Flags.string({
             description: 'The template to download',
             required: false,
             options: Object.keys(templates)
@@ -39,15 +39,11 @@ export default class ToolboxWebsiteTemplate extends Command {
 
         try {
             const { stdout, stderr } = await execAsync(`git clone ${templates[template as keyof typeof templates]}`)
-            
+
             if (stdout) {
                 this.log(stdout)
             }
-            
-            if (stderr) {
-                this.error(stderr)
-            }
-            
+
             this.log(`Template '${template}' cloned successfully`)
         } catch (error) {
             this.error(`Failed to clone template '${template}': ${error instanceof Error ? error.message : 'Unknown error'}`)

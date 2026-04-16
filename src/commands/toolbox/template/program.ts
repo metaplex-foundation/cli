@@ -41,15 +41,11 @@ export default class ToolboxProgramTemplate extends Command {
 
         try {
             const { stdout, stderr } = await execAsync(`git clone ${templates[template as keyof typeof templates]}`)
-            
+
             if (stdout) {
                 this.log(stdout)
             }
-            
-            if (stderr) {
-                this.error(stderr)
-            }
-            
+
             this.log(`Template '${template}' cloned successfully`)
         } catch (error) {
             this.error(`Failed to clone template '${template}': ${error instanceof Error ? error.message : 'Unknown error'}`)

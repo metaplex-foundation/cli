@@ -51,12 +51,22 @@ export default class CmInsert extends TransactionCommand<typeof CmInsert> {
 
             writeAssetCache(res.assetCache, args.directory);
 
-            this.logSuccess(`Asset cache updated successfully`);
+            const totalItems = Object.keys(res.assetCache.assetItems).length
+            const loadedItems = Object.values(res.assetCache.assetItems).filter(item => item.loaded).length
+            const failedItems = totalItems - loadedItems
 
-            const itemsInserted = Object.keys(res.assetCache.assetItems).length
+            if (failedItems > 0) {
+                this.log(`\n⚠️  ${failedItems} of ${totalItems} items failed to insert.`)
+                this.log(`Run 'mplx cm insert${args.directory ? ` ${args.directory}` : ''}' again to retry failed items.`)
+            } else {
+                this.logSuccess(`All ${totalItems} items inserted successfully`);
+            }
+
             return {
                 candyMachineId: config.candyMachineId?.toString(),
-                itemsInserted,
+                totalItems,
+                itemsInserted: loadedItems,
+                itemsFailed: failedItems,
             }
         } catch (error) {
             this.error(`Insert failed: ${error instanceof Error ? error.message : String(error)}`);

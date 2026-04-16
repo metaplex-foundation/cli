@@ -226,6 +226,16 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
         const insertItemsRes = await insertItems(umi, candyMachineConfig, uploadResult.assetCache)
         fs.writeFileSync(path.join(candyMachineDir, 'asset-cache.json'), JSON.stringify(insertItemsRes.assetCache, null, 2))
 
+        // Check for failed insertions
+        const totalItems = Object.keys(insertItemsRes.assetCache.assetItems).length
+        const loadedItems = Object.values(insertItemsRes.assetCache.assetItems).filter(item => item.loaded).length
+        const failedItems = totalItems - loadedItems
+
+        if (failedItems > 0) {
+            this.log(`\n⚠️  ${failedItems} of ${totalItems} items failed to insert.`)
+            this.log(`Run 'mplx cm insert${candyMachineDir !== process.cwd() ? ` ${path.basename(candyMachineDir)}` : ''}' to retry failed items.`)
+        }
+
         // Wizard completion message and summary (moved here after all processing is complete)
         this.log('\n🎉 Wizard complete! Here is a summary of your setup:')
         this.log(`- Directory: ${useCurrentDirectory ? 'Current directory' : path.basename(candyMachineDir)}`)

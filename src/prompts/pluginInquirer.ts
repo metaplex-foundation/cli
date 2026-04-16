@@ -54,6 +54,9 @@ const pluginConfigurator = async (plugins: Array<Plugin>): Promise<PluginData> =
         numberOfCreators = parseInt(creatorsStr)
 
         for (let index = 0; index < numberOfCreators; index++) {
+          const isLastCreator = index === numberOfCreators - 1
+          const remaining = 100 - totalRoyalty
+
           console.log(`${terminalColors.FgCyan}Configuring Creator ${index + 1} of ${numberOfCreators}`)
           const address = await input({
             message: `Creator ${index + 1} Address?`,
@@ -63,22 +66,25 @@ const pluginConfigurator = async (plugins: Array<Plugin>): Promise<PluginData> =
             },
           })
 
-          const percentageStr = await input({
-            message: `Creator ${index + 1} Percentage? (remaining: ${100 - totalRoyalty}%)`,
-            validate: (value) => {
-              const num = parseInt(value)
-              if (isNaN(num) || num <= 0) return 'Value must be greater than 0'
-              if (num > (100 - totalRoyalty)) return `Value must not exceed remaining percentage (${100 - totalRoyalty}%)`
-              return true
-            },
-          })
-          const percentage = parseInt(percentageStr)
+          let percentage: number
+          if (isLastCreator) {
+            percentage = remaining
+            console.log(`Creator ${index + 1} Percentage: ${percentage}% (auto-assigned remaining)`)
+          } else {
+            const percentageStr = await input({
+              message: `Creator ${index + 1} Percentage? (remaining: ${remaining}%)`,
+              validate: (value) => {
+                const num = parseInt(value)
+                if (isNaN(num) || num <= 0) return 'Value must be greater than 0'
+                if (num >= remaining) return `Value must be less than remaining percentage (${remaining}%) — need to leave room for ${numberOfCreators - index - 1} more creator(s)`
+                return true
+              },
+            })
+            percentage = parseInt(percentageStr)
+          }
+
           creators.push({address: publicKey(address), percentage})
           totalRoyalty += percentage
-        }
-
-        if (totalRoyalty !== 100) {
-          throw new Error('Total royalty percentage must equal 100%')
         }
 
         pluginData.royalties = {

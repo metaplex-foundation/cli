@@ -180,7 +180,10 @@ describe('cm guard commands', () => {
             )
         } catch (error) {
             failed = true
-            expect((error as Error).message).to.include('does not exist')
+            // oclif wraps long error messages with ` ›   ` continuation markers,
+            // so normalize whitespace before searching for the phrase
+            const normalized = (error as Error).message.replace(/\s*›\s*/g, ' ').replace(/\s+/g, ' ')
+            expect(normalized).to.include('does not exist')
         }
         expect(failed).to.be.true
     })

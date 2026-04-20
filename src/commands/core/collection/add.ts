@@ -1,15 +1,9 @@
-import { baseUpdateAuthority, fetchAsset, fetchCollection, update } from '@metaplex-foundation/mpl-core'
-import { publicKey } from '@metaplex-foundation/umi'
 import { Args } from '@oclif/core'
-import ora from 'ora'
 
-import { generateExplorerUrl } from '../../../explorers.js'
 import { TransactionCommand } from '../../../TransactionCommand.js'
-import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
-import { txSignatureToString } from '../../../lib/util.js'
 
 export default class CollectionAdd extends TransactionCommand<typeof CollectionAdd> {
-  static override description = 'Add an existing MPL Core Asset to a Collection'
+  static override description = 'Add an existing MPL Core Asset to a Collection (alias for `core asset update --collection`)'
 
   static override examples = [
     '<%= config.bin %> <%= command.id %> <collection> <asset>',
@@ -22,49 +16,18 @@ export default class CollectionAdd extends TransactionCommand<typeof CollectionA
 
   public async run(): Promise<unknown> {
     const { args } = await this.parse(CollectionAdd)
-    const { umi, explorer, chain } = this.context
+    const { rpc, keypair, payer, commitment, config: configPath, 'log-level': logLevel } = this.flags as Record<string, string | undefined>
 
-    const spinner = ora('Fetching asset and collection...').start()
+    this.log('Note: This command is an alias for `mplx core asset update <asset> --collection <collection>`')
 
-    try {
-      const asset = await fetchAsset(umi, publicKey(args.asset))
-      const collection = await fetchCollection(umi, publicKey(args.collection))
+    const argv = [args.asset, '--collection', args.collection]
+    if (rpc) argv.push('--rpc', rpc)
+    if (keypair) argv.push('--keypair', keypair)
+    if (payer) argv.push('--payer', payer)
+    if (commitment) argv.push('--commitment', commitment)
+    if (configPath) argv.push('--config', configPath)
+    if (logLevel) argv.push('--log-level', logLevel)
 
-      if (asset.updateAuthority.type === 'Collection') {
-        spinner.fail('Asset is already in a collection')
-        this.error(`Asset ${args.asset} already belongs to collection ${asset.updateAuthority.address}`)
-      }
-
-      spinner.text = 'Adding asset to collection...'
-
-      const txBuilder = update(umi, {
-        asset,
-        newUpdateAuthority: baseUpdateAuthority('Collection', [collection.publicKey]),
-        newCollection: collection.publicKey,
-      })
-
-      const result = await umiSendAndConfirmTransaction(umi, txBuilder)
-      const signature = txSignatureToString(result.transaction.signature as Uint8Array)
-      const explorerUrl = generateExplorerUrl(explorer, chain, signature, 'transaction')
-
-      spinner.succeed(`Asset added to collection`)
-      this.logSuccess(`--------------------------------
-  Asset:      ${args.asset}
-  Collection: ${args.collection}
-  Signature:  ${signature}
-  Explorer:   ${explorerUrl}
---------------------------------`)
-
-      return {
-        asset: args.asset,
-        collection: args.collection,
-        signature,
-        explorer: explorerUrl,
-      }
-    } catch (error) {
-      if (!spinner.isSpinning) throw error
-      spinner.fail('Failed to add asset to collection')
-      throw error
-    }
+    return this.config.runCommand('core:asset:update', argv)
   }
 }

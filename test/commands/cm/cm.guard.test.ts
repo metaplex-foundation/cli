@@ -5,6 +5,8 @@ import { createCoreCollection } from '../core/corehelpers'
 import { expect } from 'chai'
 import fs from 'node:fs'
 import path from 'node:path'
+import { generateSigner } from '@metaplex-foundation/umi'
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
 import { CandyMachineConfig } from '../../../src/lib/cm/types.js'
 
 const execAsync = promisify(exec)
@@ -165,7 +167,11 @@ describe('cm guard commands', () => {
     })
 
     it('fails to delete a non-existent candy guard', async () => {
-        const fakeAddress = '11111111111111111111111111111111'
+        // Generate a fresh keypair so the address is guaranteed to be an
+        // uninitialized account (not the System Program, which would deserialize
+        // as a type mismatch rather than AccountNotFoundError).
+        const umi = createUmi('http://127.0.0.1:8899')
+        const fakeAddress = generateSigner(umi).publicKey.toString()
 
         let failed = false
         try {

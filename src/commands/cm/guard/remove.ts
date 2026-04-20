@@ -64,25 +64,28 @@ export default class CmGuardRemove extends TransactionCommand<typeof CmGuardRemo
         // Fetch candy machine to find its candy guard
         const fetchSpinner = ora('Fetching candy machine...').start()
         let candyGuardAddress: string
+        let candyMachine
 
         try {
-            const candyMachine = await fetchCandyMachine(umi, publicKey(candyMachineAddress))
+            candyMachine = await fetchCandyMachine(umi, publicKey(candyMachineAddress))
+        } catch (error) {
+            fetchSpinner.fail('Failed to fetch candy machine')
+            this.error(`Failed: ${error instanceof Error ? error.message : String(error)}`)
+        }
 
-            if (candyMachine.mintAuthority === candyMachine.authority) {
-                fetchSpinner.fail('Candy machine already uses authority-only minting')
-                this.error('This candy machine does not have a candy guard attached. Nothing to remove.')
-            }
+        if (candyMachine.mintAuthority === candyMachine.authority) {
+            fetchSpinner.fail('Candy machine uses authority-only minting')
+            this.error('This candy machine uses authority-only minting and has no candy guard attached. Nothing to remove.')
+        }
 
-            candyGuardAddress = candyMachine.mintAuthority
+        candyGuardAddress = candyMachine.mintAuthority
 
+        try {
             // Verify it's actually a candy guard
             await fetchCandyGuard(umi, publicKey(candyGuardAddress))
             fetchSpinner.succeed(`Found candy guard: ${candyGuardAddress}`)
         } catch (error) {
-            if (error instanceof Error && error.message.includes('authority-only')) {
-                throw error
-            }
-            fetchSpinner.fail('Failed to fetch candy machine or candy guard')
+            fetchSpinner.fail('Failed to fetch candy guard')
             this.error(`Failed: ${error instanceof Error ? error.message : String(error)}`)
         }
 

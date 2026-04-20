@@ -8,7 +8,7 @@ import { Args, Flags } from '@oclif/core'
 import { checkbox, input } from '@inquirer/prompts'
 import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
-import { readCmConfig, writeCmConfig } from '../../../lib/cm/cm-utils.js'
+import { MAX_GROUP_LABEL_LENGTH, readCmConfig, writeCmConfig } from '../../../lib/cm/cm-utils.js'
 import { candyGuardsSchema } from '../../../lib/cm/candyGuardsSchema.js'
 import jsonGuardParser from '../../../lib/cm/jsonGuardParser.js'
 import { CandyMachineConfig, RawGuardConfig } from '../../../lib/cm/types.js'
@@ -82,14 +82,6 @@ export default class CmGuardUpdate extends TransactionCommand<typeof CmGuardUpda
             const result = await this.runWizard(cmConfig)
             guardConfig = result.guardConfig
             groups = result.groups
-
-            // Save updated config if we have one
-            if (cmConfig) {
-                cmConfig.config.guardConfig = guardConfig
-                cmConfig.config.groups = groups
-                writeCmConfig(cmConfig, directory)
-                this.log('Updated cm-config.json with new guard configuration')
-            }
         } else {
             if (!cmConfig) {
                 this.error('No cm-config.json found. Run from a directory with cm-config.json or use --wizard')
@@ -100,6 +92,14 @@ export default class CmGuardUpdate extends TransactionCommand<typeof CmGuardUpda
 
         if ((!guardConfig || Object.keys(guardConfig).length === 0) && (!groups || groups.length === 0)) {
             this.error('No guards or groups found in configuration. Nothing to update.')
+        }
+
+        // Save wizard result to config now that validation has passed
+        if (flags.wizard && cmConfig) {
+            cmConfig.config.guardConfig = guardConfig
+            cmConfig.config.groups = groups
+            writeCmConfig(cmConfig, directory)
+            this.log('Updated cm-config.json with new guard configuration')
         }
 
         // Parse guards using existing parser
@@ -118,26 +118,29 @@ export default class CmGuardUpdate extends TransactionCommand<typeof CmGuardUpda
         // Fetch candy machine to find its candy guard
         const fetchSpinner = ora('Fetching candy machine...').start()
         let candyGuardAddress: string
+        let candyMachine
 
         try {
-            const candyMachine = await fetchCandyMachine(umi, publicKey(candyMachineAddress))
+            candyMachine = await fetchCandyMachine(umi, publicKey(candyMachineAddress))
+        } catch (error) {
+            fetchSpinner.fail('Failed to fetch candy machine')
+            this.error(`Failed: ${error instanceof Error ? error.message : String(error)}`)
+        }
 
-            if (candyMachine.mintAuthority === candyMachine.authority) {
-                fetchSpinner.fail('Candy machine uses authority-only minting (no candy guard)')
-                this.error('This candy machine does not have a candy guard. Guards can only be updated on candy machines with an associated candy guard.')
-            }
+        if (candyMachine.mintAuthority === candyMachine.authority) {
+            fetchSpinner.fail('Candy machine uses authority-only minting (no candy guard)')
+            this.error('This candy machine uses authority-only minting and has no candy guard. Guards can only be updated on candy machines with an associated candy guard.')
+        }
 
-            // The mint authority is the candy guard address
-            candyGuardAddress = candyMachine.mintAuthority
+        // The mint authority is the candy guard address
+        candyGuardAddress = candyMachine.mintAuthority
 
+        try {
             // Verify it's actually a candy guard
             await fetchCandyGuard(umi, publicKey(candyGuardAddress))
             fetchSpinner.succeed(`Found candy guard: ${candyGuardAddress}`)
         } catch (error) {
-            if (error instanceof Error && error.message.includes('authority-only')) {
-                throw error
-            }
-            fetchSpinner.fail('Failed to fetch candy machine or candy guard')
+            fetchSpinner.fail('Failed to fetch candy guard')
             this.error(`Failed: ${error instanceof Error ? error.message : String(error)}`)
         }
 
@@ -194,14 +197,14 @@ export default class CmGuardUpdate extends TransactionCommand<typeof CmGuardUpda
 --------------------------------`
         )
 
-        function checkAbort(val: any) {
+        const checkAbort = (val: unknown) => {
             if (typeof val === 'string' && val.trim().toLowerCase() === 'q') {
-                console.log('Aborting wizard by user request.')
-                process.exit(0)
+                this.log('Aborting wizard by user request.')
+                this.exit(0)
             }
             if (Array.isArray(val) && val.includes('Quit')) {
-                console.log('Aborting wizard by user request.')
-                process.exit(0)
+                this.log('Aborting wizard by user request.')
+                this.exit(0)
             }
         }
 
@@ -231,10 +234,16 @@ export default class CmGuardUpdate extends TransactionCommand<typeof CmGuardUpda
 
         const guardChoices = Object.entries(candyGuardsSchema).map(([guard]) => guard).sort()
 
+        const yesNoQuitValidator = (value: string) => {
+            const normalized = value.trim().toLowerCase()
+            if (['y', 'n', 'q'].includes(normalized)) return true
+            return 'Please enter y, n, or q'
+        }
+
         // Global guards
         const globalGuardsPrompt = await input({
             message: 'Do you want to configure global guards? (y/n or q to quit)',
-            validate: () => true,
+            validate: yesNoQuitValidator,
         })
         checkAbort(globalGuardsPrompt)
 
@@ -262,24 +271,32 @@ export default class CmGuardUpdate extends TransactionCommand<typeof CmGuardUpda
         // Guard groups
         const enableGroupsPrompt = await input({
             message: 'Do you want to configure guard groups? (y/n or q to quit)',
-            validate: () => true,
+            validate: yesNoQuitValidator,
         })
         checkAbort(enableGroupsPrompt)
 
         if (enableGroupsPrompt.trim().toLowerCase() === 'y') {
             const numGroupsPrompt = await input({
                 message: 'Enter the number of groups (or q to quit):',
-                validate: () => true,
+                validate: (value) => {
+                    if (value.trim().toLowerCase() === 'q') return true
+                    if (!/^\d+$/.test(value.trim())) return 'Enter a positive integer'
+                    if (Number(value) < 1) return 'Enter a positive integer'
+                    return true
+                },
             })
             checkAbort(numGroupsPrompt)
             const numGroups = Number(numGroupsPrompt)
+            if (!Number.isFinite(numGroups) || numGroups < 1) {
+                this.error('Invalid number of groups')
+            }
 
             for (let i = 0; i < numGroups; i++) {
                 const groupName = await input({
-                    message: `Enter the name of group ${i + 1} (max 6 chars, or q to quit):`,
+                    message: `Enter the name of group ${i + 1} (max ${MAX_GROUP_LABEL_LENGTH} chars, or q to quit):`,
                     validate: (value) => {
                         if (value === 'q') return true
-                        if (value.length > 6) return 'Group label must be 6 characters or less'
+                        if (value.length > MAX_GROUP_LABEL_LENGTH) return `Group label must be ${MAX_GROUP_LABEL_LENGTH} characters or less`
                         if (!value) return 'Group name is required'
                         return true
                     },

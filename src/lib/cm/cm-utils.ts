@@ -4,6 +4,8 @@ import path from 'node:path';
 import { CandyMachineConfig, CandyMachineAssetCache, CandyMachineAssetCacheItem } from './types.js';
 import validateAssetsFolder from './validateAssetsFolder.js';
 
+export const MAX_GROUP_LABEL_LENGTH = 6;
+
 export const defaultConfigLineSettings: ConfigLineSettings = {
     prefixName: '',
     nameLength: 32,

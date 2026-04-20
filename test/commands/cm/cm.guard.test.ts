@@ -138,20 +138,15 @@ describe('cm guard commands', () => {
 
             const cmId = getCmId(`./${cmName}`)
 
-            // Extract the candy guard address from fetch
-            const { stdout: fetchStdout } = await runCli(
-                ["cm", "fetch", cmId]
-            )
-            // The candy guard address is shown in the fetch output as mintAuthority
-            const mintAuthorityMatch = fetchStdout.match(/"mintAuthority":\s*"([^"]+)"/)
-            expect(mintAuthorityMatch).to.not.be.null
-            const candyGuardAddress = mintAuthorityMatch![1]
-
-            // Remove (unwrap) the candy guard first
-            const { code: removeCode } = await runCli(
+            // Remove (unwrap) the candy guard first; stderr includes the candy guard address
+            const { stderr: removeStderr, code: removeCode } = await runCli(
                 ["cm", "guard", "remove", "--address", cmId, "--force"]
             )
             expect(removeCode).to.equal(0)
+
+            const guardMatch = removeStderr.match(/Found candy guard:\s*(\S+)/)
+            expect(guardMatch, 'candy guard address not found in remove output').to.not.be.null
+            const candyGuardAddress = guardMatch![1]
 
             // Delete the candy guard
             const { stdout, stderr, code } = await runCli(

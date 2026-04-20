@@ -3,7 +3,7 @@ import {
     fetchCandyGuard,
     deleteCandyGuard,
 } from '@metaplex-foundation/mpl-core-candy-machine'
-import { publicKey } from '@metaplex-foundation/umi'
+import { isPublicKey, publicKey } from '@metaplex-foundation/umi'
 import { Flags } from '@oclif/core'
 import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
@@ -44,6 +44,10 @@ export default class CmGuardDelete extends TransactionCommand<typeof CmGuardDele
 
         const candyGuardAddress = flags.address
 
+        if (!isPublicKey(candyGuardAddress)) {
+            this.error(`Invalid address format: ${candyGuardAddress}`)
+        }
+
         // Verify the candy guard exists
         const verifySpinner = ora('Verifying candy guard...').start()
 
@@ -52,7 +56,10 @@ export default class CmGuardDelete extends TransactionCommand<typeof CmGuardDele
             verifySpinner.succeed(`Found candy guard: ${candyGuardAddress}`)
         } catch (error) {
             verifySpinner.fail('Candy guard not found')
-            this.error(`The account at ${candyGuardAddress} does not exist or is not a valid candy guard.`)
+            if (error instanceof Error && error.name === 'AccountNotFoundError') {
+                this.error(`The account at ${candyGuardAddress} does not exist or is not a valid candy guard.`)
+            }
+            this.error(`Failed to fetch candy guard: ${error instanceof Error ? error.message : String(error)}`)
         }
 
         // Confirmation

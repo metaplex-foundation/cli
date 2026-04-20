@@ -12,19 +12,22 @@ import { shortenAddress, DUMMY_UMI } from '../../../lib/util.js'
 export default class ConfigWalletAddCommand extends Command {
   static enableJsonFlag = true
 
-  static override description = 'Add a new wallet to your configuration. Use --asset to add an asset-signer wallet.'
+  static override description = 'Add a new wallet to your configuration. Use --asset for a generic Core asset-signer wallet, or --agent for an agent wallet.'
 
   static override args = {
     name: Args.string({
       description: 'Name of wallet (alphanumeric, hyphens and underscores only)',
       required: true,
     }),
-    path: Args.string({ description: 'Path to keypair json file (not required for --asset)', required: false }),
+    path: Args.string({ description: 'Path to keypair json file (not required for --asset or --agent)', required: false }),
   }
 
   static override flags = {
     asset: Flags.string({
-      description: 'Asset ID to create an asset-signer wallet from',
+      description: 'Core asset address to create an asset-signer wallet from',
+    }),
+    agent: Flags.string({
+      description: 'Agent mint address (Core asset) to create an agent wallet from',
     }),
   }
 
@@ -32,6 +35,7 @@ export default class ConfigWalletAddCommand extends Command {
     '<%= config.bin %> <%= command.id %> my-wallet ~/.config/solana/id.json',
     '<%= config.bin %> <%= command.id %> mainnet-wallet ./wallets/mainnet.json',
     '<%= config.bin %> <%= command.id %> vault --asset <assetId>',
+    '<%= config.bin %> <%= command.id %> my-agent --agent <agentMint>',
   ]
 
   public async run(): Promise<unknown> {
@@ -56,6 +60,66 @@ export default class ConfigWalletAddCommand extends Command {
     }
 
     let wallet: WalletEntry
+
+    if (flags.agent) {
+      // Agent wallet — derives the signer PDA from the agent's Core asset mint
+      const agentMintPubkey = publicKey(flags.agent)
+      const [pdaPubkey] = findAssetSignerPda(DUMMY_UMI, { asset: agentMintPubkey })
+
+      const mergedConfig = consolidateConfigs(DEFAULT_CONFIG, config, { rpcUrl: flags.rpc })
+      const umi = createUmi(mergedConfig.rpcUrl!).use(mplCore())
+      const asset = await fetchAsset(umi, agentMintPubkey).catch(() => {
+        this.error(`Could not fetch agent asset ${flags.agent}. Make sure it exists and your RPC is reachable.`)
+      })
+
+      const ownerAddress = asset.owner.toString()
+
+      const ownerWallet = config.wallets.find(
+        w => w.address === ownerAddress && w.type !== 'asset-signer' && w.type !== 'agent'
+      )
+
+      if (!ownerWallet) {
+        this.error(
+          `Agent owner ${shortenAddress(ownerAddress)} is not in your saved wallets.\n` +
+          `Add the owner wallet first: mplx config wallets add <name> <keypair-path>`
+        )
+      }
+
+      const existingAddress = config.wallets.find((w) => w.address === pdaPubkey.toString())
+      if (existingAddress) {
+        this.error(`This agent's wallet PDA (${shortenAddress(pdaPubkey)}) is already configured as '${existingAddress.name}'.`)
+      }
+
+      wallet = {
+        name: args.name,
+        type: 'agent',
+        asset: flags.agent,
+        address: pdaPubkey.toString(),
+        payer: ownerWallet.name,
+      }
+
+      config.wallets.push(wallet)
+
+      const dir = dirname(configPath)
+      ensureDirectoryExists(dir)
+      writeJsonSync(configPath, config)
+
+      this.log(
+        `✅ Agent wallet '${args.name}' added!\n` +
+        `   Agent Mint:   ${flags.agent}\n` +
+        `   Agent Wallet: ${pdaPubkey.toString()}\n` +
+        `   Owner:        ${ownerWallet.name} (${shortenAddress(ownerAddress)})\n` +
+        `\nUse 'mplx config wallets set ${args.name}' to make this your active wallet.`
+      )
+
+      return {
+        name: args.name,
+        type: 'agent',
+        agentMint: flags.agent,
+        agentWallet: pdaPubkey.toString(),
+        owner: ownerWallet.name,
+      }
+    }
 
     if (flags.asset) {
       // Asset-signer wallet

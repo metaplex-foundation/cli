@@ -19,13 +19,13 @@ export default class AgentsExecutiveDelegate extends TransactionCommand<typeof A
   `
 
   static override examples = [
-    '$ mplx agents executive delegate <agent-asset> --executive <executive-wallet>',
+    '$ mplx agents executive delegate <agentMint> --executive <executive-wallet>',
   ]
 
-  static override usage = 'agents executive delegate <agent-asset> --executive <executive-wallet>'
+  static override usage = 'agents executive delegate <agentMint> --executive <executive-wallet>'
 
   static override args = {
-    asset: Args.string({ description: 'The registered agent asset address to delegate', required: true }),
+    agentMint: Args.string({ description: 'The agent\'s Core asset address', required: true }),
   }
 
   static override flags = {
@@ -39,7 +39,7 @@ export default class AgentsExecutiveDelegate extends TransactionCommand<typeof A
     const { args, flags } = await this.parse(AgentsExecutiveDelegate)
     const { umi, explorer, chain } = this.context
 
-    const assetPk = publicKey(args.asset)
+    const assetPk = publicKey(args.agentMint)
 
     // Derive PDAs
     const [agentIdentity] = findAgentIdentityV1Pda(umi, { asset: assetPk })
@@ -60,14 +60,14 @@ export default class AgentsExecutiveDelegate extends TransactionCommand<typeof A
     const explorerUrl = generateExplorerUrl(explorer, chain, signature, 'transaction')
 
     this.log(`--------------------------------
-  Agent Asset: ${args.asset}
+  Agent Mint: ${args.agentMint}
   Executive Profile: ${executiveProfile.toString()}
   Signature: ${signature}
   Explorer: ${explorerUrl}
 --------------------------------`)
 
     return {
-      agentAsset: args.asset,
+      agentMint: args.agentMint,
       executiveWallet: flags.executive,
       executiveProfile: executiveProfile.toString(),
       signature,

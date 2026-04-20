@@ -586,6 +586,9 @@ Use --wizard for an interactive guided setup.`
         launchId: result.launch.id,
         launchLink: result.launch.link,
         mintAddress: result.mintAddress,
+        ...(launchInput.agent && {
+          agentMint: typeof launchInput.agent.mint === 'string' ? launchInput.agent.mint : launchInput.agent.mint.toString(),
+        }),
         signatures: result.signatures.map((sig: Uint8Array) => {
           const sigStr = txSignatureToString(sig)
           return { explorer: generateExplorerUrl(this.context.explorer, this.context.chain, sigStr, 'transaction'), signature: sigStr }

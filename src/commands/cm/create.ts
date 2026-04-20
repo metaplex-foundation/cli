@@ -13,6 +13,7 @@ import { TransactionCommand } from '../../TransactionCommand.js'
 import {
     getConfigLineSettings,
     readCmConfig,
+    summarizeAssetCache,
     validateCmConfig,
     writeCmConfig
 } from '../../lib/cm/cm-utils.js'
@@ -227,13 +228,11 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
         fs.writeFileSync(path.join(candyMachineDir, 'asset-cache.json'), JSON.stringify(insertItemsRes.assetCache, null, 2))
 
         // Check for failed insertions
-        const totalItems = Object.keys(insertItemsRes.assetCache.assetItems).length
-        const loadedItems = Object.values(insertItemsRes.assetCache.assetItems).filter(item => item.loaded).length
-        const failedItems = totalItems - loadedItems
+        const { totalItems, failedItems } = summarizeAssetCache(insertItemsRes.assetCache)
 
         if (failedItems > 0) {
             this.log(`\n⚠️  ${failedItems} of ${totalItems} items failed to insert.`)
-            this.log(`Run 'mplx cm insert${candyMachineDir !== process.cwd() ? ` ${path.basename(candyMachineDir)}` : ''}' to retry failed items.`)
+            this.log(`Run 'mplx cm insert${candyMachineDir !== process.cwd() ? ` ${path.basename(candyMachineDir)}` : ''}' again to retry failed items.`)
         }
 
         // Wizard completion message and summary (moved here after all processing is complete)

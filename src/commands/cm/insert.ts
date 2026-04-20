@@ -1,7 +1,7 @@
 import { Args } from '@oclif/core'
 import { TransactionCommand } from '../../TransactionCommand.js'
 import insertItems from '../../lib/cm/insertItems.js'
-import { readCmConfig, readAssetCache, writeAssetCache, getCmPaths } from '../../lib/cm/cm-utils.js'
+import { readCmConfig, readAssetCache, writeAssetCache, getCmPaths, summarizeAssetCache } from '../../lib/cm/cm-utils.js'
 import fs from 'node:fs'
 
 export default class CmInsert extends TransactionCommand<typeof CmInsert> {
@@ -51,13 +51,12 @@ export default class CmInsert extends TransactionCommand<typeof CmInsert> {
 
             writeAssetCache(res.assetCache, args.directory);
 
-            const totalItems = Object.keys(res.assetCache.assetItems).length
-            const loadedItems = Object.values(res.assetCache.assetItems).filter(item => item.loaded).length
-            const failedItems = totalItems - loadedItems
+            const { totalItems, loadedItems, failedItems } = summarizeAssetCache(res.assetCache)
 
             if (failedItems > 0) {
                 this.log(`\n⚠️  ${failedItems} of ${totalItems} items failed to insert.`)
                 this.log(`Run 'mplx cm insert${args.directory ? ` ${args.directory}` : ''}' again to retry failed items.`)
+                process.exitCode = 1
             } else {
                 this.logSuccess(`All ${totalItems} items inserted successfully`);
             }

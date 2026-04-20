@@ -28,7 +28,7 @@ describe('cm insert commands', () => {
 
             // console.log('Creating test candy machine directory')
             // Await the directory creation
-            await execAsync(`npm run create-test-cm -- --name=${cmName} --with-config --collection=${collectionId} --with-assets --uploaded`)
+            await execAsync(`npm run create-test-cm -- --name=${cmName} --with-config --collection=${collectionId} --with-assets --uploaded --assets=50`)
 
             const { stdout: cmCreateStdout, stderr: cmCreateStderr, code: cmCreateCode } = await runCli(
                 ["cm", "create", `./${cmName}`]

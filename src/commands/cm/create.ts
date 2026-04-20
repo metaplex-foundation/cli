@@ -5,7 +5,7 @@ import {
 } from '@metaplex-foundation/mpl-core-candy-machine'
 import { generateSigner, publicKey, Umi } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
-import { input, select } from '@inquirer/prompts'
+import { confirm, input, select } from '@inquirer/prompts'
 import fs from 'node:fs'
 import ora from 'ora'
 import path from 'node:path'
@@ -20,6 +20,9 @@ import createCmTemplateFolder from '../../lib/cm/createCmTemplateFolder.js'
 import insertItems from '../../lib/cm/insertItems.js'
 import jsonGuardParser from '../../lib/cm/jsonGuardParser.js'
 import createCandyMachinePrompt from '../../lib/cm/prompts/createCandyMachineWizardPrompt.js'
+import { Plugin, PluginData } from '../../lib/types/pluginData.js'
+import pluginConfigurator, { mapPluginDataToArray } from '../../prompts/pluginInquirer.js'
+import { PluginFilterType, pluginSelector, validatePluginCompatibility } from '../../prompts/pluginSelector.js'
 import { CandyMachineAssetCache, CandyMachineAssetCacheItem, CandyMachineConfig } from '../../lib/cm/types.js'
 import uploadCandyMachineItems from '../../lib/cm/uploadItems.js'
 import { validateCacheUploads, ValidateCacheUploadsOptions } from '../../lib/cm/validateCacheUploads.js'
@@ -402,12 +405,30 @@ export default class CmCreate extends TransactionCommand<typeof CmCreate> {
         collectionJson.uri = jsonUri[0].uri
         collectionJsonSpinner.succeed('Collection metadata uploaded')
 
+        // Prompt for collection plugins
+        let pluginData: PluginData | undefined
+        const wantsPlugins = await confirm({
+            message: 'Do you want to add plugins (e.g. royalties) to this collection?',
+        })
+
+        if (wantsPlugins) {
+            const selectedPlugins = await pluginSelector({ filter: PluginFilterType.Collection })
+            if (selectedPlugins && (selectedPlugins as Plugin[]).length > 0) {
+                const incompatibleError = validatePluginCompatibility(selectedPlugins as Plugin[])
+                if (incompatibleError) {
+                    throw new Error(incompatibleError)
+                }
+                pluginData = await pluginConfigurator(selectedPlugins as Plugin[])
+            }
+        }
+
         // Collection creation onchain
         const collectionCreationSpinner = ora('🏭 Creating collection onchain...').start()
         const collectionTx = createCollection(umi, {
             collection,
             name: collectionJson.name,
             uri: collectionJson.uri,
+            plugins: pluginData ? mapPluginDataToArray(pluginData) : undefined,
         })
         await umiSendAndConfirmTransaction(umi, collectionTx, { commitment: 'finalized' })
 

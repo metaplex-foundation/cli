@@ -41,15 +41,15 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
   static override examples = [
     '$ mplx agents register --name "My Agent" --description "An AI agent" --image "./avatar.png"',
     '$ mplx agents register --name "My Agent" --description "An AI agent" --image "./avatar.png" --services \'[{"name":"MCP","endpoint":"https://myagent.com/mcp"}]\'',
-    '$ mplx agents register <agentMint> --use-ix --from-file "./agent-doc.json"',
+    '$ mplx agents register <agentAsset> --use-ix --from-file "./agent-doc.json"',
     '$ mplx agents register --new --use-ix --name "My Agent" --description "An AI agent" --image "./avatar.png"',
     '$ mplx agents register --new --wizard',
   ]
 
-  static override usage = 'agents register [AGENT_MINT] [FLAGS]'
+  static override usage = 'agents register [AGENT_ASSET] [FLAGS]'
 
   static override args = {
-    agentMint: Args.string({ description: 'The agent\'s Core asset address (not required with --new)', required: false }),
+    agentAsset: Args.string({ description: 'The agent\'s Core asset address (not required with --new)', required: false }),
   }
 
   static override flags = {
@@ -206,7 +206,7 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
     const { umi, explorer, chain } = this.context
 
     // Determine asset address
-    if (flags.wizard && !flags.new && !args.agentMint) {
+    if (flags.wizard && !flags.new && !args.agentAsset) {
       const assetMode = await select({
         message: 'Register a new asset or an existing one?',
         choices: [
@@ -218,9 +218,9 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
       if (assetMode === 'new') {
         flags.new = true
       } else {
-        args.agentMint = await input({
-          message: 'Existing Agent Mint Address?',
-          validate: (value: string) => value ? true : 'Agent mint address is required',
+        args.agentAsset = await input({
+          message: 'Existing Agent Asset Address?',
+          validate: (value: string) => value ? true : 'Agent asset address is required',
         })
       }
     }
@@ -231,10 +231,10 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
     if (flags.new) {
       assetAddress = assetSigner!.publicKey.toString()
     } else {
-      if (!args.agentMint) {
-        this.error('Agent mint address is required. Provide an agentMint address or use --new to create one.')
+      if (!args.agentAsset) {
+        this.error('Agent asset address is required. Provide an agentAsset address or use --new to create one.')
       }
-      assetAddress = args.agentMint
+      assetAddress = args.agentAsset
     }
 
     const { uri, document } = await this.resolveDocumentUri(flags, assetAddress)
@@ -276,14 +276,14 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
     const explorerUrl = generateExplorerUrl(explorer, chain, signature, 'transaction')
 
     this.log(`--------------------------------
-  Agent Mint: ${assetAddress}
+  Agent Asset: ${assetAddress}
   Registration URI: ${uri}
   Signature: ${signature}
   Explorer: ${explorerUrl}
 --------------------------------`)
 
     return {
-      agentMint: assetAddress,
+      agentAsset: assetAddress,
       registrationUri: uri,
       collection: flags.collection ?? null,
       signature,
@@ -357,13 +357,13 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
       const explorerUrl = generateExplorerUrl(explorer, chain, signature, 'transaction')
 
       this.log(`--------------------------------
-  Agent Mint: ${result.assetAddress}
+  Agent Asset: ${result.assetAddress}
   Signature: ${signature}
   Explorer: ${explorerUrl}
 --------------------------------`)
 
       return {
-        agentMint: result.assetAddress,
+        agentAsset: result.assetAddress,
         signature,
         explorer: explorerUrl,
       }
@@ -387,7 +387,7 @@ export default class AgentsRegister extends TransactionCommand<typeof AgentsRegi
     const { args, flags } = await this.parse(AgentsRegister)
 
     // These workflows require the direct IX path
-    const useIx = flags['use-ix'] || flags.wizard || flags['from-file'] || args.agentMint
+    const useIx = flags['use-ix'] || flags.wizard || flags['from-file'] || args.agentAsset
       || flags.owner || flags.collection
 
     if (useIx) {

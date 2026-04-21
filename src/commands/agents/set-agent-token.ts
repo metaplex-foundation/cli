@@ -23,13 +23,13 @@ export default class AgentsSetAgentToken extends TransactionCommand<typeof Agent
   `
 
   static override examples = [
-    '$ mplx agents set-agent-token <agentMint> <genesis-account>',
+    '$ mplx agents set-agent-token <agentAsset> <genesis-account>',
   ]
 
-  static override usage = 'agents set-agent-token <agentMint> <genesis-account>'
+  static override usage = 'agents set-agent-token <agentAsset> <genesis-account>'
 
   static override args = {
-    agentMint: Args.string({ description: 'The agent\'s Core asset address', required: true }),
+    agentAsset: Args.string({ description: 'The agent\'s Core asset address', required: true }),
     genesis: Args.string({ description: 'The Genesis account address for the token launch', required: true }),
   }
 
@@ -37,7 +37,7 @@ export default class AgentsSetAgentToken extends TransactionCommand<typeof Agent
     const { args } = await this.parse(AgentsSetAgentToken)
     const { umi, explorer, chain } = this.context
 
-    const assetPk = publicKey(args.agentMint)
+    const assetPk = publicKey(args.agentAsset)
     const genesisPk = publicKey(args.genesis)
 
     const spinner = ora('Setting agent token...').start()
@@ -60,14 +60,14 @@ export default class AgentsSetAgentToken extends TransactionCommand<typeof Agent
     const explorerUrl = generateExplorerUrl(explorer, chain, signature, 'transaction')
 
     this.log(`--------------------------------
-  Agent Mint: ${args.agentMint}
+  Agent Asset: ${args.agentAsset}
   Genesis Account: ${args.genesis}
   Signature: ${signature}
   Explorer: ${explorerUrl}
 --------------------------------`)
 
     return {
-      agentMint: args.agentMint,
+      agentAsset: args.agentAsset,
       genesisAccount: args.genesis,
       signature,
       explorer: explorerUrl,

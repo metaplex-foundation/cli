@@ -27,7 +27,7 @@ export default class ConfigWalletAddCommand extends Command {
       description: 'Core asset address to create an asset-signer wallet from',
     }),
     agent: Flags.string({
-      description: 'Agent mint address (Core asset) to create an agent wallet from',
+      description: 'Agent Core asset address to create an agent wallet from',
     }),
   }
 
@@ -35,7 +35,7 @@ export default class ConfigWalletAddCommand extends Command {
     '<%= config.bin %> <%= command.id %> my-wallet ~/.config/solana/id.json',
     '<%= config.bin %> <%= command.id %> mainnet-wallet ./wallets/mainnet.json',
     '<%= config.bin %> <%= command.id %> vault --asset <assetId>',
-    '<%= config.bin %> <%= command.id %> my-agent --agent <agentMint>',
+    '<%= config.bin %> <%= command.id %> my-agent --agent <agentAsset>',
   ]
 
   public async run(): Promise<unknown> {
@@ -62,13 +62,13 @@ export default class ConfigWalletAddCommand extends Command {
     let wallet: WalletEntry
 
     if (flags.agent) {
-      // Agent wallet — derives the signer PDA from the agent's Core asset mint
-      const agentMintPubkey = publicKey(flags.agent)
-      const [pdaPubkey] = findAssetSignerPda(DUMMY_UMI, { asset: agentMintPubkey })
+      // Agent wallet — derives the signer PDA from the agent's Core asset address
+      const agentAssetPubkey = publicKey(flags.agent)
+      const [pdaPubkey] = findAssetSignerPda(DUMMY_UMI, { asset: agentAssetPubkey })
 
       const mergedConfig = consolidateConfigs(DEFAULT_CONFIG, config, { rpcUrl: flags.rpc })
       const umi = createUmi(mergedConfig.rpcUrl!).use(mplCore())
-      const asset = await fetchAsset(umi, agentMintPubkey).catch(() => {
+      const asset = await fetchAsset(umi, agentAssetPubkey).catch(() => {
         this.error(`Could not fetch agent asset ${flags.agent}. Make sure it exists and your RPC is reachable.`)
       })
 
@@ -106,7 +106,7 @@ export default class ConfigWalletAddCommand extends Command {
 
       this.log(
         `✅ Agent wallet '${args.name}' added!\n` +
-        `   Agent Mint:   ${flags.agent}\n` +
+        `   Agent Asset:   ${flags.agent}\n` +
         `   Agent Wallet: ${pdaPubkey.toString()}\n` +
         `   Owner:        ${ownerWallet.name} (${shortenAddress(ownerAddress)})\n` +
         `\nUse 'mplx config wallets set ${args.name}' to make this your active wallet.`
@@ -115,7 +115,7 @@ export default class ConfigWalletAddCommand extends Command {
       return {
         name: args.name,
         type: 'agent',
-        agentMint: flags.agent,
+        agentAsset: flags.agent,
         agentWallet: pdaPubkey.toString(),
         owner: ownerWallet.name,
       }

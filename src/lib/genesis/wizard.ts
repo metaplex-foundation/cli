@@ -108,8 +108,8 @@ export async function runApiWizard(
       fundsRecipient: wizardResult.fundsRecipient,
       creatorFeeWallet: wizardResult.creatorFeeWallet,
       firstBuyAmount: wizardResult.firstBuyAmount,
-      agent: wizardResult.agentMint ? {
-        mint: wizardResult.agentMint,
+      agent: wizardResult.agentAsset ? {
+        mint: wizardResult.agentAsset,
         setToken: wizardResult.agentSetToken ?? false,
       } : undefined,
     },

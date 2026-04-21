@@ -293,7 +293,7 @@ describe('genesis launch commands', () => {
                 '--name', 'Agent Token',
                 '--symbol', 'AGT',
                 '--image', 'https://gateway.irys.xyz/abc123',
-                '--agentMint', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
+                '--agentAsset', 'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
                 '--agentSetToken',
             ]
 
@@ -346,7 +346,7 @@ describe('genesis launch commands', () => {
             }
         })
 
-        it('rejects --agentSetToken without --agentMint', async () => {
+        it('rejects --agentSetToken without --agentAsset', async () => {
             const cliInput = [
                 'genesis', 'launch', 'create',
                 '--name', 'My Token',
@@ -362,10 +362,10 @@ describe('genesis launch commands', () => {
 
             try {
                 await runCli(cliInput)
-                expect.fail('Should have thrown an error for agentSetToken without agentMint')
+                expect.fail('Should have thrown an error for agentSetToken without agentAsset')
             } catch (error) {
                 const msg = (error as Error).message
-                expect(msg).to.contain('--agentSetToken requires --agentMint')
+                expect(msg).to.contain('--agentSetToken requires --agentAsset')
             }
         })
     })

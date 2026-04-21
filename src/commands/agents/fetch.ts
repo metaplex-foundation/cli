@@ -14,18 +14,18 @@ export default class AgentsFetch extends BaseCommand<typeof AgentsFetch> {
   `
 
   static override examples = [
-    '<%= config.bin %> agents fetch <agentMint>',
+    '<%= config.bin %> agents fetch <agentAsset>',
   ]
 
   static override args = {
-    agentMint: Args.string({ description: 'The agent\'s Core asset address', required: true }),
+    agentAsset: Args.string({ description: 'The agent\'s Core asset address', required: true }),
   }
 
   public async run(): Promise<unknown> {
     const { args } = await this.parse(AgentsFetch)
     const { umi } = this.context
 
-    const assetPk = publicKey(args.agentMint)
+    const assetPk = publicKey(args.agentAsset)
 
     // Fetch the Core asset
     const asset = await fetchAssetV1(umi, assetPk)
@@ -36,7 +36,7 @@ export default class AgentsFetch extends BaseCommand<typeof AgentsFetch> {
 
     if (!identity) {
       this.log('No agent identity found for this asset. The asset may not be registered.')
-      return { registered: false, agentMint: args.agentMint }
+      return { registered: false, agentAsset: args.agentAsset }
     }
 
     // Derive the Asset Signer PDA (agent wallet)
@@ -47,7 +47,7 @@ export default class AgentsFetch extends BaseCommand<typeof AgentsFetch> {
 
     const result: Record<string, unknown> = {
       registered: true,
-      agentMint: args.agentMint,
+      agentAsset: args.agentAsset,
       owner: asset.owner.toString(),
       identityPda: identityPda.toString(),
       agentWallet: walletPda.toString(),

@@ -53,7 +53,7 @@ describe('cm full lifecycle commands', () => {
 
             // Assert the insert command succeeded
             expect(cmInsertCode).to.equal(0)
-            expect(cmInsertStdout).to.include('Asset cache updated successfully')
+            expect(cmInsertStdout).to.include('items inserted successfully')
             expect(cmInsertStderr).to.include('Processed')
             expect(cmInsertStderr).to.include('transactions')
 

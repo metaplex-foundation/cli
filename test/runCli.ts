@@ -33,7 +33,7 @@ export const runCli = (args: string[], stdin?: string[]): Promise<{ stdout: stri
 
         child.on('close', (code) => {
             if (code !== 0) {
-                reject(new Error(`Process failed with code ${code}\nstderr: ${stderr}`))
+                reject(new Error(`Process failed with code ${code}\nstdout: ${stdout}\nstderr: ${stderr}`))
             } else {
                 resolve({ stdout, stderr, code: 0 })
             }

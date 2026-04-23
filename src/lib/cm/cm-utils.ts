@@ -103,6 +103,14 @@ export const createInitialAssetCache = async (directory?: string): Promise<Candy
     return assetCache;
 };
 
+// Summarize the load state of an asset cache after an insert run
+export const summarizeAssetCache = (assetCache: CandyMachineAssetCache) => {
+    const totalItems = Object.keys(assetCache.assetItems).length;
+    const loadedItems = Object.values(assetCache.assetItems).filter(item => item.loaded).length;
+    const failedItems = totalItems - loadedItems;
+    return { totalItems, loadedItems, failedItems };
+};
+
 // Common validation utilities
 export const validateCmDirectory = (directory?: string): void => {
     const { assetsDir } = getCmPaths(directory);

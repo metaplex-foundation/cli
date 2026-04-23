@@ -36,6 +36,7 @@ export type WalletEntry = {
 } & (
   | { type?: 'file'; path: string }
   | { type: 'asset-signer'; asset: string; payer?: string }
+  | { type: 'agent'; asset: string; payer?: string }
 )
 
 export type ConfigJson = {
@@ -170,7 +171,7 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
   // Check if the active wallet is an asset-signer.
   // An explicit --keypair flag overrides the asset-signer wallet.
   const activeWallet = overrides.keypair ? undefined : resolveActiveWallet(config)
-  const isAssetSigner = activeWallet?.type === 'asset-signer'
+  const isAssetSigner = activeWallet?.type === 'asset-signer' || activeWallet?.type === 'agent'
 
   let signer: Signer
   let assetSigner: AssetSignerInfo | undefined
@@ -190,7 +191,7 @@ export const createContext = async (configPath: string, overrides: ConfigJson, i
     const walletPayerName = activeWallet.payer
     if (walletPayerName && config.wallets) {
       const ownerWallet = config.wallets.find(w => w.name === walletPayerName)
-      if (ownerWallet && ownerWallet.type !== 'asset-signer' && 'path' in ownerWallet) {
+      if (ownerWallet && ownerWallet.type !== 'asset-signer' && ownerWallet.type !== 'agent' && 'path' in ownerWallet) {
         ownerPath = ownerWallet.path
       }
     }

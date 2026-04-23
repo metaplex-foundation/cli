@@ -18,18 +18,18 @@ export default class AgentsFetch extends BaseCommand<typeof AgentsFetch> {
   `
 
   static override examples = [
-    '<%= config.bin %> agents fetch <asset>',
+    '<%= config.bin %> agents fetch <agentAsset>',
   ]
 
   static override args = {
-    asset: Args.string({ description: 'The MPL Core asset address to look up', required: true }),
+    agentAsset: Args.string({ description: 'The agent\'s Core asset address', required: true }),
   }
 
   public async run(): Promise<unknown> {
     const { args } = await this.parse(AgentsFetch)
     const { umi } = this.context
 
-    const assetPk = publicKey(args.asset)
+    const assetPk = publicKey(args.agentAsset)
 
     // Fetch the Core asset
     const asset = await fetchAssetV1(umi, assetPk)
@@ -62,7 +62,7 @@ export default class AgentsFetch extends BaseCommand<typeof AgentsFetch> {
 
     if (!identityExists) {
       this.log('No agent identity found for this asset. The asset may not be registered.')
-      return { registered: false, asset: args.asset }
+      return { registered: false, agentAsset: args.agentAsset }
     }
 
     // Derive the Asset Signer PDA (agent wallet)
@@ -73,10 +73,10 @@ export default class AgentsFetch extends BaseCommand<typeof AgentsFetch> {
 
     const result: Record<string, unknown> = {
       registered: true,
-      asset: args.asset,
+      agentAsset: args.agentAsset,
       owner: asset.owner.toString(),
       identityPda: identityPda.toString(),
-      wallet: walletPda.toString(),
+      agentWallet: walletPda.toString(),
       registrationUri: agentPlugin?.uri ?? null,
       lifecycleChecks: agentPlugin?.lifecycleChecks ?? null,
       hasAgentToken,

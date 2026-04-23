@@ -13,7 +13,7 @@ import { detectSvmNetwork, RpcChain } from '../util.js'
 /* ------------------------------------------------------------------ */
 
 export interface AgentConfig {
-  /** Agent NFT mint address */
+  /** Agent Core asset address */
   mint: PublicKeyInput
   /** Whether to set the token on the agent */
   setToken: boolean

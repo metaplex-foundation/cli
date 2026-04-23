@@ -217,7 +217,7 @@ Supports two launch types:
   - launchpool: Project-style launch with deposit period, raise goal, and Raydium LP
   - bonding-curve: Instant bonding curve launch with optional first buy and creator fees
 
-Agent mode (--agentMint) wraps transactions for execution by an on-chain agent,
+Agent mode (--agentAsset) wraps transactions for execution by an on-chain agent,
 enabling AI agents to launch tokens autonomously.
 
 Use --wizard for an interactive guided setup.`
@@ -227,20 +227,20 @@ Use --wizard for an interactive guided setup.`
     '$ mplx genesis launch create --name "My Token" --symbol "MTK" --image "https://gateway.irys.xyz/abc123" --tokenAllocation 500000000 --depositStartTime 2025-03-01T00:00:00Z --raiseGoal 200 --raydiumLiquidityBps 5000 --fundsRecipient <ADDRESS>',
     '$ mplx genesis launch create --launchType bonding-curve --name "My Meme" --symbol "MEME" --image "https://gateway.irys.xyz/abc123"',
     '$ mplx genesis launch create --launchType bonding-curve --name "My Meme" --symbol "MEME" --image "https://gateway.irys.xyz/abc123" --creatorFeeWallet <ADDRESS> --firstBuyAmount 0.1',
-    '$ mplx genesis launch create --launchType bonding-curve --name "Agent Token" --symbol "AGT" --image "https://gateway.irys.xyz/abc123" --agentMint <AGENT_NFT_ADDRESS> --agentSetToken',
+    '$ mplx genesis launch create --launchType bonding-curve --name "Agent Token" --symbol "AGT" --image "https://gateway.irys.xyz/abc123" --agentAsset <AGENT_NFT_ADDRESS> --agentSetToken',
     '$ mplx genesis launch create --name "My Token" --symbol "MTK" --image "https://gateway.irys.xyz/abc123" --tokenAllocation 500000000 --depositStartTime 2025-03-01T00:00:00Z --raiseGoal 200 --raydiumLiquidityBps 5000 --fundsRecipient <ADDRESS> --lockedAllocations allocations.json',
   ]
 
   static override flags = {
     // Agent mode
-    agentMint: Flags.string({
-      description: 'Agent NFT mint address. Wraps transactions for agent execution, enabling AI agents to launch tokens.',
+    agentAsset: Flags.string({
+      description: 'Agent Core asset address. Wraps transactions for agent execution, enabling AI agents to launch tokens.',
       required: false,
     }),
 
     agentSetToken: Flags.boolean({
       default: false,
-      description: 'When using --agentMint, set the launched token on the agent NFT.',
+      description: 'When using --agentAsset, set the launched token on the agent NFT.',
     }),
 
     apiUrl: Flags.string({
@@ -417,12 +417,12 @@ Use --wizard for an interactive guided setup.`
     }
 
     // Validate agent flags
-    if (flags.agentMint && !isPublicKey(flags.agentMint)) {
-      this.error('--agentMint must be a valid public key (agent NFT mint address)')
+    if (flags.agentAsset && !isPublicKey(flags.agentAsset)) {
+      this.error('--agentAsset must be a valid public key (agent Core asset address)')
     }
 
-    if (flags.agentSetToken && !flags.agentMint) {
-      this.error('--agentSetToken requires --agentMint')
+    if (flags.agentSetToken && !flags.agentAsset) {
+      this.error('--agentSetToken requires --agentAsset')
     }
 
     // Detect network from chain if not specified
@@ -451,9 +451,9 @@ Use --wizard for an interactive guided setup.`
       },
       wallet: this.context.umi.identity.publicKey.toString(),
       ...(flags.quoteMint !== 'SOL' && { quoteMint: flags.quoteMint as QuoteMintInput }),
-      ...(flags.agentMint && {
+      ...(flags.agentAsset && {
         agent: {
-          mint: flags.agentMint,
+          mint: flags.agentAsset,
           setToken: flags.agentSetToken,
         },
       }),
@@ -521,8 +521,8 @@ Use --wizard for an interactive guided setup.`
       this.context.umi.identity.publicKey.toString(),
       this.context.chain,
       {
-        agent: wizardResult.agentMint ? {
-          mint: wizardResult.agentMint,
+        agent: wizardResult.agentAsset ? {
+          mint: wizardResult.agentAsset,
           setToken: wizardResult.agentSetToken ?? false,
         } : undefined,
         creatorFeeWallet: wizardResult.creatorFeeWallet,
@@ -592,7 +592,7 @@ Use --wizard for an interactive guided setup.`
       this.log(`Launch Link: ${result.launch.link}`)
       this.log(`Token ID: ${result.token.id}`)
       if (launchInput.agent) {
-        this.log(`Agent Mint: ${typeof launchInput.agent.mint === 'string' ? launchInput.agent.mint : launchInput.agent.mint.toString()}`)
+        this.log(`Agent Asset: ${typeof launchInput.agent.mint === 'string' ? launchInput.agent.mint : launchInput.agent.mint.toString()}`)
       }
 
       this.log('')
@@ -618,6 +618,9 @@ Use --wizard for an interactive guided setup.`
         launchId: result.launch.id,
         launchLink: result.launch.link,
         mintAddress: result.mintAddress,
+        ...(launchInput.agent && {
+          agentAsset: typeof launchInput.agent.mint === 'string' ? launchInput.agent.mint : launchInput.agent.mint.toString(),
+        }),
         signatures: result.signatures.map((sig: Uint8Array) => {
           const sigStr = txSignatureToString(sig)
           return { explorer: generateExplorerUrl(this.context.explorer, this.context.chain, sigStr, 'transaction'), signature: sigStr }

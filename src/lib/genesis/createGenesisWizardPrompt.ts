@@ -44,7 +44,7 @@ export interface LaunchWizardResult {
   creatorFeeWallet?: string
   firstBuyAmount?: number
   // agent support
-  agentMint?: string
+  agentAsset?: string
   agentSetToken?: boolean
 }
 
@@ -314,7 +314,7 @@ export async function promptProjectConfig(quoteMint: string): Promise<{
 /*  Agent prompts                                                      */
 /* ------------------------------------------------------------------ */
 
-export async function promptAgentConfig(): Promise<{ agentMint?: string; agentSetToken?: boolean }> {
+export async function promptAgentConfig(): Promise<{ agentAsset?: string; agentSetToken?: boolean }> {
   const useAgent = await confirm({
     message: 'Launch as an agent? (wraps transactions for on-chain agent execution)',
     default: false,
@@ -322,14 +322,14 @@ export async function promptAgentConfig(): Promise<{ agentMint?: string; agentSe
 
   if (!useAgent) return {}
 
-  const agentMint = await promptPublicKeyInput('Agent NFT mint address:')
+  const agentAsset = await promptPublicKeyInput('Agent Core asset address:')
 
   const agentSetToken = await confirm({
     message: 'Set the launched token on the agent NFT?',
     default: true,
   })
 
-  return { agentMint, agentSetToken }
+  return { agentAsset, agentSetToken }
 }
 
 /* ------------------------------------------------------------------ */
@@ -654,8 +654,8 @@ export async function promptLaunchWizard(): Promise<LaunchWizardResult> {
     if (firstBuyAmount) console.log(`  First Buy Amount: ${firstBuyAmount} SOL`)
     if (!creatorFeeWallet && !firstBuyAmount) console.log('  Using default bonding curve settings')
   }
-  if (agentConfig.agentMint) {
-    console.log(`  Agent Mint: ${agentConfig.agentMint}`)
+  if (agentConfig.agentAsset) {
+    console.log(`  Agent Asset: ${agentConfig.agentAsset}`)
     console.log(`  Set Token on Agent: ${agentConfig.agentSetToken ? 'Yes' : 'No'}`)
   }
   console.log('')
@@ -679,7 +679,7 @@ export async function promptLaunchWizard(): Promise<LaunchWizardResult> {
     ...(fundsRecipient && { fundsRecipient }),
     ...(creatorFeeWallet && { creatorFeeWallet }),
     ...(firstBuyAmount !== undefined && { firstBuyAmount }),
-    ...(agentConfig.agentMint && { agentMint: agentConfig.agentMint }),
+    ...(agentConfig.agentAsset && { agentAsset: agentConfig.agentAsset }),
     ...(agentConfig.agentSetToken !== undefined && { agentSetToken: agentConfig.agentSetToken }),
   }
 }

@@ -79,37 +79,28 @@ Returns a friendly message when there is nothing to claim.`
       this.error('--wallet must be a valid public key')
     }
 
-    const wallet: PublicKey = flags.wallet ? publicKey(flags.wallet) : this.context.umi.identity.publicKey
+    const wallet: PublicKey = flags.wallet ? publicKey(flags.wallet) : this.context.signer.publicKey
     const network: SvmNetwork = flags.network ?? detectSvmNetwork(this.context.chain)
     const apiConfig: GenesisApiConfig = {
       baseUrl: flags.apiUrl ?? getDefaultApiUrl(network),
     }
+    const payerSigner = this.context.payer ?? this.context.signer
 
     const spinner = ora('Looking up creator rewards...').start()
 
-    const claimable = await this.fetchClaimablePreview(this.context.umi, wallet)
-
-    if (claimable.length === 0) {
-      spinner.info(`No rewards to claim for ${wallet}`)
-      return { claimed: 0, wallet: wallet.toString() }
-    }
-
-    spinner.stop()
-    this.printPreview(wallet, claimable)
-
-    spinner.start('Building transactions via Genesis API...')
+    const emptyResult = { buckets: [], signatures: [], wallet: wallet.toString() }
 
     let result
     try {
       result = await claimCreatorRewards(this.context.umi, apiConfig, {
         network,
-        payer: this.context.umi.identity.publicKey,
+        payer: payerSigner.publicKey,
         wallet,
       })
     } catch (error) {
       if (isGenesisApiError(error) && error.message === NO_REWARDS_MESSAGE) {
         spinner.info(`No rewards to claim for ${wallet}`)
-        return { claimed: 0, wallet: wallet.toString() }
+        return emptyResult
       }
 
       spinner.fail('Failed to fetch creator rewards from Genesis API')
@@ -118,8 +109,17 @@ Returns a friendly message when there is nothing to claim.`
 
     if (result.transactions.length === 0) {
       spinner.info(`No rewards to claim for ${wallet}`)
-      return { claimed: 0, wallet: wallet.toString() }
+      return emptyResult
     }
+
+    spinner.stop()
+
+    const claimable = await this.fetchClaimablePreview(this.context.umi, wallet)
+    if (claimable.length > 0) {
+      this.printPreview(wallet, claimable)
+    }
+
+    spinner.start(`Signing and sending ${result.transactions.length} transaction${result.transactions.length === 1 ? '' : 's'}...`)
 
     const allowedCommitments = ['processed', 'confirmed', 'finalized'] as const
     const commitment = allowedCommitments.includes(this.context.commitment as typeof allowedCommitments[number])
@@ -129,7 +129,7 @@ Returns a friendly message when there is nothing to claim.`
     const results: { explorer: string; signature: string }[] = []
     for (const [index, tx] of result.transactions.entries()) {
       spinner.text = `Sending transaction ${index + 1} of ${result.transactions.length}...`
-      const signed = await this.context.umi.identity.signTransaction(tx)
+      const signed = await payerSigner.signTransaction(tx)
       const signatureBytes = await this.context.umi.rpc.sendTransaction(signed, {
         commitment,
         preflightCommitment: commitment,

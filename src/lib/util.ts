@@ -32,8 +32,10 @@ export const jsonParse = (str: string, parseBigint: boolean = false) => {
   return JSON.parse(str)
 }
 
+export const DEVNET_RPC_URL = 'https://api.devnet.solana.com'
+
 // create a temporary umi to access eddsa/keygen methods
-export const DUMMY_UMI = createUmi('https://api.devnet.solana.com')
+export const DUMMY_UMI = createUmi(DEVNET_RPC_URL)
 
 // open directory in file explorer
 

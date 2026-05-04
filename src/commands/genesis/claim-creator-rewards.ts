@@ -114,9 +114,14 @@ Returns a friendly message when there is nothing to claim.`
 
     spinner.stop()
 
-    const claimable = await this.fetchClaimablePreview(this.context.umi, wallet)
-    if (claimable.length > 0) {
-      this.printPreview(wallet, claimable)
+    let claimable: ClaimablePreview[] = []
+    try {
+      claimable = await this.fetchClaimablePreview(this.context.umi, wallet)
+      if (claimable.length > 0) {
+        this.printPreview(wallet, claimable)
+      }
+    } catch (error) {
+      this.warn(`Could not load claimable preview for ${wallet}: ${(error as Error).message}. Continuing with claim submission.`)
     }
 
     spinner.start(`Signing and sending ${result.transactions.length} transaction${result.transactions.length === 1 ? '' : 's'}...`)

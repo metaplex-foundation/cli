@@ -17,7 +17,7 @@ import ora from 'ora'
 import { TransactionCommand } from '../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../explorers.js'
 import { getDefaultApiUrl } from '../../lib/genesis/launchApi.js'
-import { detectSvmNetwork } from '../../lib/util.js'
+import { detectSvmNetwork, RpcChain } from '../../lib/util.js'
 
 const NO_REWARDS_MESSAGE = 'No rewards available to claim'
 
@@ -80,7 +80,17 @@ Returns a friendly message when there is nothing to claim.`
     }
 
     const wallet: PublicKey = flags.wallet ? publicKey(flags.wallet) : this.context.signer.publicKey
-    const network: SvmNetwork = flags.network ?? detectSvmNetwork(this.context.chain)
+
+    if (this.context.chain === RpcChain.Localnet) {
+      this.error('genesis claim-creator-rewards requires a mainnet or devnet RPC endpoint')
+    }
+
+    const detectedNetwork = detectSvmNetwork(this.context.chain)
+    if (flags.network && flags.network !== detectedNetwork) {
+      this.error(`--network ${flags.network} does not match the connected RPC cluster (${detectedNetwork}). Use --rpc to point at a matching endpoint or omit --network.`)
+    }
+
+    const network: SvmNetwork = flags.network ?? detectedNetwork
     const apiConfig: GenesisApiConfig = {
       baseUrl: flags.apiUrl ?? getDefaultApiUrl(network),
     }

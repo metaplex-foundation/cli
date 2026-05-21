@@ -1,10 +1,11 @@
 {
   "name": "@metaplex-foundation/cli",
   "description": "Metaplex CLI",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "author": "Metaplex <contact@metaplex.com>",
   "bin": {
-    "mplx": "./bin/run.js"
+    "mplx": "./bin/run.js",
+    "metaplex": "./bin/run.js"
   },
   "oclif": {
     "commands": "./dist/commands",
@@ -106,6 +107,7 @@
     "build:clean": "pnpm run clean && pnpm run build",
     "dev": "./bin/dev.js",
     "mplx": "./bin/run.js",
+    "metaplex": "./bin/run.js",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts",
     "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts --fix",
     "postpack": "shx rm -f oclif.manifest.json",

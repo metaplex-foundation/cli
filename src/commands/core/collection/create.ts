@@ -3,6 +3,8 @@ import { generateSigner, PublicKey, Umi } from '@metaplex-foundation/umi'
 import { Flags } from '@oclif/core'
 import fs from 'node:fs'
 import ora from 'ora'
+import { mintKeypairFlag } from '../../../lib/mintKeypair.js'
+import { createSignerFromPath } from '../../../lib/Context.js'
 import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
 import { txSignatureToString } from '../../../lib/util.js'
 import pluginConfigurator, { mapPluginDataToArray } from '../../../prompts/pluginInquirer.js'
@@ -29,6 +31,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
   Additional Options:
   - Use --plugins to interactively select and configure plugins
   - Use --pluginsFile to provide plugin configuration from a JSON file
+  - Use --mint-keypair to specify a vanity keypair file for the collection address
   `
 
   static override examples = [
@@ -81,6 +84,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       exclusive: ['plugins'],
       summary: 'Path to a json file with plugin data',
     }),
+    'mint-keypair': mintKeypairFlag,
   }
 
   private async getPluginData(): Promise<PluginData | undefined> {
@@ -118,7 +122,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
     return pluginData
   }
 
-  private async handleFileBasedCreation(umi: Umi, imagePath: string, jsonPath: string, explorer: ExplorerType) {
+  private async handleFileBasedCreation(umi: Umi, imagePath: string, jsonPath: string, explorer: ExplorerType, mintKeypairPath?: string) {
     const imageSpinner = ora('Uploading image...').start()
     const imageResult = await uploadFile(umi, imagePath).catch((err) => {
       imageSpinner.fail(`Failed to upload image. ${err}`)
@@ -157,7 +161,9 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
 
     const pluginData = await this.getPluginData()
     const spinner = ora('Creating Collection...').start()
-    const collection = generateSigner(umi)
+    const collection = mintKeypairPath
+      ? await createSignerFromPath(mintKeypairPath)
+      : generateSigner(umi)
 
     const txBuilder = createCollection(umi, {
       collection,
@@ -237,6 +243,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
   public async run(): Promise<unknown> {
     const { flags } = await this.parse(CoreCollectionCreate)
     const { umi, explorer } = this.context
+    const mintKeypairPath = flags['mint-keypair']
 
     if (flags.wizard) {
       this.log(
@@ -253,7 +260,9 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       const { collectionName, metadataUri } = await this.createAndUploadMetadata(umi, wizardData)
 
       const spinner = ora('Creating Collection...').start()
-      const collection = generateSigner(umi)
+      const collection = mintKeypairPath
+        ? await createSignerFromPath(mintKeypairPath)
+        : generateSigner(umi)
 
       const txBuilder = createCollection(umi, {
         collection,
@@ -278,7 +287,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
         this.error('You must provide an image --image and JSON --offchain file')
       }
 
-      return await this.handleFileBasedCreation(umi, flags.image, flags.offchain, explorer)
+      return await this.handleFileBasedCreation(umi, flags.image, flags.offchain, explorer, mintKeypairPath)
     } else {
       // Create collection from name and uri flags
       if (!flags.name) {
@@ -290,7 +299,9 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
 
       const pluginData = await this.getPluginData()
       const spinner = ora('Creating Collection...').start()
-      const collection = generateSigner(umi)
+      const collection = mintKeypairPath
+        ? await createSignerFromPath(mintKeypairPath)
+        : generateSigner(umi)
 
       const txBuilder = createCollection(umi, {
         collection,

@@ -1,5 +1,10 @@
 import { expect } from 'chai'
-import { runCli } from '../../runCli'
+import fs from 'node:fs'
+import os from 'node:os'
+import { join } from 'node:path'
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
+import { generateSigner } from '@metaplex-foundation/umi'
+import { runCli, TEST_RPC } from '../../runCli'
 import { createCoreAsset, createCoreCollection, extractAssetId, stripAnsi } from './corehelpers'
 
 
@@ -47,6 +52,32 @@ describe('core asset commands', () => {
         expect(code).to.equal(0)
         expect(cleanStderr).to.contain('Asset created successfully')
         expect(assetId).to.match(/^[a-zA-Z0-9]+$/)
+    })
+
+    it('creates an asset with a vanity --mint-keypair', async () => {
+        const umi = createUmi(TEST_RPC)
+        const mintKeypair = generateSigner(umi)
+        const mintKeypairPath = join(os.tmpdir(), `mplx-test-mint-${Date.now()}.json`)
+        fs.writeFileSync(mintKeypairPath, JSON.stringify(Array.from(mintKeypair.secretKey)))
+
+        try {
+            const { stdout, stderr, code } = await runCli([
+                'core', 'asset', 'create',
+                '--name', 'Vanity Asset',
+                '--uri', 'https://example.com/vanity-asset',
+                '--mint-keypair', mintKeypairPath,
+            ], ['\n'])
+
+            const cleanStderr = stripAnsi(stderr)
+            const cleanStdout = stripAnsi(stdout)
+            const assetId = extractAssetId(cleanStdout) || extractAssetId(cleanStderr)
+
+            expect(code).to.equal(0)
+            expect(cleanStderr).to.contain('Asset created successfully')
+            expect(assetId).to.equal(mintKeypair.publicKey.toString())
+        } finally {
+            fs.unlinkSync(mintKeypairPath)
+        }
     })
 
     // Skipping for now because you can't upload files on localnet

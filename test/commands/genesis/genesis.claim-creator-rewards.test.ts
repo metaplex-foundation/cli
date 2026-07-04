@@ -27,7 +27,9 @@ describe('genesis claim-creator-rewards', () => {
     // any on-chain setup or a funded keypair.
     const SYSTEM_PROGRAM = '11111111111111111111111111111111'
 
-    it('reports no rewards for a wallet with no buckets (devnet API)', async function () {
+    // Skipped: depends on live devnet Genesis API state and can fail when the
+    // API or RPC returns an error instead of an empty rewards response.
+    it.skip('reports no rewards for a wallet with no buckets (devnet API)', async function () {
         this.timeout(30000)
 
         const { stdout, stderr, code } = await runCliRaw([

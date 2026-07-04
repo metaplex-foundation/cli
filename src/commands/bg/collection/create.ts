@@ -4,12 +4,14 @@ import {
   ruleSet
 } from '@metaplex-foundation/mpl-core'
 import type { TransactionSignature } from '@metaplex-foundation/umi'
-import { generateSigner } from '@metaplex-foundation/umi'
 import { Flags } from '@oclif/core'
 import ora from 'ora'
 
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../../explorers.js'
+import { generateSigner } from '@metaplex-foundation/umi'
+import { mintKeypairFlag } from '../../../lib/mintKeypair.js'
+import { createSignerFromPath } from '../../../lib/Context.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
 
@@ -44,6 +46,7 @@ The Bubblegum V2 plugin is required for collections that will contain compressed
       max: 100,
       default: 0,
     }),
+    'mint-keypair': mintKeypairFlag,
   }
 
   public async run(): Promise<unknown> {
@@ -54,7 +57,9 @@ The Bubblegum V2 plugin is required for collections that will contain compressed
 
     try {
       // Generate collection address
-      const collection = generateSigner(umi)
+      const collection = flags['mint-keypair']
+        ? await createSignerFromPath(flags['mint-keypair'])
+        : generateSigner(umi)
 
       const plugins: CreateCollectionArgsPlugin[] = [
         {

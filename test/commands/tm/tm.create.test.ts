@@ -1,10 +1,7 @@
 import { expect } from 'chai'
-import fs from 'node:fs'
-import os from 'node:os'
-import { join } from 'node:path'
-import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
-import { generateSigner } from '@metaplex-foundation/umi'
-import { runCli, TEST_RPC } from '../../runCli'
+
+import { createTempKeypairFile } from '../../helpers/temp-keypair-file'
+import { runCli } from '../../runCli'
 import { stripAnsi } from './tmhelpers'
 
 const extractMintAddress = (str: string) => {
@@ -19,13 +16,10 @@ describe('tm create command', () => {
     })
 
     it('creates an NFT with a vanity --mint-keypair', async () => {
-        const umi = createUmi(TEST_RPC)
-        const mintKeypair = generateSigner(umi)
-        const mintKeypairPath = join(os.tmpdir(), `mplx-test-mint-${Date.now()}.json`)
-        fs.writeFileSync(mintKeypairPath, JSON.stringify(Array.from(mintKeypair.secretKey)))
+        const { cleanup, mintKeypair, mintKeypairPath } = createTempKeypairFile()
 
         try {
-            const { stdout, stderr, code } = await runCli([
+            const { code, stderr, stdout } = await runCli([
                 'tm', 'create',
                 '--name', 'Vanity NFT',
                 '--uri', 'https://example.com/vanity-nft.json',
@@ -41,7 +35,7 @@ describe('tm create command', () => {
             expect(cleanStderr).to.contain('NFT created successfully')
             expect(mintAddress).to.equal(mintKeypair.publicKey.toString())
         } finally {
-            fs.unlinkSync(mintKeypairPath)
+            cleanup()
         }
     })
 })

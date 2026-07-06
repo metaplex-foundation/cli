@@ -1,6 +1,6 @@
 import { createFungible } from '@metaplex-foundation/mpl-token-metadata'
 import { createTokenIfMissing, findAssociatedTokenPda, mintTokensTo } from '@metaplex-foundation/mpl-toolbox'
-import { generateSigner, percentAmount, Umi } from '@metaplex-foundation/umi'
+import { percentAmount, Umi } from '@metaplex-foundation/umi'
 import { Flags } from '@oclif/core'
 import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
@@ -8,9 +8,8 @@ import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import imageUploader from '../../../lib/uploader/imageUploader.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
+import { mintKeypairFlag, resolveMintSigner } from '../../../lib/mint-keypair.js'
 import { RpcChain, txSignatureToString } from '../../../lib/util.js'
-import { mintKeypairFlag } from '../../../lib/mintKeypair.js'
-import { createSignerFromPath } from '../../../lib/Context.js'
 import { validateMintAmount, validateTokenName, validateTokenSymbol } from '../../../lib/validations.js'
 import createTokenPrompt from '../../../prompts/createTokenPrompt.js'
 
@@ -245,7 +244,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
             this.error('Failed to upload token metadata');
         }
 
-        return await this.createToken(umi, {
+        return this.createToken(umi, {
             name: input.name,
             symbol: input.symbol,
             description: input.description,
@@ -298,9 +297,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
     }
 
     private async createToken(umi: Umi, input: TokenInput, explorer: ExplorerType, startTime: number, mintKeypairPath?: string) {
-        const mint = mintKeypairPath
-            ? await createSignerFromPath(mintKeypairPath)
-            : generateSigner(umi)
+        const mint = await resolveMintSigner(umi, mintKeypairPath)
         const createFunigbleIx = createFungible(umi, {
             mint,
             name: input.name,

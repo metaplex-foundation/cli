@@ -1,10 +1,9 @@
 import { createCollection } from '@metaplex-foundation/mpl-core'
-import { generateSigner, PublicKey, Umi } from '@metaplex-foundation/umi'
+import { PublicKey, Umi } from '@metaplex-foundation/umi'
 import { Flags } from '@oclif/core'
 import fs from 'node:fs'
 import ora from 'ora'
-import { mintKeypairFlag } from '../../../lib/mintKeypair.js'
-import { createSignerFromPath } from '../../../lib/Context.js'
+import { mintKeypairFlag, resolveMintSigner } from '../../../lib/mint-keypair.js'
 import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
 import { txSignatureToString } from '../../../lib/util.js'
 import pluginConfigurator, { mapPluginDataToArray } from '../../../prompts/pluginInquirer.js'
@@ -73,6 +72,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       hidden: true,
     }),
     // Plugin configuration flags
+    'mint-keypair': mintKeypairFlag,
     plugins: Flags.boolean({
       name: 'plugins',
       required: false,
@@ -84,7 +84,6 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       exclusive: ['plugins'],
       summary: 'Path to a json file with plugin data',
     }),
-    'mint-keypair': mintKeypairFlag,
   }
 
   private async getPluginData(): Promise<PluginData | undefined> {
@@ -161,9 +160,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
 
     const pluginData = await this.getPluginData()
     const spinner = ora('Creating Collection...').start()
-    const collection = mintKeypairPath
-      ? await createSignerFromPath(mintKeypairPath)
-      : generateSigner(umi)
+    const collection = await resolveMintSigner(umi, mintKeypairPath)
 
     const txBuilder = createCollection(umi, {
       collection,
@@ -260,9 +257,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       const { collectionName, metadataUri } = await this.createAndUploadMetadata(umi, wizardData)
 
       const spinner = ora('Creating Collection...').start()
-      const collection = mintKeypairPath
-        ? await createSignerFromPath(mintKeypairPath)
-        : generateSigner(umi)
+      const collection = await resolveMintSigner(umi, mintKeypairPath)
 
       const txBuilder = createCollection(umi, {
         collection,
@@ -287,7 +282,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
         this.error('You must provide an image --image and JSON --offchain file')
       }
 
-      return await this.handleFileBasedCreation(umi, flags.image, flags.offchain, explorer, mintKeypairPath)
+      return this.handleFileBasedCreation(umi, flags.image, flags.offchain, explorer, mintKeypairPath)
     } else {
       // Create collection from name and uri flags
       if (!flags.name) {
@@ -299,9 +294,7 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
 
       const pluginData = await this.getPluginData()
       const spinner = ora('Creating Collection...').start()
-      const collection = mintKeypairPath
-        ? await createSignerFromPath(mintKeypairPath)
-        : generateSigner(umi)
+      const collection = await resolveMintSigner(umi, mintKeypairPath)
 
       const txBuilder = createCollection(umi, {
         collection,

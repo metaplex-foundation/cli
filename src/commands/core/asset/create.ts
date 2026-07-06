@@ -3,11 +3,10 @@ import { Flags } from '@oclif/core'
 import fs from 'node:fs'
 import ora from 'ora'
 
-import { generateSigner, publicKey, Umi } from '@metaplex-foundation/umi'
+import { publicKey, Umi } from '@metaplex-foundation/umi'
 import { ExplorerType, generateCoreExplorerUrl, generateExplorerUrl } from '../../../explorers.js'
 import createAssetFromArgs, { AssetCreationResult } from '../../../lib/core/create/createAssetFromArgs.js'
-import { mintKeypairFlag } from '../../../lib/mintKeypair.js'
-import { createSignerFromPath } from '../../../lib/Context.js'
+import { mintKeypairFlag, resolveMintSigner } from '../../../lib/mint-keypair.js'
 import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
 import prepareJsonMetadata from '../../../lib/core/create/prepareJsonMetadata.js'
 import uploadFile from '../../../lib/uploader/uploadFile.js'
@@ -88,6 +87,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       hidden: true,
     }),
     // Plugin configuration flags
+    'mint-keypair': mintKeypairFlag,
     plugins: Flags.boolean({
       name: 'plugins',
       required: false,
@@ -99,7 +99,6 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       exclusive: ['plugins'],
       summary: 'Path to a json file with plugin data',
     }),
-    'mint-keypair': mintKeypairFlag,
   }
 
   private async getPluginData(): Promise<PluginData | undefined> {
@@ -145,9 +144,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
     const pluginData = await this.getPluginData()
     const assetSpinner = ora('Creating Asset...').start()
-    const assetSigner = mintKeypairPath
-      ? await createSignerFromPath(mintKeypairPath)
-      : generateSigner(umi)
+    const assetSigner = await resolveMintSigner(umi, mintKeypairPath)
 
     const result = await createAssetFromArgs(umi, {
       assetSigner,
@@ -268,9 +265,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       const jsonUri = await this.createAndUploadMetadata(umi, wizardData)
 
       const spinner = ora('Creating Asset...').start()
-      const assetSigner = flags['mint-keypair']
-        ? await createSignerFromPath(flags['mint-keypair'])
-        : generateSigner(umi)
+      const assetSigner = await resolveMintSigner(umi, flags['mint-keypair'])
 
       const result = await createAssetFromArgs(umi, {
         assetSigner,
@@ -293,7 +288,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
         this.error('You must provide an image --image and JSON --offchain file')
       }
 
-      return await this.handleFileBasedCreation(umi, flags.image, flags.offchain, flags.collection, flags.owner, flags['mint-keypair'])
+      return this.handleFileBasedCreation(umi, flags.image, flags.offchain, flags.collection, flags.owner, flags['mint-keypair'])
     } else {
       // Create asset from name and uri flags
       if (!flags.name) {
@@ -305,9 +300,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
       const pluginData = await this.getPluginData()
       const spinner = ora('Creating Asset...').start()
-      const assetSigner = flags['mint-keypair']
-        ? await createSignerFromPath(flags['mint-keypair'])
-        : generateSigner(umi)
+      const assetSigner = await resolveMintSigner(umi, flags['mint-keypair'])
 
       const result = await createAssetFromArgs(umi, {
         assetSigner,

@@ -1,10 +1,7 @@
 import { expect } from 'chai'
-import fs from 'node:fs'
-import os from 'node:os'
-import { join } from 'node:path'
-import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
-import { generateSigner } from '@metaplex-foundation/umi'
-import { runCli, TEST_RPC } from '../../runCli'
+
+import { createTempKeypairFile } from '../../helpers/temp-keypair-file'
+import { runCli } from '../../runCli'
 import { createCoreAsset, createCoreCollection, extractAssetId, stripAnsi } from './corehelpers'
 
 
@@ -55,13 +52,10 @@ describe('core asset commands', () => {
     })
 
     it('creates an asset with a vanity --mint-keypair', async () => {
-        const umi = createUmi(TEST_RPC)
-        const mintKeypair = generateSigner(umi)
-        const mintKeypairPath = join(os.tmpdir(), `mplx-test-mint-${Date.now()}.json`)
-        fs.writeFileSync(mintKeypairPath, JSON.stringify(Array.from(mintKeypair.secretKey)))
+        const { cleanup, mintKeypair, mintKeypairPath } = createTempKeypairFile()
 
         try {
-            const { stdout, stderr, code } = await runCli([
+            const { code, stderr, stdout } = await runCli([
                 'core', 'asset', 'create',
                 '--name', 'Vanity Asset',
                 '--uri', 'https://example.com/vanity-asset',
@@ -76,7 +70,7 @@ describe('core asset commands', () => {
             expect(cleanStderr).to.contain('Asset created successfully')
             expect(assetId).to.equal(mintKeypair.publicKey.toString())
         } finally {
-            fs.unlinkSync(mintKeypairPath)
+            cleanup()
         }
     })
 

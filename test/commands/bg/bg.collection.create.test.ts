@@ -1,10 +1,7 @@
 import { expect } from 'chai'
-import fs from 'node:fs'
-import os from 'node:os'
-import { join } from 'node:path'
-import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
-import { generateSigner } from '@metaplex-foundation/umi'
-import { runCli, TEST_RPC } from '../../runCli'
+
+import { createTempKeypairFile } from '../../helpers/temp-keypair-file'
+import { runCli } from '../../runCli'
 import { createBubblegumCollection, stripAnsi, extractCollectionId } from './bgcollectionhelpers'
 
 describe('bg collection create command', () => {
@@ -30,13 +27,10 @@ describe('bg collection create command', () => {
     })
 
     it('creates a collection with a vanity --mint-keypair', async () => {
-        const umi = createUmi(TEST_RPC)
-        const mintKeypair = generateSigner(umi)
-        const mintKeypairPath = join(os.tmpdir(), `mplx-test-mint-${Date.now()}.json`)
-        fs.writeFileSync(mintKeypairPath, JSON.stringify(Array.from(mintKeypair.secretKey)))
+        const { cleanup, mintKeypair, mintKeypairPath } = createTempKeypairFile()
 
         try {
-            const { stdout, stderr, code } = await runCli([
+            const { code, stderr, stdout } = await runCli([
                 'bg', 'collection', 'create',
                 '--name', 'Vanity Bubblegum Collection',
                 '--uri', 'https://example.com/vanity-bg-collection.json',
@@ -50,7 +44,7 @@ describe('bg collection create command', () => {
             expect(combined).to.contain('Collection created with Bubblegum V2 plugin')
             expect(collectionId).to.equal(mintKeypair.publicKey.toString())
         } finally {
-            fs.unlinkSync(mintKeypairPath)
+            cleanup()
         }
     })
 

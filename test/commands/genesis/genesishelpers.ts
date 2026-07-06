@@ -1,8 +1,45 @@
 import { expect } from 'chai'
-import { runCli } from '../../runCli'
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
+
+import { runCli, TEST_RPC } from '../../runCli'
 
 // Helper to strip ANSI color codes
 const stripAnsi = (str: string) => str.replace(/\u001b\[[\d;]*m/g, '')
+
+/** Read the local validator's unix time (not wall clock — they can diverge). */
+const getValidatorUnixTime = async (): Promise<number> => {
+    const umi = createUmi(TEST_RPC)
+    const slot = await umi.rpc.getSlot()
+    const blockTime = await umi.rpc.getBlockTime(slot)
+
+    if (blockTime === null) {
+        throw new Error('Could not read validator block time')
+    }
+
+    return Number(blockTime)
+}
+
+/** Deposit/claim windows relative to the validator clock so deposits are immediately active. */
+const getGenesisTimestamps = async () => {
+    const now = await getValidatorUnixTime()
+
+    return {
+        claimEnd: (now + 86400 * 365).toString(),
+        claimStart: (now + 86400 + 1).toString(),
+        depositEnd: (now + 86400).toString(),
+        depositStart: (now - 3600).toString(),
+    }
+}
+
+/** Claim window that is already active on the validator clock. */
+const getActiveClaimTimestamps = async () => {
+    const now = await getValidatorUnixTime()
+
+    return {
+        claimEnd: (now + 86400 * 365).toString(),
+        claimStart: (now - 3600).toString(),
+    }
+}
 
 // Helper to extract Genesis Account address from output
 const extractGenesisAddress = (str: string) => {
@@ -101,13 +138,12 @@ const addLaunchPoolBucket = async (
         endBehavior?: string[]
     }
 ): Promise<{ bucketAddress: string }> => {
-    // Use timestamps in the past so deposits are immediately active
-    const now = Math.floor(Date.now() / 1000)
+    const timestamps = await getGenesisTimestamps()
     const allocation = options?.allocation ?? '500000000'
-    const depositStart = options?.depositStart ?? (now - 3600).toString()
-    const depositEnd = options?.depositEnd ?? (now + 86400).toString()
-    const claimStart = options?.claimStart ?? (now + 86400 + 1).toString()
-    const claimEnd = options?.claimEnd ?? (now + 86400 * 365).toString()
+    const depositStart = options?.depositStart ?? timestamps.depositStart
+    const depositEnd = options?.depositEnd ?? timestamps.depositEnd
+    const claimStart = options?.claimStart ?? timestamps.claimStart
+    const claimEnd = options?.claimEnd ?? timestamps.claimEnd
 
     const cliInput = [
         'genesis',
@@ -160,13 +196,13 @@ const addPresaleBucket = async (
         bucketIndex?: number
     }
 ): Promise<{ bucketAddress: string }> => {
-    const now = Math.floor(Date.now() / 1000)
+    const timestamps = await getGenesisTimestamps()
     const allocation = options?.allocation ?? '500000000'
     const quoteCap = options?.quoteCap ?? '1000000000'
-    const depositStart = options?.depositStart ?? (now - 3600).toString()
-    const depositEnd = options?.depositEnd ?? (now + 86400).toString()
-    const claimStart = options?.claimStart ?? (now + 86400 + 1).toString()
-    const claimEnd = options?.claimEnd ?? (now + 86400 * 365).toString()
+    const depositStart = options?.depositStart ?? timestamps.depositStart
+    const depositEnd = options?.depositEnd ?? timestamps.depositEnd
+    const claimStart = options?.claimStart ?? timestamps.claimStart
+    const claimEnd = options?.claimEnd ?? timestamps.claimEnd
     const bucketIndex = (options?.bucketIndex ?? 0).toString()
 
     const cliInput = [
@@ -215,10 +251,10 @@ const addUnlockedBucket = async (
         claimEnd?: string
     }
 ): Promise<{ bucketAddress: string }> => {
-    const now = Math.floor(Date.now() / 1000)
+    const timestamps = await getActiveClaimTimestamps()
     const allocation = options?.allocation ?? '100000000'
-    const claimStart = options?.claimStart ?? (now - 3600).toString()
-    const claimEnd = options?.claimEnd ?? (now + 86400 * 365).toString()
+    const claimStart = options?.claimStart ?? timestamps.claimStart
+    const claimEnd = options?.claimEnd ?? timestamps.claimEnd
 
     const cliInput = [
         'genesis',
@@ -260,4 +296,7 @@ export {
     addLaunchPoolBucket,
     addPresaleBucket,
     addUnlockedBucket,
+    getGenesisTimestamps,
+    getActiveClaimTimestamps,
+    getValidatorUnixTime,
 }

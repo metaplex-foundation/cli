@@ -1,20 +1,23 @@
 import { expect } from 'chai'
 import { runCli } from '../../runCli'
-import { createGenesisAccount, addLaunchPoolBucket, addUnlockedBucket, stripAnsi } from './genesishelpers'
+import { createGenesisAccount, addLaunchPoolBucket, addUnlockedBucket, getActiveClaimTimestamps, getGenesisTimestamps, stripAnsi } from './genesishelpers'
 
 describe('genesis integration workflow', () => {
     let genesisAddress: string
     let bucketAddress: string
     let unlockedBucketAddress: string
-
-    // Timestamps for the launch pool
-    const now = Math.floor(Date.now() / 1000)
-    const depositStart = (now - 3600).toString()       // 1 hour ago
-    const depositEnd = (now + 86400).toString()         // 1 day from now
-    const claimStart = (now + 86400 + 1).toString()     // just after deposit end
-    const claimEnd = (now + 86400 * 365).toString()     // 1 year from now
+    let depositStart: string
+    let depositEnd: string
+    let claimStart: string
+    let claimEnd: string
 
     before(async () => {
+        const timestamps = await getGenesisTimestamps()
+        depositStart = timestamps.depositStart
+        depositEnd = timestamps.depositEnd
+        claimStart = timestamps.claimStart
+        claimEnd = timestamps.claimEnd
+
         // Airdrop SOL for testing
         await runCli([
             "toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
@@ -275,12 +278,14 @@ describe('genesis integration workflow', () => {
 
 describe('genesis unlocked bucket workflow', () => {
     let genesisAddress: string
-
-    const now = Math.floor(Date.now() / 1000)
-    const claimStart = (now - 3600).toString()          // 1 hour ago (so claim is active)
-    const claimEnd = (now + 86400 * 365).toString()     // 1 year from now
+    let claimStart: string
+    let claimEnd: string
 
     before(async () => {
+        const timestamps = await getActiveClaimTimestamps()
+        claimStart = timestamps.claimStart
+        claimEnd = timestamps.claimEnd
+
         await runCli([
             "toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
         ])

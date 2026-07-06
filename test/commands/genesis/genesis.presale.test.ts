@@ -1,18 +1,22 @@
 import { expect } from 'chai'
 import { runCli } from '../../runCli'
-import { createGenesisAccount, addPresaleBucket, stripAnsi } from './genesishelpers'
+import { createGenesisAccount, addPresaleBucket, getGenesisTimestamps, stripAnsi } from './genesishelpers'
 
 describe('genesis presale workflow', () => {
     let genesisAddress: string
     let bucketAddress: string
-
-    const now = Math.floor(Date.now() / 1000)
-    const depositStart = (now - 3600).toString()       // 1 hour ago
-    const depositEnd = (now + 86400).toString()         // 1 day from now
-    const claimStart = (now + 86400 + 1).toString()     // just after deposit end
-    const claimEnd = (now + 86400 * 365).toString()     // 1 year from now
+    let depositStart: string
+    let depositEnd: string
+    let claimStart: string
+    let claimEnd: string
 
     before(async () => {
+        const timestamps = await getGenesisTimestamps()
+        depositStart = timestamps.depositStart
+        depositEnd = timestamps.depositEnd
+        claimStart = timestamps.claimStart
+        claimEnd = timestamps.claimEnd
+
         // runCli rejects on non-zero exit, so failures propagate automatically
         await runCli([
             "toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
@@ -43,7 +47,7 @@ describe('genesis presale workflow', () => {
 
     it('adds a presale bucket to the genesis account', async () => {
         const result = await addPresaleBucket(genesisAddress, {
-            allocation: '500000000',
+            allocation: '1000000000',
             quoteCap: '1000000000',
             depositStart,
             depositEnd,
@@ -74,8 +78,20 @@ describe('genesis presale workflow', () => {
         expect(code).to.equal(0)
         expect(cleanStderr).to.contain('Bucket fetched successfully')
         expect(cleanStdout).to.contain('Presale Bucket')
-        expect(cleanStdout).to.contain('Base Token Allocation: 500000000')
+        expect(cleanStdout).to.contain('Base Token Allocation: 1000000000')
         expect(cleanStdout).to.contain('Quote Token Cap: 1000000000')
+    })
+
+    it('finalizes the genesis account', async () => {
+        const { stderr, code } = await runCli([
+            'genesis',
+            'finalize',
+            genesisAddress,
+        ])
+
+        const cleanStderr = stripAnsi(stderr)
+        expect(code).to.equal(0)
+        expect(cleanStderr).to.contain('Genesis launch finalized successfully')
     })
 
     it('deposits into the presale bucket', async () => {
@@ -127,7 +143,7 @@ describe('genesis presale workflow', () => {
         })
 
         await addPresaleBucket(newGenesis.genesisAddress, {
-            allocation: '500000000',
+            allocation: '1000000000',
             quoteCap: '1000000000',
             depositStart,
             depositEnd,

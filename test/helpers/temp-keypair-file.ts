@@ -12,7 +12,7 @@ export function createTempKeypairFile(umi: Umi = createUmi(TEST_RPC)): {
   mintKeypairPath: string
 } {
   const mintKeypair = generateSigner(umi)
-  const mintKeypairPath = join(os.tmpdir(), `mplx-test-mint-${Date.now()}.json`)
+  const mintKeypairPath = join(os.tmpdir(), `mplx-test-mint-${Date.now()}-${Math.random().toString(36).slice(2)}.json`)
   fs.writeFileSync(mintKeypairPath, JSON.stringify([...mintKeypair.secretKey]))
 
   return {

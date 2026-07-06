@@ -160,7 +160,10 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
 
     const pluginData = await this.getPluginData()
     const spinner = ora('Creating Collection...').start()
-    const collection = await resolveMintSigner(umi, mintKeypairPath)
+    const collection = await resolveMintSigner(umi, mintKeypairPath).catch((error) => {
+      spinner.fail(`Failed to load mint keypair: ${error}`)
+      throw error
+    })
 
     const txBuilder = createCollection(umi, {
       collection,
@@ -257,7 +260,10 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
       const { collectionName, metadataUri } = await this.createAndUploadMetadata(umi, wizardData)
 
       const spinner = ora('Creating Collection...').start()
-      const collection = await resolveMintSigner(umi, mintKeypairPath)
+      const collection = await resolveMintSigner(umi, mintKeypairPath).catch((error) => {
+        spinner.fail(`Failed to load mint keypair: ${error}`)
+        throw error
+      })
 
       const txBuilder = createCollection(umi, {
         collection,
@@ -294,7 +300,10 @@ export default class CoreCollectionCreate extends TransactionCommand<typeof Core
 
       const pluginData = await this.getPluginData()
       const spinner = ora('Creating Collection...').start()
-      const collection = await resolveMintSigner(umi, mintKeypairPath)
+      const collection = await resolveMintSigner(umi, mintKeypairPath).catch((error) => {
+        spinner.fail(`Failed to load mint keypair: ${error}`)
+        throw error
+      })
 
       const txBuilder = createCollection(umi, {
         collection,

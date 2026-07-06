@@ -7,6 +7,7 @@ import { createSignerFromPath } from './Context.js'
 
 export const mintKeypairFlag = Flags.file({
   description: 'Path to a keypair file to use as the mint/asset address (vanity key)',
+  exists: true,
   required: false,
 })
 

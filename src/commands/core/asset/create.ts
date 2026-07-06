@@ -1,9 +1,9 @@
 import { Flags } from '@oclif/core'
+import { Umi, publicKey } from '@metaplex-foundation/umi'
 
 import fs from 'node:fs'
 import ora from 'ora'
 
-import { publicKey, Umi } from '@metaplex-foundation/umi'
 import { ExplorerType, generateCoreExplorerUrl, generateExplorerUrl } from '../../../explorers.js'
 import createAssetFromArgs, { AssetCreationResult } from '../../../lib/core/create/createAssetFromArgs.js'
 import { mintKeypairFlag, resolveMintSigner } from '../../../lib/mint-keypair.js'
@@ -144,7 +144,10 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
     const pluginData = await this.getPluginData()
     const assetSpinner = ora('Creating Asset...').start()
-    const assetSigner = await resolveMintSigner(umi, mintKeypairPath)
+    const assetSigner = await resolveMintSigner(umi, mintKeypairPath).catch((error) => {
+      assetSpinner.fail(`Failed to load mint keypair: ${error}`)
+      throw error
+    })
 
     const result = await createAssetFromArgs(umi, {
       assetSigner,
@@ -265,7 +268,10 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       const jsonUri = await this.createAndUploadMetadata(umi, wizardData)
 
       const spinner = ora('Creating Asset...').start()
-      const assetSigner = await resolveMintSigner(umi, flags['mint-keypair'])
+      const assetSigner = await resolveMintSigner(umi, flags['mint-keypair']).catch((error) => {
+        spinner.fail(`Failed to load mint keypair: ${error}`)
+        throw error
+      })
 
       const result = await createAssetFromArgs(umi, {
         assetSigner,
@@ -300,7 +306,10 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
       const pluginData = await this.getPluginData()
       const spinner = ora('Creating Asset...').start()
-      const assetSigner = await resolveMintSigner(umi, flags['mint-keypair'])
+      const assetSigner = await resolveMintSigner(umi, flags['mint-keypair']).catch((error) => {
+        spinner.fail(`Failed to load mint keypair: ${error}`)
+        throw error
+      })
 
       const result = await createAssetFromArgs(umi, {
         assetSigner,

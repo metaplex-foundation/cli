@@ -159,7 +159,10 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
         jsonSpinner.succeed(`JSON uploaded to ${jsonUri}`)
 
         const nftSpinner = ora('Creating NFT...').start()
-        const nftSigner = await resolveMintSigner(umi, mintKeypairPath)
+        const nftSigner = await resolveMintSigner(umi, mintKeypairPath).catch((error) => {
+            nftSpinner.fail(`Failed to load mint keypair: ${error}`)
+            throw error
+        })
 
         const result = await this.createNftFromArgs(umi, {
             nftSigner,
@@ -374,7 +377,10 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
             const jsonUri = await this.createAndUploadMetadata(umi, wizardData)
 
             const spinner = ora('Creating NFT...').start()
-            const nftSigner = await resolveMintSigner(umi, mintKeypairPath)
+            const nftSigner = await resolveMintSigner(umi, mintKeypairPath).catch((error) => {
+                spinner.fail(`Failed to load mint keypair: ${error}`)
+                throw error
+            })
 
             const result = await this.createNftFromArgs(umi, {
                 nftSigner,
@@ -405,7 +411,10 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
             // URI flow: Use existing metadata URI (simplest case)
             this.log(`Creating ${flags.type === 'pnft' ? 'Programmable NFT (pNFT)' : 'NFT'}...`)
             const spinner = ora('Minting NFT...').start()
-            const nftSigner = await resolveMintSigner(umi, mintKeypairPath)
+            const nftSigner = await resolveMintSigner(umi, mintKeypairPath).catch((error) => {
+                spinner.fail(`Failed to load mint keypair: ${error}`)
+                throw error
+            })
 
             const result = await this.createNftFromArgs(umi, {
                 nftSigner,
@@ -428,7 +437,10 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
             const metadataUri = await this.createMetadataFromFlags(umi, flags)
 
             const spinner = ora('Creating NFT...').start()
-            const nftSigner = await resolveMintSigner(umi, mintKeypairPath)
+            const nftSigner = await resolveMintSigner(umi, mintKeypairPath).catch((error) => {
+                spinner.fail(`Failed to load mint keypair: ${error}`)
+                throw error
+            })
 
             const result = await this.createNftFromArgs(umi, {
                 nftSigner,

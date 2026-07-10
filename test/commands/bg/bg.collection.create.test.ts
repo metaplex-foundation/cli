@@ -1,4 +1,6 @@
 import { expect } from 'chai'
+
+import { createTempKeypairFile } from '../../helpers/temp-keypair-file'
 import { runCli } from '../../runCli'
 import { createBubblegumCollection, stripAnsi, extractCollectionId } from './bgcollectionhelpers'
 
@@ -22,6 +24,28 @@ describe('bg collection create command', () => {
 
         expect(collectionId).to.match(/^[a-zA-Z0-9]+$/)
         expect(signature).to.match(/^[a-zA-Z0-9]{32,}$/)
+    })
+
+    it('creates a collection with a vanity --mint-keypair', async () => {
+        const { cleanup, mintKeypair, mintKeypairPath } = createTempKeypairFile()
+
+        try {
+            const { code, stderr, stdout } = await runCli([
+                'bg', 'collection', 'create',
+                '--name', 'Vanity Bubblegum Collection',
+                '--uri', 'https://example.com/vanity-bg-collection.json',
+                '--mint-keypair', mintKeypairPath,
+            ])
+
+            const combined = stripAnsi(stdout + '\n' + stderr)
+            const collectionId = extractCollectionId(combined)
+
+            expect(code).to.equal(0)
+            expect(combined).to.contain('Collection created with Bubblegum V2 plugin')
+            expect(collectionId).to.equal(mintKeypair.publicKey.toString())
+        } finally {
+            cleanup()
+        }
     })
 
     it('creates a collection with royalties', async () => {

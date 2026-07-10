@@ -1,6 +1,6 @@
 import { createFungible } from '@metaplex-foundation/mpl-token-metadata'
 import { createTokenIfMissing, findAssociatedTokenPda, mintTokensTo } from '@metaplex-foundation/mpl-toolbox'
-import { generateSigner, percentAmount, Umi } from '@metaplex-foundation/umi'
+import { percentAmount, Umi } from '@metaplex-foundation/umi'
 import { Flags } from '@oclif/core'
 import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
@@ -8,6 +8,7 @@ import { ExplorerType, generateExplorerUrl } from '../../../explorers.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import imageUploader from '../../../lib/uploader/imageUploader.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
+import { mintKeypairFlag, resolveMintSigner } from '../../../lib/mint-keypair.js'
 import { RpcChain, txSignatureToString } from '../../../lib/util.js'
 import { validateMintAmount, validateTokenName, validateTokenSymbol } from '../../../lib/validations.js'
 import createTokenPrompt from '../../../prompts/createTokenPrompt.js'
@@ -97,6 +98,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
   - Use --description to add a description to your token
   - Use --image to add an image to your token metadata
   - Use --speed-run to measure execution time
+  - Use --mint-keypair to specify a vanity keypair file for the token mint address
   `
 
     static override examples = [
@@ -145,6 +147,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
             required: false,
             exclusive: ['wizard'],
         }),
+        'mint-keypair': mintKeypairFlag,
     }
 
     private async validateFlags(flags: {
@@ -222,7 +225,8 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
             mintAmount: number;
         },
         explorer: ExplorerType,
-        startTime: number
+        startTime: number,
+        mintKeypairPath?: string,
     ) {
         let imageUri = '';
         if (input.image) {
@@ -240,14 +244,14 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
             this.error('Failed to upload token metadata');
         }
 
-        return await this.createToken(umi, {
+        return this.createToken(umi, {
             name: input.name,
             symbol: input.symbol,
             description: input.description,
             image: jsonUri,
             decimals: input.decimals,
             mintAmount: input.mintAmount,
-        }, explorer, startTime);
+        }, explorer, startTime, mintKeypairPath);
     }
 
     public async run(): Promise<unknown> {
@@ -271,7 +275,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                     image: wizard.image,
                     decimals: wizard.decimals ?? 0,
                     mintAmount: wizard.mintAmount,
-                }, explorer, startTime);
+                }, explorer, startTime, flags['mint-keypair']);
             } else {
                 const validatedFlags = await this.validateFlags(flags);
                 return await this.createTokenWithMetadata(umi, {
@@ -281,7 +285,7 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
                     image: flags.image,
                     decimals: validatedFlags.decimals,
                     mintAmount: validatedFlags.mint,
-                }, explorer, startTime);
+                }, explorer, startTime, flags['mint-keypair']);
             }
         } catch (error) {
             if (flags['speed-run']) {
@@ -292,8 +296,8 @@ export default class ToolboxTokenCreate extends TransactionCommand<typeof Toolbo
         }
     }
 
-    private async createToken(umi: Umi, input: TokenInput, explorer: ExplorerType, startTime: number) {
-        const mint = generateSigner(umi)
+    private async createToken(umi: Umi, input: TokenInput, explorer: ExplorerType, startTime: number, mintKeypairPath?: string) {
+        const mint = await resolveMintSigner(umi, mintKeypairPath)
         const createFunigbleIx = createFungible(umi, {
             mint,
             name: input.name,

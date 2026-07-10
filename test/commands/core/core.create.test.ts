@@ -1,4 +1,6 @@
 import { expect } from 'chai'
+
+import { createTempKeypairFile } from '../../helpers/temp-keypair-file'
 import { runCli } from '../../runCli'
 import { createCoreAsset, createCoreCollection, extractAssetId, stripAnsi } from './corehelpers'
 
@@ -47,6 +49,29 @@ describe('core asset commands', () => {
         expect(code).to.equal(0)
         expect(cleanStderr).to.contain('Asset created successfully')
         expect(assetId).to.match(/^[a-zA-Z0-9]+$/)
+    })
+
+    it('creates an asset with a vanity --mint-keypair', async () => {
+        const { cleanup, mintKeypair, mintKeypairPath } = createTempKeypairFile()
+
+        try {
+            const { code, stderr, stdout } = await runCli([
+                'core', 'asset', 'create',
+                '--name', 'Vanity Asset',
+                '--uri', 'https://example.com/vanity-asset',
+                '--mint-keypair', mintKeypairPath,
+            ], ['\n'])
+
+            const cleanStderr = stripAnsi(stderr)
+            const cleanStdout = stripAnsi(stdout)
+            const assetId = extractAssetId(cleanStdout) || extractAssetId(cleanStderr)
+
+            expect(code).to.equal(0)
+            expect(cleanStderr).to.contain('Asset created successfully')
+            expect(assetId).to.equal(mintKeypair.publicKey.toString())
+        } finally {
+            cleanup()
+        }
     })
 
     // Skipping for now because you can't upload files on localnet

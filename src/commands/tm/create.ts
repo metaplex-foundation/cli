@@ -9,6 +9,7 @@ import { TransactionCommand } from '../../TransactionCommand.js'
 import { ExplorerType, generateExplorerUrl } from '../../explorers.js'
 import uploadFile from '../../lib/uploader/uploadFile.js'
 import uploadJson from '../../lib/uploader/uploadJson.js'
+import { mintKeypairFlag, resolveMintSigner } from '../../lib/mint-keypair.js'
 import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 import createTokenMetadataPrompt, { CreateTokenMetadataPromptResult, NftType } from '../../prompts/createTokenMetadataPrompt.js'
 import { txSignatureToString } from '../../lib/util.js'
@@ -50,6 +51,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
   - Use --collection to specify a collection ID for the NFT
   - Use --type to specify NFT type: "pnft" (default) or "nft"
   - Use --attributes to specify NFT attributes in format "trait1:value1,trait2:value2"
+  - Use --mint-keypair to specify a vanity keypair file for the NFT mint address
   `
 
     static override examples = [
@@ -124,6 +126,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
             name: 'collection',
             description: 'Collection ID'
         }),
+        'mint-keypair': mintKeypairFlag,
         type: Flags.string({
             description: 'Type of NFT to create',
             options: ['nft', 'pnft'],
@@ -131,7 +134,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
         }),
     }
 
-    private async handleFileBasedCreation(umi: Umi, imagePath: string, jsonPath: string, collection?: string, isProgrammable: boolean = true) {
+    private async handleFileBasedCreation(umi: Umi, imagePath: string, jsonPath: string, collection?: string, isProgrammable: boolean = true, mintKeypairPath?: string) {
         const imageSpinner = ora('Uploading image...').start()
         const imageUri = await uploadFile(umi, imagePath).catch((err) => {
             imageSpinner.fail(`Failed to upload image. ${err}`)
@@ -156,7 +159,10 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
         jsonSpinner.succeed(`JSON uploaded to ${jsonUri}`)
 
         const nftSpinner = ora('Creating NFT...').start()
-        const nftSigner = generateSigner(umi)
+        const nftSigner = await resolveMintSigner(umi, mintKeypairPath).catch((error) => {
+            nftSpinner.fail(`Failed to load mint keypair: ${error}`)
+            throw error
+        })
 
         const result = await this.createNftFromArgs(umi, {
             nftSigner,
@@ -317,8 +323,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
     }
 
     private async createNftFromArgs(umi: Umi, input: NftInput) {
-        this.log(`[DEBUG] createNftFromArgs called with isProgrammable: ${input.isProgrammable}`)
-        const mint = input.nftSigner || generateSigner(umi)
+        const mint = input.nftSigner ?? generateSigner(umi)
         const createNftIx = input.isProgrammable
             ? createProgrammableNft(umi, {
                 mint,
@@ -345,6 +350,7 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
     public async run(): Promise<unknown> {
         const { flags } = await this.parse(TmCreate)
         const { umi, explorer } = this.context
+        const mintKeypairPath = flags['mint-keypair']
 
         const formatResult = (result: { mint: string; signature: Uint8Array }) => {
             const sig = txSignatureToString(result.signature)
@@ -371,7 +377,10 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
             const jsonUri = await this.createAndUploadMetadata(umi, wizardData)
 
             const spinner = ora('Creating NFT...').start()
-            const nftSigner = generateSigner(umi)
+            const nftSigner = await resolveMintSigner(umi, mintKeypairPath).catch((error) => {
+                spinner.fail(`Failed to load mint keypair: ${error}`)
+                throw error
+            })
 
             const result = await this.createNftFromArgs(umi, {
                 nftSigner,
@@ -395,14 +404,17 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
                 this.error('You must provide --image when using --offchain')
             }
 
-            const result = await this.handleFileBasedCreation(umi, flags.image, flags.offchain, flags.collection, flags.type === 'pnft')
+            const result = await this.handleFileBasedCreation(umi, flags.image, flags.offchain, flags.collection, flags.type === 'pnft', mintKeypairPath)
             return formatResult(result)
 
         } else if (flags.name && flags.uri) {
             // URI flow: Use existing metadata URI (simplest case)
             this.log(`Creating ${flags.type === 'pnft' ? 'Programmable NFT (pNFT)' : 'NFT'}...`)
             const spinner = ora('Minting NFT...').start()
-            const nftSigner = generateSigner(umi)
+            const nftSigner = await resolveMintSigner(umi, mintKeypairPath).catch((error) => {
+                spinner.fail(`Failed to load mint keypair: ${error}`)
+                throw error
+            })
 
             const result = await this.createNftFromArgs(umi, {
                 nftSigner,
@@ -425,7 +437,10 @@ export default class TmCreate extends TransactionCommand<typeof TmCreate> {
             const metadataUri = await this.createMetadataFromFlags(umi, flags)
 
             const spinner = ora('Creating NFT...').start()
-            const nftSigner = generateSigner(umi)
+            const nftSigner = await resolveMintSigner(umi, mintKeypairPath).catch((error) => {
+                spinner.fail(`Failed to load mint keypair: ${error}`)
+                throw error
+            })
 
             const result = await this.createNftFromArgs(umi, {
                 nftSigner,

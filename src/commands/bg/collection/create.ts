@@ -4,12 +4,12 @@ import {
   ruleSet
 } from '@metaplex-foundation/mpl-core'
 import type { TransactionSignature } from '@metaplex-foundation/umi'
-import { generateSigner } from '@metaplex-foundation/umi'
 import { Flags } from '@oclif/core'
 import ora from 'ora'
 
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../../explorers.js'
+import { mintKeypairFlag, resolveMintSigner } from '../../../lib/mint-keypair.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
 
@@ -38,6 +38,7 @@ The Bubblegum V2 plugin is required for collections that will contain compressed
       description: 'Collection metadata URI',
       required: true,
     }),
+    'mint-keypair': mintKeypairFlag,
     royalties: Flags.integer({
       description: 'Royalty percentage for secondary sales (0-100)',
       min: 0,
@@ -54,7 +55,7 @@ The Bubblegum V2 plugin is required for collections that will contain compressed
 
     try {
       // Generate collection address
-      const collection = generateSigner(umi)
+      const collection = await resolveMintSigner(umi, flags['mint-keypair'])
 
       const plugins: CreateCollectionArgsPlugin[] = [
         {

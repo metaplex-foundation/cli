@@ -1,11 +1,12 @@
 import { Flags } from '@oclif/core'
+import { Umi, publicKey } from '@metaplex-foundation/umi'
 
 import fs from 'node:fs'
 import ora from 'ora'
 
-import { generateSigner, publicKey, Umi } from '@metaplex-foundation/umi'
 import { ExplorerType, generateCoreExplorerUrl, generateExplorerUrl } from '../../../explorers.js'
 import createAssetFromArgs, { AssetCreationResult } from '../../../lib/core/create/createAssetFromArgs.js'
+import { mintKeypairFlag, resolveMintSigner } from '../../../lib/mint-keypair.js'
 import { Plugin, PluginData } from '../../../lib/types/pluginData.js'
 import prepareJsonMetadata from '../../../lib/core/create/prepareJsonMetadata.js'
 import uploadFile from '../../../lib/uploader/uploadFile.js'
@@ -33,6 +34,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
   - Use --owner to mint the asset directly to a specific wallet address (defaults to the signer)
   - Use --plugins to interactively select and configure plugins
   - Use --pluginsFile to provide plugin configuration from a JSON file
+  - Use --mint-keypair to specify a vanity keypair file for the asset address
   `
 
   static override examples = [
@@ -85,6 +87,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       hidden: true,
     }),
     // Plugin configuration flags
+    'mint-keypair': mintKeypairFlag,
     plugins: Flags.boolean({
       name: 'plugins',
       required: false,
@@ -116,7 +119,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
     return undefined
   }
 
-  private async handleFileBasedCreation(umi: any, imagePath: string, jsonPath: string, collection?: string, owner?: string) {
+  private async handleFileBasedCreation(umi: any, imagePath: string, jsonPath: string, collection?: string, owner?: string, mintKeypairPath?: string) {
     const imageSpinner = ora('Uploading image...').start()
     const imageUri = await uploadFile(umi, imagePath).catch((err) => {
       imageSpinner.fail(`Failed to upload image. ${err}`)
@@ -141,7 +144,10 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
     const pluginData = await this.getPluginData()
     const assetSpinner = ora('Creating Asset...').start()
-    const assetSigner = generateSigner(umi)
+    const assetSigner = await resolveMintSigner(umi, mintKeypairPath).catch((error) => {
+      assetSpinner.fail(`Failed to load mint keypair: ${error}`)
+      throw error
+    })
 
     const result = await createAssetFromArgs(umi, {
       assetSigner,
@@ -262,7 +268,10 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
       const jsonUri = await this.createAndUploadMetadata(umi, wizardData)
 
       const spinner = ora('Creating Asset...').start()
-      const assetSigner = generateSigner(umi)
+      const assetSigner = await resolveMintSigner(umi, flags['mint-keypair']).catch((error) => {
+        spinner.fail(`Failed to load mint keypair: ${error}`)
+        throw error
+      })
 
       const result = await createAssetFromArgs(umi, {
         assetSigner,
@@ -285,7 +294,7 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
         this.error('You must provide an image --image and JSON --offchain file')
       }
 
-      return await this.handleFileBasedCreation(umi, flags.image, flags.offchain, flags.collection, flags.owner)
+      return this.handleFileBasedCreation(umi, flags.image, flags.offchain, flags.collection, flags.owner, flags['mint-keypair'])
     } else {
       // Create asset from name and uri flags
       if (!flags.name) {
@@ -297,7 +306,10 @@ export default class AssetCreate extends TransactionCommand<typeof AssetCreate> 
 
       const pluginData = await this.getPluginData()
       const spinner = ora('Creating Asset...').start()
-      const assetSigner = generateSigner(umi)
+      const assetSigner = await resolveMintSigner(umi, flags['mint-keypair']).catch((error) => {
+        spinner.fail(`Failed to load mint keypair: ${error}`)
+        throw error
+      })
 
       const result = await createAssetFromArgs(umi, {
         assetSigner,

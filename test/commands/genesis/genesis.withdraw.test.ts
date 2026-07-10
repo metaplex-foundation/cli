@@ -1,19 +1,23 @@
 import { expect } from 'chai'
 import { runCli } from '../../runCli'
-import { createGenesisAccount, addLaunchPoolBucket, addUnlockedBucket, stripAnsi } from './genesishelpers'
+import { createGenesisAccount, addLaunchPoolBucket, addUnlockedBucket, getGenesisTimestamps, stripAnsi } from './genesishelpers'
 
 describe('genesis withdraw workflow', () => {
     let genesisAddress: string
     let bucketAddress: string
     let unlockedBucketAddress: string
-
-    const now = Math.floor(Date.now() / 1000)
-    const depositStart = (now - 3600).toString()       // 1 hour ago
-    const depositEnd = (now + 86400).toString()         // 1 day from now
-    const claimStart = (now + 86400 + 1).toString()     // just after deposit end
-    const claimEnd = (now + 86400 * 365).toString()     // 1 year from now
+    let depositStart: string
+    let depositEnd: string
+    let claimStart: string
+    let claimEnd: string
 
     before(async () => {
+        const timestamps = await getGenesisTimestamps()
+        depositStart = timestamps.depositStart
+        depositEnd = timestamps.depositEnd
+        claimStart = timestamps.claimStart
+        claimEnd = timestamps.claimEnd
+
         await runCli([
             "toolbox", "sol", "airdrop", "100", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
         ])

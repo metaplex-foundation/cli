@@ -1,5 +1,5 @@
-import { setComputeUnitPrice } from '@metaplex-foundation/mpl-toolbox'
-import { BlockhashWithExpiryBlockHeight, Signer, TransactionBuilder, TransactionSignature, Umi } from '@metaplex-foundation/umi'
+import { setComputeUnitLimit, setComputeUnitPrice } from '@metaplex-foundation/mpl-toolbox'
+import { BlockhashWithExpiryBlockHeight, TransactionBuilder, TransactionSignature, Umi } from '@metaplex-foundation/umi'
 import { getAssetSigner } from './assetSignerPlugin.js'
 import { UmiSendOptions } from './sendOptions.js'
 
@@ -8,6 +8,9 @@ export interface UmiTransactionResponse {
   blockhash: BlockhashWithExpiryBlockHeight | null
   err: string | null
 }
+
+/** Default above Solana's 200k so heavier Metaplex txs (e.g. Genesis create) don't flake. */
+const DEFAULT_COMPUTE_UNIT_LIMIT = 400_000
 
 const umiSendTransaction = async (
   umi: Umi,
@@ -30,10 +33,17 @@ const umiSendTransaction = async (
 
   let transaction = tx.setBlockhash(blockhash)
 
+  // Compute budget instructions must come first in the transaction.
+  transaction = transaction.prepend(
+    setComputeUnitLimit(umi, {
+      units: sendOptions?.computeUnitLimit ?? DEFAULT_COMPUTE_UNIT_LIMIT,
+    }),
+  )
+
   if (sendOptions?.priorityFee) {
-    transaction = transaction.add(
+    transaction = transaction.prepend(
       setComputeUnitPrice(umi, {
-        microLamports: 100000,
+        microLamports: sendOptions.priorityFee,
       }),
     )
   }

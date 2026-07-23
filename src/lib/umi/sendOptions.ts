@@ -7,6 +7,8 @@ export enum ConfirmationStrategy {
 
 export interface UmiSendOptions {
   priorityFee?: number | undefined
+  /** Override the default compute unit limit (400_000). */
+  computeUnitLimit?: number | undefined
   commitment?: Commitment | undefined
   skipPreflight?: boolean | undefined
   confirmationStrategy?: ConfirmationStrategy

@@ -12,6 +12,7 @@ import {
   findUnlockedBucketV2Pda,
   WRAPPED_SOL_MINT,
 } from '@metaplex-foundation/genesis'
+import { setComputeUnitLimit } from '@metaplex-foundation/mpl-toolbox'
 import {
   Umi,
   Signer,
@@ -25,6 +26,9 @@ import {
 
 import umiSendAndConfirmTransaction from '../umi/sendAndConfirm.js'
 import { txSignatureToString } from '../util.js'
+
+/** Genesis initialize + token metadata can exceed Solana's 200k default CU budget. */
+const GENESIS_CREATE_COMPUTE_UNIT_LIMIT = 400_000
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -143,7 +147,9 @@ export async function createGenesisAccount(
     uri: params.uri,
     decimals: params.decimals,
     genesisIndex,
-  })
+  }).prepend(
+    setComputeUnitLimit(umi, { units: GENESIS_CREATE_COMPUTE_UNIT_LIMIT }),
+  )
 
   const result = await umiSendAndConfirmTransaction(umi, transaction)
 

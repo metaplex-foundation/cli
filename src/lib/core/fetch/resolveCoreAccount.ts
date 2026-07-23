@@ -1,7 +1,8 @@
 import {
   collectionAddress,
-  safeFetchAssetV1,
-  safeFetchCollectionV1,
+  deserializeAssetV1,
+  deserializeCollectionV1,
+  Key,
 } from '@metaplex-foundation/mpl-core'
 import { publicKey, Umi } from '@metaplex-foundation/umi'
 
@@ -23,9 +24,11 @@ export type ResolveCoreAccountOptions = {
 /**
  * Resolve whether an address is a Core Asset or Collection.
  *
+ * Fetches the account once so RPC/transport failures propagate. Distinguishes
+ * Asset vs Collection via the on-chain account key instead of catching
+ * deserialize errors (which would also hide network failures).
+ *
  * When `forceCollection` is set, only Collection is accepted.
- * Otherwise tries Asset first, then falls back to Collection — matching the
- * auto-detect pattern used by `genesis bucket fetch` when `--type` is omitted.
  */
 export async function resolveCoreAccount(
   umi: Umi,
@@ -33,17 +36,27 @@ export async function resolveCoreAccount(
   options: ResolveCoreAccountOptions = {},
 ): Promise<ResolvedCoreAccount> {
   const address = publicKey(id)
+  const account = await umi.rpc.getAccount(address)
 
-  if (options.forceCollection) {
-    const collection = await safeFetchCollectionV1(umi, address).catch(() => null)
-    if (!collection) {
+  if (!account.exists) {
+    if (options.forceCollection) {
       throw new Error(`Unable to fetch collection at address: ${id}`)
     }
+    throw new Error(`Address ${id} is neither a Core Asset nor a Core Collection`)
+  }
+
+  const accountKey = account.data[0]
+
+  if (options.forceCollection) {
+    if (accountKey !== Key.CollectionV1) {
+      throw new Error(`Unable to fetch collection at address: ${id}`)
+    }
+    deserializeCollectionV1(account)
     return { id, isCollection: true }
   }
 
-  const asset = await safeFetchAssetV1(umi, address).catch(() => null)
-  if (asset) {
+  if (accountKey === Key.AssetV1) {
+    const asset = deserializeAssetV1(account)
     const parentCollection = collectionAddress(asset)
     return {
       id,
@@ -52,8 +65,8 @@ export async function resolveCoreAccount(
     }
   }
 
-  const collection = await safeFetchCollectionV1(umi, address).catch(() => null)
-  if (collection) {
+  if (accountKey === Key.CollectionV1) {
+    deserializeCollectionV1(account)
     return { id, isCollection: true }
   }
 

@@ -11,12 +11,10 @@ import ora from 'ora'
 
 import { TransactionCommand } from '../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../explorers.js'
+import { GENESIS_CREATE_COMPUTE_UNIT_LIMIT } from '../../lib/genesis/operations.js'
 import { txSignatureToString } from '../../lib/util.js'
 import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 import { runApiWizard, runManualWizard, WizardContext, WizardLogger } from '../../lib/genesis/wizard.js'
-
-/** Genesis initialize + token metadata can exceed Solana's 200k default CU budget. */
-const GENESIS_CREATE_COMPUTE_UNIT_LIMIT = 400_000
 
 // Funding modes for Genesis
 const FUNDING_MODE = {

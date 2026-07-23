@@ -28,7 +28,7 @@ import umiSendAndConfirmTransaction from '../umi/sendAndConfirm.js'
 import { txSignatureToString } from '../util.js'
 
 /** Genesis initialize + token metadata can exceed Solana's 200k default CU budget. */
-const GENESIS_CREATE_COMPUTE_UNIT_LIMIT = 400_000
+export const GENESIS_CREATE_COMPUTE_UNIT_LIMIT = 400_000
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */

@@ -1,11 +1,12 @@
 import { Args, Flags } from '@oclif/core'
 
-import { addCollectionPlugin, AddCollectionPluginArgsPlugin, addPlugin, AddPluginArgsPlugin, fetchAsset } from '@metaplex-foundation/mpl-core'
+import { addCollectionPlugin, AddCollectionPluginArgsPlugin, addPlugin, AddPluginArgsPlugin } from '@metaplex-foundation/mpl-core'
 import { publicKey, transactionBuilder } from '@metaplex-foundation/umi'
 import { readFileSync } from 'fs'
 import ora from 'ora'
 import { BaseCommand } from '../../../BaseCommand.js'
 import { generateCoreExplorerUrl } from '../../../explorers.js'
+import resolveCoreAccount from '../../../lib/core/fetch/resolveCoreAccount.js'
 import { Plugin } from '../../../lib/types/pluginData.js'
 import umiSendAllTransactionsAndConfirm from '../../../lib/umi/sendAllTransactionsAndConfirm.js'
 import { txSignatureToString } from '../../../lib/util.js'
@@ -18,11 +19,15 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
     static override examples = [
         '<%= config.bin %> <%= command.id %> <asset or collection public key> --wizard',
         '<%= config.bin %> <%= command.id %> <asset or collection public key> ./plugin.json',
+        '<%= config.bin %> <%= command.id %> <collection public key> ./plugin.json --collection',
     ]
 
     static override flags = {
         wizard: Flags.boolean({ description: 'Wizard mode', default: false }),
-        collection: Flags.boolean({ description: 'Is this a collection\'s plugin', default: false }),
+        collection: Flags.boolean({
+            description: 'Treat the address as a collection (auto-detected if omitted)',
+            default: false,
+        }),
     }
 
     static override args = {
@@ -30,28 +35,27 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
         json: Args.file({ description: 'path to a plugin data JSON file', required: false }),
     }
 
-
-
     public async run(): Promise<unknown> {
         const { args, flags } = await this.parse(CorePluginsAdd)
 
-        // Auto-detect collection ID if this is an asset operation
+        const resolveSpinner = ora('Resolving asset or collection...').start()
+        let isCollection: boolean
         let collectionId: string | undefined
-        if (!flags.collection) {
-            try {
-                const asset = await fetchAsset(this.context.umi, publicKey(args.id))
-
-                if (asset.updateAuthority.type === 'Collection') {
-                    collectionId = asset.updateAuthority.address
-                }
-            } catch (error) {
-                throw new Error('Unable to fetch asset')
-            }
+        try {
+            const resolved = await resolveCoreAccount(this.context.umi, args.id, {
+                forceCollection: flags.collection,
+            })
+            isCollection = resolved.isCollection
+            collectionId = resolved.collectionId
+            resolveSpinner.succeed(`Resolved as ${isCollection ? 'collection' : 'asset'}`)
+        } catch (error) {
+            resolveSpinner.fail(error instanceof Error ? error.message : 'Failed to resolve address')
+            throw error
         }
 
         if (flags.wizard) {
             const selectedPlugins = await pluginSelector({
-                filter: flags.collection ? PluginFilterType.Collection : PluginFilterType.Asset,
+                filter: isCollection ? PluginFilterType.Collection : PluginFilterType.Asset,
                 type: 'list',
                 managedBy: PluginFilterType.Authority
             }) as Plugin[]
@@ -64,7 +68,7 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
 
             const pluginsArray = Object.values(wizardPluginData) as (AddPluginArgsPlugin | AddCollectionPluginArgsPlugin)[]
             return await this.addPluginsBatch(args.id, pluginsArray, {
-                isCollection: flags.collection,
+                isCollection,
                 collectionId
             })
         }
@@ -81,7 +85,7 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
             }
 
             return await this.addPluginsBatch(args.id, jsonData as (AddPluginArgsPlugin | AddCollectionPluginArgsPlugin)[], {
-                isCollection: flags.collection,
+                isCollection,
                 collectionId
             })
         }
@@ -91,7 +95,7 @@ export default class CorePluginsAdd extends BaseCommand<typeof CorePluginsAdd> {
 
 
     private async addPluginsBatch(asset: string, pluginsData: (AddPluginArgsPlugin | AddCollectionPluginArgsPlugin)[], options: { isCollection: boolean, collectionId?: string }): Promise<unknown> {
-        const { umi, explorer } = this.context
+        const { umi } = this.context
         const { isCollection, collectionId } = options
 
         let transaction = transactionBuilder()

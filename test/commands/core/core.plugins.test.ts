@@ -40,6 +40,26 @@ describe('core plugin commands', () => {
         expect(cleanAddStderr).to.contain('Successfully added')
     })
 
+    it('adds a plugin to a collection without --collection by auto-detecting', async function() {
+        this.timeout(30000)
+        const { collectionId } = await createCoreCollection()
+
+        const addInput = [
+            'core',
+            'plugins',
+            'add',
+            collectionId,
+            'test-files/plugins.json',
+        ]
+
+        const { stderr: addStderr, code: addCode } = await runCli(addInput)
+        const cleanAddStderr = stripAnsi(addStderr)
+
+        expect(addCode).to.equal(0)
+        expect(cleanAddStderr).to.contain('Resolved as collection')
+        expect(cleanAddStderr).to.contain('Successfully added')
+    })
+
     it('updates a plugin on a collection using JSON file', async function() {
         this.timeout(45000) // 45 seconds timeout
         // First create a collection and add a plugin
@@ -73,6 +93,34 @@ describe('core plugin commands', () => {
         const cleanUpdateStderr = stripAnsi(updateStderr)
 
         expect(updateCode).to.equal(0)
+        expect(cleanUpdateStderr).to.contain('Successfully updated')
+    })
+
+    it('updates a plugin on a collection without --collection by auto-detecting', async function() {
+        this.timeout(45000)
+        const { collectionId } = await createCoreCollection()
+
+        const { code: addCode } = await runCli([
+            'core',
+            'plugins',
+            'add',
+            collectionId,
+            'test-files/plugins.json',
+        ])
+        expect(addCode).to.equal(0)
+
+        const { stderr: updateStderr, code: updateCode } = await runCli([
+            'core',
+            'plugins',
+            'update',
+            collectionId,
+            'test-files/plugins-updated.json',
+        ])
+
+        const cleanUpdateStderr = stripAnsi(updateStderr)
+
+        expect(updateCode).to.equal(0)
+        expect(cleanUpdateStderr).to.contain('Resolved as collection')
         expect(cleanUpdateStderr).to.contain('Successfully updated')
     })
 

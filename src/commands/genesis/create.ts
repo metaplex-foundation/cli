@@ -3,6 +3,7 @@ import {
   findGenesisAccountV2Pda,
   WRAPPED_SOL_MINT,
 } from '@metaplex-foundation/genesis'
+import { setComputeUnitLimit } from '@metaplex-foundation/mpl-toolbox'
 import { generateSigner, publicKey } from '@metaplex-foundation/umi'
 import { Flags } from '@oclif/core'
 import { confirm } from '@inquirer/prompts'
@@ -10,6 +11,7 @@ import ora from 'ora'
 
 import { TransactionCommand } from '../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../explorers.js'
+import { GENESIS_CREATE_COMPUTE_UNIT_LIMIT } from '../../lib/genesis/operations.js'
 import { txSignatureToString } from '../../lib/util.js'
 import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 import { runApiWizard, runManualWizard, WizardContext, WizardLogger } from '../../lib/genesis/wizard.js'
@@ -156,7 +158,9 @@ Use --wizard for an interactive guided setup.`
         uri: flags.uri,
         decimals: flags.decimals,
         genesisIndex: flags.genesisIndex,
-      })
+      }).prepend(
+        setComputeUnitLimit(this.context.umi, { units: GENESIS_CREATE_COMPUTE_UNIT_LIMIT }),
+      )
 
       const result = await umiSendAndConfirmTransaction(this.context.umi, transaction)
 

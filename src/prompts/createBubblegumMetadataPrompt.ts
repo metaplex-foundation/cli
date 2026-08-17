@@ -1,9 +1,10 @@
 import { confirm, input, select } from '@inquirer/prompts'
-import { fetchAsset } from '@metaplex-foundation/mpl-core'
 import { publicKey, Umi } from '@metaplex-foundation/umi'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+
+import { inspectBubblegumCollection } from '../lib/bubblegum/royalties.js'
 
 export type NftType = 'image' | 'video' | 'audio' | 'model'
 
@@ -17,6 +18,8 @@ export interface CreateBubblegumMetadataPromptResult {
   attributes?: Array<{ trait_type: string; value: string }>
   collection?: string
   sellerFeePercentage?: number
+  /** When true, mint with inherit sentinel and empty leaf creators. */
+  inheritRoyalties?: boolean
 }
 
 const VALID_EXTENSIONS: Record<Exclude<NftType, 'image'>, string[]> = {
@@ -25,18 +28,27 @@ const VALID_EXTENSIONS: Record<Exclude<NftType, 'image'>, string[]> = {
   model: ['.glb', '.gltf'],
 }
 
-const validateCoreCollection = async (umi: Umi, collectionId: string): Promise<boolean | string> => {
+const validateCoreCollection = async (
+  umi: Umi,
+  collectionId: string
+): Promise<
+  | true
+  | string
+  | { ok: true; hasRoyalties: boolean; basisPoints?: number }
+> => {
   try {
-    const collectionPubkey = publicKey(collectionId)
-    const asset = await fetchAsset(umi, collectionPubkey)
-
-    // Check if it's a collection by verifying the name field exists
-    // Core collections have updateAuthority and other collection-specific fields
-    if (!asset.updateAuthority) {
-      return 'This does not appear to be a valid Metaplex Core collection'
+    const info = await inspectBubblegumCollection(umi, collectionId)
+    if (!info.hasBubblegumV2) {
+      return (
+        'Collection is missing the BubblegumV2 plugin.\n' +
+        'Tip: mplx bg collection create --name "..." --uri "..." --royalties 5'
+      )
     }
-
-    return true
+    return {
+      ok: true,
+      hasRoyalties: info.hasRoyalties,
+      basisPoints: info.basisPoints,
+    }
   } catch (error) {
     return `Failed to fetch collection: ${(error as Error).message}`
   }
@@ -201,8 +213,12 @@ const createBubblegumMetadataPrompt = async (umi: Umi): Promise<CreateBubblegumM
   }
 
   // Get Metaplex Core collection ID
+  let collectionHasRoyalties = false
+  let collectionBasisPoints: number | undefined
+
   const hasCollection = await confirm({
-    message: 'Does this compressed NFT belong to a Metaplex Core collection?\n  (Create one first: mplx core collection create --wizard)',
+    message:
+      'Does this compressed NFT belong to a Metaplex Core collection?\n  (Create one: mplx bg collection create --name "..." --uri "..." --royalties 5)',
   })
 
   if (hasCollection) {
@@ -218,28 +234,66 @@ const createBubblegumMetadataPrompt = async (umi: Umi): Promise<CreateBubblegumM
           return 'Invalid public key format'
         }
 
-        // Validate it's actually a Core collection
         const validationResult = await validateCoreCollection(umi, value)
-        if (validationResult !== true) {
-          return `${validationResult}\nTip: Create a Core collection with: mplx core collection create --wizard`
+        if (validationResult === true) return true
+        if (typeof validationResult === 'string') {
+          return validationResult
         }
-        return validationResult
+        return true
       },
     })
+
+    const info = await inspectBubblegumCollection(umi, result.collection)
+    collectionHasRoyalties = info.hasRoyalties
+    collectionBasisPoints = info.basisPoints
   }
 
-  // Ask for royalty percentage
-  const royaltyPercentage = await input({
-    message: 'Royalty percentage for secondary sales (0-100)?',
-    default: '5',
-    validate: (value) => {
-      const num = parseFloat(value)
-      if (isNaN(num)) return 'Please enter a valid number'
-      if (num < 0 || num > 100) return 'Royalty percentage must be between 0 and 100'
-      return true
+  if (collectionHasRoyalties) {
+    const pctLabel =
+      collectionBasisPoints != null ? `${collectionBasisPoints / 100}%` : 'collection rate'
+    const mode = await select({
+      message: 'Royalty mode?',
+      choices: [
+        {
+          name: `Inherit from collection (${pctLabel}) — recommended`,
+          value: 'inherit' as const,
+        },
+        {
+          name: 'Set explicit leaf royalty percentage',
+          value: 'explicit' as const,
+        },
+      ],
+      default: 'inherit',
+    })
+
+    if (mode === 'inherit') {
+      result.inheritRoyalties = true
+    } else {
+      const royaltyPercentage = await input({
+        message: 'Royalty percentage for secondary sales (0-100)?',
+        default: collectionBasisPoints != null ? String(collectionBasisPoints / 100) : '5',
+        validate: (value) => {
+          const num = parseFloat(value)
+          if (isNaN(num)) return 'Please enter a valid number'
+          if (num < 0 || num > 100) return 'Royalty percentage must be between 0 and 100'
+          return true
+        },
+      })
+      result.sellerFeePercentage = parseFloat(royaltyPercentage)
     }
-  })
-  result.sellerFeePercentage = parseFloat(royaltyPercentage)
+  } else {
+    const royaltyPercentage = await input({
+      message: 'Royalty percentage for secondary sales (0-100)?',
+      default: '5',
+      validate: (value) => {
+        const num = parseFloat(value)
+        if (isNaN(num)) return 'Please enter a valid number'
+        if (num < 0 || num > 100) return 'Royalty percentage must be between 0 and 100'
+        return true
+      },
+    })
+    result.sellerFeePercentage = parseFloat(royaltyPercentage)
+  }
 
   return result
 }

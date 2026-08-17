@@ -24,6 +24,14 @@ import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 import { getTreeByNameOrAddress } from '../../../lib/treeStorage.js'
 import { RpcChain, txSignatureToString } from '../../../lib/util.js'
 import type { TransactionSignature } from '@metaplex-foundation/umi'
+import {
+  inspectBubblegumCollection,
+  parseCreatorFlags,
+  parseRoyaltyPercentage,
+  resolveRoyaltyMode,
+  SELLER_FEE_BASIS_POINTS_INHERIT,
+  type LeafCreatorInput,
+} from '../../../lib/bubblegum/royalties.js'
 
 type NetworkLabel = 'mainnet' | 'devnet' | 'testnet' | 'localnet'
 
@@ -32,6 +40,8 @@ type MetadataResolution = {
   uri: string
   sellerFeePercentage?: number
   collection?: string
+  inheritRoyalties?: boolean
+  creators?: LeafCreatorInput[]
 }
 
 type CreateResultSummary = {
@@ -39,6 +49,7 @@ type CreateResultSummary = {
   owner: string
   tree: string
   assetId?: string
+  royaltyMode?: string
 }
 
 export default class BgNftCreate extends TransactionCommand<typeof BgNftCreate> {
@@ -61,22 +72,18 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
     '# Create a compressed NFT using the wizard (tree selection in wizard)',
     '$ mplx bg nft create --wizard',
     '',
-    '# Complete workflow: Create Core collection, tree, then compressed NFTs',
-    '$ mplx core collection create --wizard',
-    '$ mplx bg tree create --wizard',
-    '$ mplx bg nft create --wizard',
+    '# Inherit royalties from a Core collection (Royalties plugin required)',
+    '$ mplx bg collection create --name "Col" --uri https://example.com/c.json --royalties 5',
+    '$ mplx bg nft create my-tree --name "cNFT" --uri https://example.com/1.json --collection <COL>',
     '',
-    '# Create with specific tree using wizard',
-    '$ mplx bg nft create my-tree --wizard',
+    '# Explicit leaf royalties with custom creator splits',
+    '$ mplx bg nft create my-tree --name "cNFT" --uri https://example.com/1.json --collection <COL> --royalties 7.5 --creator <ADDR1>:60 --creator <ADDR2>:40',
     '',
-    '# Create with existing metadata URI',
-    '$ mplx bg nft create 9hRv... --name "My NFT" --uri https://example.com/meta.json',
+    '# Force inherit',
+    '$ mplx bg nft create my-tree --name "cNFT" --uri https://example.com/1.json --collection <COL> --inherit-royalties',
     '',
     '# Create with local files',
     '$ mplx bg nft create dev-tree --image ./nft.png --json ./metadata.json',
-    '',
-    '# Create with image and animation',
-    '$ mplx bg nft create my-tree --name "My NFT" --image ./nft.png --animation ./video.mp4 --description "NFT with video"',
   ]
 
   static override args = {
@@ -128,13 +135,24 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
     symbol: OclifFlags.string({
       description: 'Optional symbol stored on-chain (defaults to empty)',
     }),
-    royalties: OclifFlags.integer({
-      description: 'Royalty percentage for secondary sales (0-100)',
-      min: 0,
-      max: 100,
+    royalties: OclifFlags.string({
+      description:
+        'Explicit leaf royalty percentage (0-100, decimals allowed e.g. 7.5). Opts out of collection inherit. Use with --creator for payout splits.',
+      exclusive: ['inherit-royalties'],
+    }),
+    'inherit-royalties': OclifFlags.boolean({
+      description:
+        'Store inherit sentinel (65535) on the leaf and use empty creators. Requires --collection with a Royalties plugin. Default when collection has Royalties and --royalties is omitted.',
+      exclusive: ['royalties', 'creator'],
+    }),
+    creator: OclifFlags.string({
+      description:
+        'Leaf creator payout share as <address>:<share> (0-100). Repeatable; shares must sum to 100. Default: payer @ 100%. Incompatible with --inherit-royalties.',
+      multiple: true,
+      exclusive: ['inherit-royalties'],
     }),
     collection: OclifFlags.string({
-      description: 'Collection mint address (verifies NFT into collection)',
+      description: 'Core collection address (must have BubblegumV2 plugin)',
     }),
     owner: OclifFlags.string({
       description: 'Leaf owner public key (defaults to payer)',
@@ -167,14 +185,72 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
     const leafOwner = this.resolveOwner(flags.owner)
 
     const metadata = await this.resolveMetadata(flags)
-    const royaltyPercentage = metadata.sellerFeePercentage ?? flags.royalties ?? 0
     const collectionAddress = flags.collection ?? metadata.collection
+
+    let collectionHasRoyalties = false
+    if (collectionAddress && typeof collectionAddress === 'string' && collectionAddress.trim()) {
+      const inspectSpinner = ora('Validating Core collection plugins...').start()
+      try {
+        const info = await inspectBubblegumCollection(umi, collectionAddress)
+        if (!info.hasBubblegumV2) {
+          inspectSpinner.fail('Collection is missing the BubblegumV2 plugin')
+          this.error(
+            'Collection must have the BubblegumV2 plugin.\n' +
+              'Tip: create one with: mplx bg collection create --name "..." --uri "..." --royalties 5'
+          )
+        }
+        collectionHasRoyalties = info.hasRoyalties
+        inspectSpinner.succeed(
+          collectionHasRoyalties
+            ? `Collection OK (BubblegumV2 + Royalties${info.basisPoints != null ? ` ${info.basisPoints / 100}%` : ''})`
+            : 'Collection OK (BubblegumV2; no Royalties plugin — leaf royalties will be explicit)'
+        )
+      } catch (error) {
+        inspectSpinner.fail('Failed to validate collection')
+        throw error
+      }
+    }
+
+    let royaltyPercentage: number | undefined
+    try {
+      royaltyPercentage =
+        metadata.sellerFeePercentage ??
+        parseRoyaltyPercentage(flags.royalties)
+    } catch (error) {
+      this.error((error as Error).message)
+    }
+
+    let creators: LeafCreatorInput[] | undefined
+    try {
+      creators =
+        metadata.creators ??
+        (flags.creator
+          ? parseCreatorFlags(flags.creator, umi.identity.publicKey)
+          : undefined)
+    } catch (error) {
+      this.error((error as Error).message)
+    }
+
+    let royaltyMode
+    try {
+      royaltyMode = resolveRoyaltyMode({
+        inheritRoyalties: flags['inherit-royalties'] || metadata.inheritRoyalties,
+        royaltyPercentage,
+        creators,
+        hasCollection: Boolean(collectionAddress?.trim()),
+        collectionHasRoyalties,
+        identity: umi.identity.publicKey,
+      })
+    } catch (error) {
+      this.error((error as Error).message)
+    }
+
     const metadataArgs = this.buildMetadataArgs({
       name: metadata.name,
       uri: metadata.uri,
       symbol: flags.symbol,
       collection: collectionAddress,
-      sellerFeePercentage: royaltyPercentage,
+      royaltyMode,
     })
 
     // Build mint instruction, including coreCollection account if collection is specified
@@ -191,7 +267,12 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
 
     const mintBuilder = mintV2(umi, mintAccounts)
 
-    const spinner = ora('Creating compressed NFT...').start()
+    const royaltyLabel =
+      royaltyMode.kind === 'inherit'
+        ? 'inherited (leaf sentinel 65535)'
+        : `explicit ${royaltyMode.sellerFeeBasisPoints} bps`
+
+    const spinner = ora(`Creating compressed NFT (${royaltyLabel})...`).start()
     try {
       const result = await umiSendAndConfirmTransaction(umi, mintBuilder)
       const rawSignature = result.transaction.signature as TransactionSignature
@@ -208,6 +289,7 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
         owner: leafOwner.toString(),
         tree: resolvedTree.label,
         assetId,
+        royaltyMode: royaltyLabel,
       })
 
       return {
@@ -216,6 +298,7 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
         assetId,
         owner: leafOwner.toString(),
         tree: resolvedTree.publicKey.toString(),
+        royaltyMode: royaltyLabel,
       }
     } catch (error) {
       spinner.fail('Failed to create compressed NFT.')
@@ -273,6 +356,7 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
         uri,
         sellerFeePercentage: wizardData.sellerFeePercentage,
         collection: wizardData.collection,
+        inheritRoyalties: wizardData.inheritRoyalties,
       }
     }
 
@@ -280,13 +364,30 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
       return await this.handleFileBasedCreation(this.context.umi, flags.image!, flags.json, flags.collection)
     }
 
+    let royaltyPercentage: number | undefined
+    try {
+      royaltyPercentage = parseRoyaltyPercentage(flags.royalties)
+    } catch (error) {
+      this.error((error as Error).message)
+    }
+
     if (flags.name && flags.uri) {
-      return { name: flags.name, uri: flags.uri, sellerFeePercentage: flags.royalties, collection: flags.collection }
+      return {
+        name: flags.name,
+        uri: flags.uri,
+        sellerFeePercentage: royaltyPercentage,
+        collection: flags.collection,
+      }
     }
 
     if (flags.name && flags.image) {
       const uri = await this.createMetadataFromFlags(this.context.umi, flags)
-      return { name: flags.name, uri, sellerFeePercentage: flags.royalties, collection: flags.collection }
+      return {
+        name: flags.name,
+        uri,
+        sellerFeePercentage: royaltyPercentage,
+        collection: flags.collection,
+      }
     }
 
     this.error(
@@ -302,13 +403,20 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
     name: string
     uri: string
     symbol?: string
-    sellerFeePercentage?: number
     collection?: string
+    royaltyMode: ReturnType<typeof resolveRoyaltyMode>
   }) {
-    const sellerFeeBasisPoints = Math.round((input.sellerFeePercentage ?? 0) * 100)
     const collectionPubkey = input.collection && typeof input.collection === 'string' && input.collection.trim()
       ? some(this.parsePublicKey('collection', input.collection))
       : none<PublicKey>()
+
+    const sellerFeeBasisPoints =
+      input.royaltyMode.kind === 'inherit'
+        ? SELLER_FEE_BASIS_POINTS_INHERIT
+        : input.royaltyMode.sellerFeeBasisPoints
+
+    const creators =
+      input.royaltyMode.kind === 'inherit' ? [] : input.royaltyMode.creators
 
     return {
       name: input.name,
@@ -319,13 +427,7 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
       isMutable: true,
       tokenStandard: some(TokenStandard.NonFungible),
       collection: collectionPubkey,
-      creators: [
-        {
-          address: this.context.umi.identity.publicKey,
-          verified: true,
-          share: 100,
-        },
-      ],
+      creators,
     }
   }
 
@@ -564,7 +666,7 @@ Compressed NFT Created!
 
 Tree: ${summary.tree}
 Owner: ${summary.owner}
-${summary.assetId ? `Asset ID: ${summary.assetId}\n` : ''}Signature: ${summary.signature}
+${summary.assetId ? `Asset ID: ${summary.assetId}\n` : ''}${summary.royaltyMode ? `Royalties: ${summary.royaltyMode}\n` : ''}Signature: ${summary.signature}
 Explorer: ${generateExplorerUrl(this.context.explorer, this.context.chain, summary.signature, 'transaction')}
 --------------------------------`)
   }
@@ -575,7 +677,7 @@ Explorer: ${generateExplorerUrl(this.context.explorer, this.context.chain, summa
     } catch {
       const errorMsg = `Invalid ${label} public key: ${value}`
       const hint = label === 'collection'
-        ? '\nTip: Create a Metaplex Core collection with: mplx core collection create --wizard'
+        ? '\nTip: Create a Bubblegum-ready Core collection with: mplx bg collection create --name "..." --uri "..." --royalties 5'
         : ''
       this.error(errorMsg + hint)
     }

@@ -33,8 +33,8 @@ mplx bg nft create --wizard
 4. Choose asset type (image/video/audio/3D)
 5. Upload asset file
 6. Add attributes (optional)
-7. Specify Core collection (optional)
-8. Set royalties
+7. Specify Core collection (optional; BubblegumV2 required)
+8. Choose royalty mode (inherit from collection when Royalties plugin is present, or explicit %)
 9. Review and create
 
 ### With Specific Tree
@@ -122,9 +122,30 @@ Example attributes:
 ### Advanced Options
 
 - `--animation <path>` - Animation file (video/audio/3D)
-- `--royalties <number>` - Royalty percentage (0-100)
-- `--collection <address>` - Metaplex Core collection ID
+- `--collection <address>` - Core collection (must have BubblegumV2)
+- `--inherit-royalties` - Leaf stores 65535; empty creators (requires collection Royalties plugin). Auto when collection has Royalties and `--royalties` is omitted
+- `--royalties <number>` - Explicit leaf royalty % (0-100, decimals ok e.g. `7.5`). Opts out of inherit
+- `--creator <address>:<share>` - Leaf payout split (repeatable; shares must sum to 100). Default: payer @ 100%. Incompatible with `--inherit-royalties`
 - `--owner <address>` - Recipient address (default: your wallet)
+
+### Inherited royalties
+
+```bash
+# Collection with Royalties plugin
+mplx bg collection create --name "Col" --uri "https://example.com/c.json" --royalties 5
+
+# Auto-inherit (omit --royalties)
+mplx bg nft create <tree> --name "cNFT" --uri "https://example.com/1.json" --collection <COL>
+
+# Or force inherit
+mplx bg nft create <tree> --name "cNFT" --uri "https://example.com/1.json" \
+  --collection <COL> --inherit-royalties
+
+# Explicit leaf royalties with splits
+mplx bg nft create <tree> --name "cNFT" --uri "https://example.com/1.json" \
+  --collection <COL> --royalties 7.5 \
+  --creator <ADDR1>:60 --creator <ADDR2>:40
+```
 
 ## Supported Asset Types
 

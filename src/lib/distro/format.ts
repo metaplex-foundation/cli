@@ -1,13 +1,3 @@
-import { type PublicKey, publicKey } from '@metaplex-foundation/umi'
-
-/**
- * `findDistributionPda` returns a Umi Pda, which stringifies as `address,bump`.
- * Later commands need the base58 address only.
- */
-export const distributionAddressFromPda = (
-  pda: PublicKey | readonly [PublicKey, number] | Uint8Array,
-): PublicKey => publicKey(Array.isArray(pda) ? pda[0] : pda)
-
 export const decodeDistributionName = (
   name: Uint8Array | number[] | string | Record<string, number>,
 ): string => {

@@ -9,7 +9,7 @@ import {base58} from '@metaplex-foundation/umi/serializers'
 import {Args} from '@oclif/core'
 import ora from 'ora'
 
-import {TransactionCommand} from '../../TransactionCommand.js'
+import {BaseCommand} from '../../BaseCommand.js'
 import {generateExplorerUrl} from '../../explorers.js'
 
 const decodeDistributionName = (name: Uint8Array | string): string => {
@@ -44,7 +44,7 @@ const allowedDistributorLabel = (allowedDistributor: AllowedDistributor): string
   }
 }
 
-export default class DistroFetch extends TransactionCommand<typeof DistroFetch> {
+export default class DistroFetch extends BaseCommand<typeof DistroFetch> {
   static override description = `Fetch a token distribution by its address.
 
 This command retrieves and displays information about an existing distribution created with MPL Distro.

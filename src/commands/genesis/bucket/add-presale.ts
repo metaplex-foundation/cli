@@ -2,6 +2,7 @@ import {
   addPresaleBucketV2,
   safeFetchGenesisAccountV2,
   findPresaleBucketV2Pda,
+  createTimeAbsoluteCondition,
 } from '@metaplex-foundation/genesis'
 import { publicKey, some, none } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
@@ -113,36 +114,10 @@ Use Unix timestamps for absolute times.`
       const allocation = BigInt(flags.allocation)
       const quoteCap = BigInt(flags.quoteCap)
 
-      // Build conditions (padding must be 47 bytes as required by the Genesis program)
-      const conditionPadding = new Array(47).fill(0)
-
-      const depositStartCondition = {
-        __kind: 'TimeAbsolute' as const,
-        padding: conditionPadding,
-        time: depositStart,
-        triggeredTimestamp: BigInt(0),
-      }
-
-      const depositEndCondition = {
-        __kind: 'TimeAbsolute' as const,
-        padding: conditionPadding,
-        time: depositEnd,
-        triggeredTimestamp: BigInt(0),
-      }
-
-      const claimStartCondition = {
-        __kind: 'TimeAbsolute' as const,
-        padding: conditionPadding,
-        time: claimStart,
-        triggeredTimestamp: BigInt(0),
-      }
-
-      const claimEndCondition = {
-        __kind: 'TimeAbsolute' as const,
-        padding: conditionPadding,
-        time: claimEnd,
-        triggeredTimestamp: BigInt(0),
-      }
+      const depositStartCondition = createTimeAbsoluteCondition(depositStart)
+      const depositEndCondition = createTimeAbsoluteCondition(depositEnd)
+      const claimStartCondition = createTimeAbsoluteCondition(claimStart)
+      const claimEndCondition = createTimeAbsoluteCondition(claimEnd)
 
       // Build the add presale bucket transaction
       spinner.text = 'Adding presale bucket...'

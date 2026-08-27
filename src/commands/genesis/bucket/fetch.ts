@@ -417,7 +417,8 @@ all known types at the given index.`
     this.log('')
     this.log('Recipient:')
     this.log(`  Recipient: ${bucket.recipient}`)
-    this.log(`  Claimed: ${bucket.claimed ? 'Yes' : 'No'}`)
+    this.log(`  Claim Count: ${bucket.claimCount}`)
+    this.log(`  Amount Claimed: ${bucket.amountClaimed.toString()}`)
     this.log('')
     this.log('Schedule:')
     this.log(`  Claim Start: ${formatCondition(bucket.claimStartCondition)}`)
@@ -437,8 +438,9 @@ all known types at the given index.`
       address: bucketPda.toString(),
       baseTokenAllocation: bucket.bucket.baseTokenAllocation.toString(),
       baseTokenBalance: bucket.bucket.baseTokenBalance.toString(),
+      amountClaimed: bucket.amountClaimed.toString(),
       bucketIndex: bucket.bucket.bucketIndex,
-      claimed: bucket.claimed,
+      claimCount: bucket.claimCount,
       explorer: generateExplorerUrl(this.context.explorer, this.context.chain, bucketPda, 'account'),
       genesisAccount: bucket.bucket.genesis.toString(),
       recipient: bucket.recipient.toString(),

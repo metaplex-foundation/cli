@@ -11,7 +11,27 @@ import ora from 'ora'
 
 import {TransactionCommand} from '../../TransactionCommand.js'
 import {generateExplorerUrl} from '../../explorers.js'
-import {decodeDistributionName, formatTokenAmount} from '../../lib/distro/format.js'
+
+const decodeDistributionName = (name: Uint8Array | string): string => {
+  if (typeof name === 'string') {
+    return name.replace(/\0+$/, '')
+  }
+
+  const end = name.indexOf(0)
+  return new TextDecoder().decode(end === -1 ? name : name.subarray(0, end))
+}
+
+const formatTokenAmount = (basisAmount: bigint | number, decimals: number): string => {
+  const basis = BigInt(basisAmount)
+  const divisor = 10n ** BigInt(decimals)
+  const whole = basis / divisor
+  const frac = basis % divisor
+  if (frac === 0n) {
+    return whole.toString()
+  }
+
+  return `${whole}.${frac.toString().padStart(decimals, '0').replace(/0+$/, '')}`
+}
 
 const allowedDistributorLabel = (allowedDistributor: AllowedDistributor): string => {
   switch (allowedDistributor) {

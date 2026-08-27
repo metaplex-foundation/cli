@@ -1,4 +1,5 @@
 import { expect } from 'chai'
+import { createTempKeypairFile } from '../../helpers/temp-keypair-file'
 import { runCli } from '../../runCli'
 
 // Helper to strip ANSI color codes
@@ -17,14 +18,27 @@ const extractSignature = (str: string) => {
 }
 
 describe('toolbox sol wrap command', () => {
+    let keypairPath: string
+    let cleanup: () => void
+
+    const run = (args: string[], stdin?: string[]) =>
+        runCli(args, stdin, { keypairPath })
+
     before(async () => {
-        // Ensure we have some SOL for testing
-        const { stdout, stderr, code } = await runCli([
-            "toolbox", "sol", "airdrop", "10", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
+        const temp = createTempKeypairFile()
+        cleanup = temp.cleanup
+        keypairPath = temp.mintKeypairPath
+
+        // Dedicated wallet so parallel mocha files cannot race this WSOL ATA.
+        await runCli([
+            'toolbox', 'sol', 'airdrop', '10', temp.mintKeypair.publicKey.toString(),
         ])
 
-        // Wait for airdrop to settle
         await new Promise(resolve => setTimeout(resolve, 5000))
+    })
+
+    after(() => {
+        cleanup?.()
     })
 
     it('wraps 0.1 SOL successfully', async () => {
@@ -36,7 +50,7 @@ describe('toolbox sol wrap command', () => {
             amount
         ]
 
-        const { stdout, stderr, code } = await runCli(cliInput)
+        const { stdout, stderr, code } = await run(cliInput)
         const cleanStdout = stripAnsi(stdout)
 
         const wrappedAmount = extractWrappedAmount(cleanStdout)
@@ -60,7 +74,7 @@ describe('toolbox sol wrap command', () => {
             amount
         ]
 
-        const { stdout, stderr, code } = await runCli(cliInput)
+        const { stdout, stderr, code } = await run(cliInput)
         const cleanStdout = stripAnsi(stdout)
 
         const wrappedAmount = extractWrappedAmount(cleanStdout)
@@ -84,7 +98,7 @@ describe('toolbox sol wrap command', () => {
         ]
 
         try {
-            await runCli(cliInput)
+            await run(cliInput)
             expect.fail('Should have thrown an error for negative amount')
         } catch (error) {
             expect((error as Error).message).to.contain('Amount must be a positive number')
@@ -101,7 +115,7 @@ describe('toolbox sol wrap command', () => {
         ]
 
         try {
-            await runCli(cliInput)
+            await run(cliInput)
             expect.fail('Should have thrown an error for zero amount')
         } catch (error) {
             expect((error as Error).message).to.contain('Amount must be a positive number')
@@ -118,7 +132,7 @@ describe('toolbox sol wrap command', () => {
         ]
 
         try {
-            await runCli(cliInput)
+            await run(cliInput)
             expect.fail('Should have thrown an error for non-numeric amount')
         } catch (error) {
             expect((error as Error).message).to.contain('Amount must be a positive number')

@@ -339,7 +339,8 @@ describe('genesis unlocked bucket workflow', () => {
         expect(cleanStderr).to.contain('Bucket fetched successfully')
         expect(cleanStdout).to.contain('Unlocked Bucket')
         expect(cleanStdout).to.contain('Base Token Allocation: 100000000')
-        expect(cleanStdout).to.contain('Claimed: No')
+        expect(cleanStdout).to.contain('Claim Count: 0')
+        expect(cleanStdout).to.contain('Amount Claimed: 0')
     })
 
     it('fails to claim unlocked bucket before finalization', async () => {

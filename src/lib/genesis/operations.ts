@@ -88,12 +88,7 @@ const FUNDING_MODE = {
 } as const
 
 function makeCondition(timestamp: string) {
-  return {
-    __kind: 'TimeAbsolute' as const,
-    padding: new Array(47).fill(0),
-    time: BigInt(timestamp),
-    triggeredTimestamp: BigInt(0),
-  }
+  return createTimeAbsoluteCondition(BigInt(timestamp))
 }
 
 /* ------------------------------------------------------------------ */

@@ -16,6 +16,7 @@ import { readJsonSync } from '../../lib/file.js'
 import { txSignatureToString } from '../../lib/util.js'
 import umiSendAndConfirmTransaction from '../../lib/umi/sendAndConfirm.js'
 import createDistroPrompt from '../../lib/distro/prompts/create-distro-wizard.js'
+import { distributionAddressFromPda } from '../../lib/distro/format.js'
 
 
 export default class DistroCreate extends TransactionCommand<typeof DistroCreate> {
@@ -267,11 +268,12 @@ You can either provide all required flags individually or use a distro config JS
 
     const result = await umiSendAndConfirmTransaction(this.context.umi, transaction)
 
-    // Get the distribution PDA
-    const distributionPda = findDistributionPda(this.context.umi, {
-      mint,
-      seed: seed.publicKey,
-    })
+    const distributionPda = distributionAddressFromPda(
+      findDistributionPda(this.context.umi, {
+        mint,
+        seed: seed.publicKey,
+      }),
+    )
 
     return {
       result,

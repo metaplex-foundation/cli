@@ -27,7 +27,7 @@ export default class DistroDeposit extends TransactionCommand<typeof DistroDepos
   static override description = `Deposit tokens into an existing distribution.
 
 This command deposits tokens from your wallet into a distribution created by mplx distro create.
-The distribution must be active and you must have the tokens in your wallet.`
+Deposits are allowed at any time. You must have the tokens in your wallet.`
 
   static override examples = [
     '$ mplx distro deposit DistroAddress123... --amount 1.0',

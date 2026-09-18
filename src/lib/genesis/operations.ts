@@ -26,6 +26,7 @@ import {
 
 import umiSendAndConfirmTransaction from '../umi/sendAndConfirm.js'
 import { txSignatureToString } from '../util.js'
+import { validateSoftCap } from './softCap.js'
 
 /** Genesis initialize + token metadata can exceed Solana's 200k default CU budget. */
 export const GENESIS_CREATE_COMPUTE_UNIT_LIMIT = 400_000
@@ -56,6 +57,7 @@ export interface AddLaunchPoolParams {
   minimumDeposit?: string
   depositLimit?: string
   minimumQuoteTokenThreshold?: string
+  softCap?: string
 }
 
 export interface AddPresaleParams {
@@ -221,6 +223,10 @@ export async function addLaunchPoolBucket(
   }
   if (params.minimumQuoteTokenThreshold) {
     extensions.push({ __kind: 'MinimumQuoteTokenThreshold' as const, minimumQuoteTokenThreshold: { amount: BigInt(params.minimumQuoteTokenThreshold) } })
+  }
+  if (params.softCap) {
+    validateSoftCap(params.softCap, params.minimumQuoteTokenThreshold)
+    extensions.push({ __kind: 'SoftCap' as const, softCap: { amount: BigInt(params.softCap) } })
   }
 
   if (extensions.length > 0) {

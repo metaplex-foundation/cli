@@ -26,6 +26,7 @@ Use Unix timestamps for absolute times.`
   static override examples = [
     '$ mplx genesis bucket add-presale GenesisAddress... --allocation 500000000 --quoteCap 1000000000 --depositStart 1704067200 --depositEnd 1704153600 --claimStart 1704153600',
     '$ mplx genesis bucket add-presale GenesisAddress... --allocation 1000000000 --quoteCap 5000000000 --depositStart 1704067200 --depositEnd 1704153600 --claimStart 1704153600 --claimEnd 1704240000',
+    '$ mplx genesis bucket add-presale GenesisAddress... --allocation 1000000000 --quoteCap 5000000000 --depositStart 1704067200 --depositEnd 1704153600 --claimStart 1704153600 --claimEnd 1704240000 --endBehavior "<BUCKET_ADDRESS>:10000"',
   ]
 
   static override usage = 'genesis bucket add-presale [GENESIS] [FLAGS]'
@@ -67,6 +68,11 @@ Use Unix timestamps for absolute times.`
       char: 'b',
       description: 'Bucket index for this presale bucket',
       required: true,
+    }),
+    endBehavior: Flags.string({
+      description: 'End behavior in format <destinationBucketAddress>:<percentageBps> (can specify multiple)',
+      multiple: true,
+      required: false,
     }),
     minimumDeposit: Flags.string({
       description: 'Minimum deposit amount per transaction (in quote token base units)',
@@ -144,6 +150,27 @@ Use Unix timestamps for absolute times.`
         triggeredTimestamp: BigInt(0),
       }
 
+      // Parse end behaviors
+      const endBehaviors = (flags.endBehavior ?? []).map((behavior: string) => {
+        const [destinationBucketAddr, percentageBpsStr] = behavior.split(':')
+        if (!destinationBucketAddr || !percentageBpsStr) {
+          throw new Error(`Invalid end behavior format: "${behavior}". Expected format: <destinationBucketAddress>:<percentageBps>`)
+        }
+        const percentageBps = Number(percentageBpsStr)
+        if (!Number.isInteger(percentageBps) || percentageBps < 0 || percentageBps > 10000) {
+          throw new Error(
+            `Invalid percentageBps "${percentageBpsStr}" in "${behavior}". Expected an integer between 0 and 10000`
+          )
+        }
+        return {
+          __kind: 'SendQuoteTokenPercentage' as const,
+          processed: false,
+          percentageBps,
+          padding: new Array(4).fill(0),
+          destinationBucket: publicKey(destinationBucketAddr),
+        }
+      })
+
       // Build the add presale bucket transaction
       spinner.text = 'Adding presale bucket...'
       const transaction = addPresaleBucketV2(this.context.umi, {
@@ -168,7 +195,7 @@ Use Unix timestamps for absolute times.`
         minimumDepositAmount: flags.minimumDeposit
           ? some({ amount: BigInt(flags.minimumDeposit) })
           : none(),
-        endBehaviors: [],
+        endBehaviors,
         depositCooldown: none(),
         perCooldownDepositLimit: none(),
         steppedDepositLimit: none(),

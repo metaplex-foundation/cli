@@ -2,6 +2,7 @@ import {
   addPresaleBucketV2,
   safeFetchGenesisAccountV2,
   findPresaleBucketV2Pda,
+  setPresaleBucketV2Behaviors,
 } from '@metaplex-foundation/genesis'
 import { publicKey, some, none } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
@@ -195,7 +196,7 @@ Use Unix timestamps for absolute times.`
         minimumDepositAmount: flags.minimumDeposit
           ? some({ amount: BigInt(flags.minimumDeposit) })
           : none(),
-        endBehaviors,
+        endBehaviors: [],
         depositCooldown: none(),
         perCooldownDepositLimit: none(),
         steppedDepositLimit: none(),
@@ -208,6 +209,35 @@ Use Unix timestamps for absolute times.`
         genesisAccount: genesisAddress,
         bucketIndex,
       })
+
+      // Set end behaviors in a separate transaction. They cannot ride along with
+      // the create instruction: a presale bucket carries enough fields that the
+      // combined transaction exceeds the size limit. This mirrors add-launch-pool.
+      let behaviorsError: unknown
+      if (endBehaviors.length > 0) {
+        try {
+          spinner.text = 'Setting end behaviors...'
+          const setBehaviorsTx = setPresaleBucketV2Behaviors(this.context.umi, {
+            genesisAccount: genesisAddress,
+            bucket: bucketPda,
+            authority: this.context.umi.identity,
+            payer: this.context.payer,
+            padding: new Array(3).fill(0),
+            endBehaviors,
+          })
+          await umiSendAndConfirmTransaction(this.context.umi, setBehaviorsTx)
+        } catch (error) {
+          behaviorsError = error
+        }
+      }
+
+      if (behaviorsError) {
+        spinner.warn('Bucket created but failed to set end behaviors')
+        this.warn(
+          `End behaviors were not set for bucket ${bucketPda}.\n` +
+          `Error: ${behaviorsError instanceof Error ? behaviorsError.message : String(behaviorsError)}`
+        )
+      }
 
       spinner.succeed('Presale bucket added successfully!')
 

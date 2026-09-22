@@ -213,6 +213,7 @@ Use Unix timestamps for absolute times.`
       // Set end behaviors in a separate transaction. They cannot ride along with
       // the create instruction: a presale bucket carries enough fields that the
       // combined transaction exceeds the size limit. This mirrors add-launch-pool.
+      let behaviorsSignature: string | undefined
       let behaviorsError: unknown
       if (endBehaviors.length > 0) {
         try {
@@ -225,7 +226,8 @@ Use Unix timestamps for absolute times.`
             padding: new Array(3).fill(0),
             endBehaviors,
           })
-          await umiSendAndConfirmTransaction(this.context.umi, setBehaviorsTx)
+          const behaviorsResult = await umiSendAndConfirmTransaction(this.context.umi, setBehaviorsTx)
+          behaviorsSignature = txSignatureToString(behaviorsResult.transaction.signature as Uint8Array)
         } catch (error) {
           behaviorsError = error
         }
@@ -234,15 +236,21 @@ Use Unix timestamps for absolute times.`
       if (behaviorsError) {
         spinner.warn('Bucket created but failed to set end behaviors')
         this.warn(
-          `End behaviors were not set for bucket ${bucketPda}.\n` +
+          `End behaviors were not set. Run setPresaleBucketV2Behaviors manually for bucket ${bucketPda}.\n` +
           `Error: ${behaviorsError instanceof Error ? behaviorsError.message : String(behaviorsError)}`
         )
       }
 
-      spinner.succeed('Presale bucket added successfully!')
+      if (!behaviorsError) {
+        spinner.succeed('Presale bucket added successfully!')
+      }
 
       this.log('')
-      this.logSuccess(`Presale Bucket Added`)
+      if (!behaviorsError) {
+        this.logSuccess(`Presale Bucket Added`)
+      } else {
+        this.log('Presale Bucket Added (with warnings)')
+      }
       this.log('')
       this.log('Bucket Details:')
       this.log(`  Genesis Account: ${genesisAddress}`)
@@ -267,6 +275,24 @@ Use Unix timestamps for absolute times.`
           'transaction'
         )
       )
+
+      if (behaviorsSignature) {
+        this.log('')
+        this.log(`Behaviors Transaction: ${behaviorsSignature}`)
+        this.log(
+          generateExplorerUrl(
+            this.context.explorer,
+            this.context.chain,
+            behaviorsSignature,
+            'transaction'
+          )
+        )
+      }
+
+      if (behaviorsError) {
+        process.exitCode = 1
+        return
+      }
 
       return {
         genesisAccount: genesisAddress.toString(),

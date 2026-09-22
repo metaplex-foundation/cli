@@ -194,6 +194,7 @@ const addPresaleBucket = async (
         claimStart?: string
         claimEnd?: string
         bucketIndex?: number
+        endBehavior?: string[]
     }
 ): Promise<{ bucketAddress: string }> => {
     const timestamps = await getGenesisTimestamps()
@@ -225,6 +226,10 @@ const addPresaleBucket = async (
         '--bucketIndex',
         bucketIndex,
     ]
+
+    for (const behavior of options?.endBehavior ?? []) {
+        cliInput.push('--endBehavior', behavior)
+    }
 
     const { stdout, stderr, code } = await runCli(cliInput)
 

@@ -267,8 +267,7 @@ You can either provide all required flags individually or use a distro config JS
 
     const result = await umiSendAndConfirmTransaction(this.context.umi, transaction)
 
-    // Get the distribution PDA
-    const distributionPda = findDistributionPda(this.context.umi, {
+    const [distributionPda] = findDistributionPda(this.context.umi, {
       mint,
       seed: seed.publicKey,
     })

@@ -186,7 +186,8 @@ $CLI genesis bucket add-unlocked "$GENESIS3" \
 echo "[20] Fetching unlocked bucket..."
 UNLOCK_OUT=$($CLI genesis bucket fetch "$GENESIS3" --bucketIndex 0 --type unlocked 2>&1)
 echo "$UNLOCK_OUT" | grep -q "Unlocked Bucket" && pass "Fetch unlocked bucket" || fail "Fetch unlocked bucket"
-echo "$UNLOCK_OUT" | grep -q "Claimed: No" && pass "Not yet claimed" || fail "Not yet claimed"
+echo "$UNLOCK_OUT" | grep -q "Claim Count: 0" && pass "Claim count is zero" || fail "Claim count is zero"
+echo "$UNLOCK_OUT" | grep -q "Amount Claimed: 0" && pass "Amount claimed is zero" || fail "Amount claimed is zero"
 
 echo ""
 echo "=== All tests passed! ==="

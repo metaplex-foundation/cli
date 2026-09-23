@@ -2,6 +2,8 @@ import {
   addPresaleBucketV2,
   safeFetchGenesisAccountV2,
   findPresaleBucketV2Pda,
+  setPresaleBucketV2Behaviors,
+  createTimeAbsoluteCondition,
 } from '@metaplex-foundation/genesis'
 import { publicKey, some, none } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
@@ -26,6 +28,7 @@ Use Unix timestamps for absolute times.`
   static override examples = [
     '$ mplx genesis bucket add-presale GenesisAddress... --allocation 500000000 --quoteCap 1000000000 --depositStart 1704067200 --depositEnd 1704153600 --claimStart 1704153600',
     '$ mplx genesis bucket add-presale GenesisAddress... --allocation 1000000000 --quoteCap 5000000000 --depositStart 1704067200 --depositEnd 1704153600 --claimStart 1704153600 --claimEnd 1704240000',
+    '$ mplx genesis bucket add-presale GenesisAddress... --allocation 1000000000 --quoteCap 5000000000 --depositStart 1704067200 --depositEnd 1704153600 --claimStart 1704153600 --claimEnd 1704240000 --endBehavior "<BUCKET_ADDRESS>:10000"',
   ]
 
   static override usage = 'genesis bucket add-presale [GENESIS] [FLAGS]'
@@ -67,6 +70,11 @@ Use Unix timestamps for absolute times.`
       char: 'b',
       description: 'Bucket index for this presale bucket',
       required: true,
+    }),
+    endBehavior: Flags.string({
+      description: 'End behavior in format <destinationBucketAddress>:<percentageBps> (can specify multiple)',
+      multiple: true,
+      required: false,
     }),
     minimumDeposit: Flags.string({
       description: 'Minimum deposit amount per transaction (in quote token base units)',
@@ -113,36 +121,31 @@ Use Unix timestamps for absolute times.`
       const allocation = BigInt(flags.allocation)
       const quoteCap = BigInt(flags.quoteCap)
 
-      // Build conditions (padding must be 47 bytes as required by the Genesis program)
-      const conditionPadding = new Array(47).fill(0)
+      const depositStartCondition = createTimeAbsoluteCondition(depositStart)
+      const depositEndCondition = createTimeAbsoluteCondition(depositEnd)
+      const claimStartCondition = createTimeAbsoluteCondition(claimStart)
+      const claimEndCondition = createTimeAbsoluteCondition(claimEnd)
 
-      const depositStartCondition = {
-        __kind: 'TimeAbsolute' as const,
-        padding: conditionPadding,
-        time: depositStart,
-        triggeredTimestamp: BigInt(0),
-      }
-
-      const depositEndCondition = {
-        __kind: 'TimeAbsolute' as const,
-        padding: conditionPadding,
-        time: depositEnd,
-        triggeredTimestamp: BigInt(0),
-      }
-
-      const claimStartCondition = {
-        __kind: 'TimeAbsolute' as const,
-        padding: conditionPadding,
-        time: claimStart,
-        triggeredTimestamp: BigInt(0),
-      }
-
-      const claimEndCondition = {
-        __kind: 'TimeAbsolute' as const,
-        padding: conditionPadding,
-        time: claimEnd,
-        triggeredTimestamp: BigInt(0),
-      }
+      // Parse end behaviors
+      const endBehaviors = (flags.endBehavior ?? []).map((behavior: string) => {
+        const [destinationBucketAddr, percentageBpsStr] = behavior.split(':')
+        if (!destinationBucketAddr || !percentageBpsStr) {
+          throw new Error(`Invalid end behavior format: "${behavior}". Expected format: <destinationBucketAddress>:<percentageBps>`)
+        }
+        const percentageBps = Number(percentageBpsStr)
+        if (!Number.isInteger(percentageBps) || percentageBps < 0 || percentageBps > 10000) {
+          throw new Error(
+            `Invalid percentageBps "${percentageBpsStr}" in "${behavior}". Expected an integer between 0 and 10000`
+          )
+        }
+        return {
+          __kind: 'SendQuoteTokenPercentage' as const,
+          processed: false,
+          percentageBps,
+          padding: new Array(4).fill(0),
+          destinationBucket: publicKey(destinationBucketAddr),
+        }
+      })
 
       // Build the add presale bucket transaction
       spinner.text = 'Adding presale bucket...'
@@ -182,10 +185,47 @@ Use Unix timestamps for absolute times.`
         bucketIndex,
       })
 
-      spinner.succeed('Presale bucket added successfully!')
+      // Set end behaviors in a separate transaction. They cannot ride along with
+      // the create instruction: a presale bucket carries enough fields that the
+      // combined transaction exceeds the size limit. This mirrors add-launch-pool.
+      let behaviorsSignature: string | undefined
+      let behaviorsError: unknown
+      if (endBehaviors.length > 0) {
+        try {
+          spinner.text = 'Setting end behaviors...'
+          const setBehaviorsTx = setPresaleBucketV2Behaviors(this.context.umi, {
+            genesisAccount: genesisAddress,
+            bucket: bucketPda,
+            authority: this.context.umi.identity,
+            payer: this.context.payer,
+            padding: new Array(3).fill(0),
+            endBehaviors,
+          })
+          const behaviorsResult = await umiSendAndConfirmTransaction(this.context.umi, setBehaviorsTx)
+          behaviorsSignature = txSignatureToString(behaviorsResult.transaction.signature as Uint8Array)
+        } catch (error) {
+          behaviorsError = error
+        }
+      }
+
+      if (behaviorsError) {
+        spinner.warn('Bucket created but failed to set end behaviors')
+        this.warn(
+          `End behaviors were not set. Run setPresaleBucketV2Behaviors manually for bucket ${bucketPda}.\n` +
+          `Error: ${behaviorsError instanceof Error ? behaviorsError.message : String(behaviorsError)}`
+        )
+      }
+
+      if (!behaviorsError) {
+        spinner.succeed('Presale bucket added successfully!')
+      }
 
       this.log('')
-      this.logSuccess(`Presale Bucket Added`)
+      if (!behaviorsError) {
+        this.logSuccess(`Presale Bucket Added`)
+      } else {
+        this.log('Presale Bucket Added (with warnings)')
+      }
       this.log('')
       this.log('Bucket Details:')
       this.log(`  Genesis Account: ${genesisAddress}`)
@@ -210,6 +250,24 @@ Use Unix timestamps for absolute times.`
           'transaction'
         )
       )
+
+      if (behaviorsSignature) {
+        this.log('')
+        this.log(`Behaviors Transaction: ${behaviorsSignature}`)
+        this.log(
+          generateExplorerUrl(
+            this.context.explorer,
+            this.context.chain,
+            behaviorsSignature,
+            'transaction'
+          )
+        )
+      }
+
+      if (behaviorsError) {
+        process.exitCode = 1
+        return
+      }
 
       return {
         genesisAccount: genesisAddress.toString(),

@@ -1,4 +1,5 @@
 import { expect } from 'chai'
+import { createTempKeypairFile } from '../../helpers/temp-keypair-file'
 import { runCli } from '../../runCli'
 
 // Helper to strip ANSI color codes
@@ -17,20 +18,33 @@ const extractSignature = (str: string) => {
 }
 
 describe('toolbox sol unwrap command', () => {
+    let keypairPath: string
+    let cleanup: () => void
+
+    const run = (args: string[], stdin?: string[]) =>
+        runCli(args, stdin, { keypairPath })
+
     before(async () => {
-        // Ensure we have some SOL for testing
+        const temp = createTempKeypairFile()
+        cleanup = temp.cleanup
+        keypairPath = temp.mintKeypairPath
+
+        // Dedicated wallet so unwrap cannot close the shared test WSOL ATA.
         await runCli([
-            "toolbox", "sol", "airdrop", "5", "TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx"
+            'toolbox', 'sol', 'airdrop', '10', temp.mintKeypair.publicKey.toString(),
         ])
-        
-        // Wait for airdrop to settle
+
         await new Promise(resolve => setTimeout(resolve, 5000))
+    })
+
+    after(() => {
+        cleanup?.()
     })
 
     it('unwraps wSOL successfully after wrapping some SOL', async () => {
         // First wrap some SOL
         const wrapAmount = '2.0'
-        await runCli([
+        await run([
             'toolbox',
             'sol',
             'wrap',
@@ -47,7 +61,7 @@ describe('toolbox sol unwrap command', () => {
             'unwrap'
         ]
 
-        const { stdout, stderr, code } = await runCli(cliInput)
+        const { stdout, stderr, code } = await run(cliInput)
         const cleanStdout = stripAnsi(stdout)
         
         const unwrappedAmount = extractUnwrappedAmount(cleanStdout)
@@ -66,10 +80,10 @@ describe('toolbox sol unwrap command', () => {
 
     it('handles multiple wrap/unwrap cycles correctly', async () => {
         // First wrap cycle
-        await runCli(['toolbox', 'sol', 'wrap', '0.5'])
+        await run(['toolbox', 'sol', 'wrap', '0.5'])
         await new Promise(resolve => setTimeout(resolve, 2000))
         
-        let { stdout } = await runCli(['toolbox', 'sol', 'unwrap'])
+        let { stdout } = await run(['toolbox', 'sol', 'unwrap'])
         let cleanStdout = stripAnsi(stdout)
         expect(cleanStdout).to.contain('Unwrapped')
         
@@ -77,10 +91,10 @@ describe('toolbox sol unwrap command', () => {
         await new Promise(resolve => setTimeout(resolve, 2000))
         
         // Second wrap cycle
-        await runCli(['toolbox', 'sol', 'wrap', '1.0'])
+        await run(['toolbox', 'sol', 'wrap', '1.0'])
         await new Promise(resolve => setTimeout(resolve, 2000))
         
-        const result = await runCli(['toolbox', 'sol', 'unwrap'])
+        const result = await run(['toolbox', 'sol', 'unwrap'])
         cleanStdout = stripAnsi(result.stdout)
         
         expect(result.code).to.equal(0)
@@ -91,7 +105,7 @@ describe('toolbox sol unwrap command', () => {
     it('fails when no wSOL token account exists', async () => {
         // First, ensure any existing wSOL is unwrapped
         try {
-            await runCli(['toolbox', 'sol', 'unwrap'])
+            await run(['toolbox', 'sol', 'unwrap'])
             await new Promise(resolve => setTimeout(resolve, 3000))
         } catch (error) {
             // If it fails, that's fine - might already be unwrapped
@@ -99,7 +113,7 @@ describe('toolbox sol unwrap command', () => {
 
         // Try to unwrap again when no wSOL exists
         try {
-            await runCli(['toolbox', 'sol', 'unwrap'])
+            await run(['toolbox', 'sol', 'unwrap'])
             expect.fail('Should have thrown an error when no wSOL account exists')
         } catch (error) {
             expect((error as Error).message).to.contain('No wrapped SOL token account found')
@@ -108,11 +122,11 @@ describe('toolbox sol unwrap command', () => {
 
     it('shows correct account closure information', async () => {
         // Wrap some SOL first
-        await runCli(['toolbox', 'sol', 'wrap', '0.25'])
+        await run(['toolbox', 'sol', 'wrap', '0.25'])
         await new Promise(resolve => setTimeout(resolve, 3000))
 
         // Now unwrap and check the output format
-        const { stdout, code } = await runCli(['toolbox', 'sol', 'unwrap'])
+        const { stdout, code } = await run(['toolbox', 'sol', 'unwrap'])
         const cleanStdout = stripAnsi(stdout)
 
         expect(code).to.equal(0)

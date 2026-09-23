@@ -128,7 +128,7 @@ Requirements:
           bucket: bucketPda,
           baseMint: genesisAccount.baseMint,
           quoteMint: genesisAccount.quoteMint,
-          feeQuoteTokenAccount: feeBaseTokenAccount,
+          feeBaseTokenAccount,
           depositPda,
           recipient: recipientAddress,
           payer: this.context.payer,

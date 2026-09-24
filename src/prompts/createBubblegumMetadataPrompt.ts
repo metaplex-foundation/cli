@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { inspectBubblegumCollection } from '../lib/bubblegum/royalties.js'
+import { inspectBubblegumCollection, parseRoyaltyPercentage } from '../lib/bubblegum/royalties.js'
 
 export type NftType = 'image' | 'video' | 'audio' | 'model'
 
@@ -20,6 +20,23 @@ export interface CreateBubblegumMetadataPromptResult {
   sellerFeePercentage?: number
   /** When true, mint with inherit sentinel and empty leaf creators. */
   inheritRoyalties?: boolean
+}
+
+const promptRoyaltyPercentage = async (defaultValue: string): Promise<number> => {
+  const value = await input({
+    message: 'Royalty percentage for secondary sales (0-100)?',
+    default: defaultValue,
+    validate: (inputValue) => {
+      try {
+        return parseRoyaltyPercentage(inputValue) === undefined
+          ? 'Please enter a valid number'
+          : true
+      } catch (error) {
+        return (error as Error).message
+      }
+    },
+  })
+  return parseRoyaltyPercentage(value)!
 }
 
 const VALID_EXTENSIONS: Record<Exclude<NftType, 'image'>, string[]> = {
@@ -276,30 +293,12 @@ const createBubblegumMetadataPrompt = async (umi: Umi): Promise<CreateBubblegumM
     if (mode === 'inherit') {
       result.inheritRoyalties = true
     } else {
-      const royaltyPercentage = await input({
-        message: 'Royalty percentage for secondary sales (0-100)?',
-        default: collectionBasisPoints != null ? String(collectionBasisPoints / 100) : '5',
-        validate: (value) => {
-          const num = parseFloat(value)
-          if (isNaN(num)) return 'Please enter a valid number'
-          if (num < 0 || num > 100) return 'Royalty percentage must be between 0 and 100'
-          return true
-        },
-      })
-      result.sellerFeePercentage = parseFloat(royaltyPercentage)
+      result.sellerFeePercentage = await promptRoyaltyPercentage(
+        collectionBasisPoints != null ? String(collectionBasisPoints / 100) : '5'
+      )
     }
   } else {
-    const royaltyPercentage = await input({
-      message: 'Royalty percentage for secondary sales (0-100)?',
-      default: '5',
-      validate: (value) => {
-        const num = parseFloat(value)
-        if (isNaN(num)) return 'Please enter a valid number'
-        if (num < 0 || num > 100) return 'Royalty percentage must be between 0 and 100'
-        return true
-      },
-    })
-    result.sellerFeePercentage = parseFloat(royaltyPercentage)
+    result.sellerFeePercentage = await promptRoyaltyPercentage('5')
   }
 
   return result

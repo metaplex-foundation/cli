@@ -16,6 +16,8 @@ describe('bubblegum royalties helpers', () => {
     expect(parseRoyaltyPercentage(5)).to.equal(5)
     expect(parseRoyaltyPercentage(undefined)).to.equal(undefined)
     expect(() => parseRoyaltyPercentage('101')).to.throw(/between 0 and 100/)
+    expect(() => parseRoyaltyPercentage('5abc')).to.throw(/between 0 and 100/)
+    expect(() => parseRoyaltyPercentage('7.5%')).to.throw(/between 0 and 100/)
   })
 
   it('defaults creators to identity @ 100', () => {
@@ -44,6 +46,27 @@ describe('bubblegum royalties helpers', () => {
     expect(() => parseCreatorFlags([`${identity}:abc`], identity)).to.throw(
       /integer from 0 to 100/
     )
+  })
+
+  it('rejects duplicate creator addresses and lists longer than 5', () => {
+    expect(() =>
+      parseCreatorFlags([`${identity}:50`, `${identity}:50`], identity)
+    ).to.throw(/Duplicate creator address/)
+
+    const sixCreators = [
+      identity,
+      other,
+      'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+      'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL',
+      'SysvarRent111111111111111111111111111111111',
+      'SysvarC1ock11111111111111111111111111111111',
+    ]
+    expect(() =>
+      parseCreatorFlags(
+        sixCreators.map((address, index) => `${address}:${index === 0 ? 0 : 20}`),
+        identity
+      )
+    ).to.throw(/At most 5 creators/)
   })
 
   it('auto-inherits when collection has royalties and no explicit override', () => {

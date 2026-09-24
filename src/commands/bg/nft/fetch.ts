@@ -325,7 +325,7 @@ Royalty:
   Basis Points: ${asset.royalty.basis_points} (${asset.royalty.percent}%)
 ${
   asset.royalty.inherited || asset.royalty.basis_points_raw === SELLER_FEE_BASIS_POINTS_INHERIT
-    ? `  Inherited: Yes (leaf sentinel ${asset.royalty.basis_points_raw ?? SELLER_FEE_BASIS_POINTS_INHERIT})\n`
+    ? `  Inherited: Yes${asset.royalty.basis_points_raw != null ? ` (leaf sentinel ${asset.royalty.basis_points_raw})` : ''}\n`
     : asset.royalty.basis_points_raw != null
       ? `  Leaf Basis Points (raw): ${asset.royalty.basis_points_raw}\n`
       : ''

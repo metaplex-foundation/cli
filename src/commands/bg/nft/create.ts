@@ -184,11 +184,21 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
     const resolvedTree = this.resolveMerkleTree(treeInput)
     const leafOwner = this.resolveOwner(flags.owner)
 
+    let cliCreators: LeafCreatorInput[] | undefined
+    try {
+      cliCreators = flags.creator
+        ? parseCreatorFlags(flags.creator, umi.identity.publicKey)
+        : undefined
+    } catch (error) {
+      this.error((error as Error).message)
+    }
+
     const metadata = await this.resolveMetadata(flags)
     const collectionAddress = flags.collection ?? metadata.collection
 
     let collectionHasRoyalties = false
     if (collectionAddress && typeof collectionAddress === 'string' && collectionAddress.trim()) {
+      this.parsePublicKey('collection', collectionAddress)
       const inspectSpinner = ora('Validating Core collection plugins...').start()
       try {
         const info = await inspectBubblegumCollection(umi, collectionAddress)
@@ -220,16 +230,7 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
       this.error((error as Error).message)
     }
 
-    let creators: LeafCreatorInput[] | undefined
-    try {
-      creators =
-        metadata.creators ??
-        (flags.creator
-          ? parseCreatorFlags(flags.creator, umi.identity.publicKey)
-          : undefined)
-    } catch (error) {
-      this.error((error as Error).message)
-    }
+    const creators = metadata.creators ?? cliCreators
 
     let royaltyMode
     try {

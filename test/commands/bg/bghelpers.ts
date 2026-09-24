@@ -1,5 +1,9 @@
 import { expect } from "chai"
-import { runCli } from "../../runCli"
+import { mplBubblegum, parseLeafFromMintV2Transaction } from '@metaplex-foundation/mpl-bubblegum'
+import type { TransactionSignature } from '@metaplex-foundation/umi'
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
+import { base58 } from '@metaplex-foundation/umi/serializers'
+import { runCli, TEST_RPC } from "../../runCli"
 import { stripAnsi } from "./common"
 
 // Helper to extract tree address from message
@@ -175,11 +179,22 @@ const createCompressedNFT = async (options: {
     return { assetId, signature, owner, royaltyMode }
 }
 
+/**
+ * Read minted Bubblegum V2 leaf metadata from the mint transaction.
+ * Prefer this over `bg nft fetch` in local tests — DAS is not available on the validator.
+ */
+const fetchMintedLeaf = async (signature: string) => {
+    const umi = createUmi(TEST_RPC).use(mplBubblegum())
+    const [sigBytes] = base58.deserialize(signature)
+    return parseLeafFromMintV2Transaction(umi, sigBytes as TransactionSignature)
+}
+
 export {
     createBubblegumTree,
     createCompressedNFT,
     extractTreeAddress,
     extractAssetId,
     extractSignature,
+    fetchMintedLeaf,
     stripAnsi,
 }

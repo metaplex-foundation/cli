@@ -87,6 +87,19 @@ export function parseCreatorFlags(
     })
   }
 
+  const seen = new Set<string>()
+  for (const creator of parsed) {
+    const key = creator.address.toString()
+    if (seen.has(key)) {
+      throw new Error(`Duplicate creator address: ${key}.`)
+    }
+    seen.add(key)
+  }
+
+  if (parsed.length > 5) {
+    throw new Error(`At most 5 creators are allowed (got ${parsed.length}).`)
+  }
+
   const total = parsed.reduce((sum, c) => sum + c.share, 0)
   if (total !== 100) {
     throw new Error(`Creator shares must sum to 100 (got ${total}).`)

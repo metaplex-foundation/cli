@@ -123,9 +123,9 @@ Example attributes:
 
 - `--animation <path>` - Animation file (video/audio/3D)
 - `--collection <address>` - Core collection (must have BubblegumV2)
-- `--inherit-royalties` - Leaf stores 65535; empty creators (requires collection Royalties plugin). Auto when collection has Royalties and `--royalties` is omitted
+- `--inherit-royalties` - Leaf stores 65535; empty creators (requires collection Royalties plugin). Automatic when the collection has Royalties and you omit `--royalties`, `--creator`, and JSON `seller_fee_basis_points`
 - `--royalties <number>` - Explicit leaf royalty % (0-100, decimals ok e.g. `7.5`). Opts out of inherit
-- `--creator <address>:<share>` - Leaf payout split (repeatable; shares must sum to 100). Default: payer @ 100%. Incompatible with `--inherit-royalties`
+- `--creator <address>:<share>` - Leaf payout split (repeatable; shares must sum to 100). Default: payer @ 100%. Opts out of inherit even if `--royalties` is omitted. Incompatible with `--inherit-royalties`
 - `--owner <address>` - Recipient address (default: your wallet)
 
 ### Inherited royalties
@@ -134,8 +134,12 @@ Example attributes:
 # Collection with Royalties plugin
 mplx bg collection create --name "Col" --uri "https://example.com/c.json" --royalties 5
 
-# Auto-inherit (omit --royalties)
+# Auto-inherit (omit --royalties, --creator, and JSON seller_fee_basis_points)
 mplx bg nft create <tree> --name "cNFT" --uri "https://example.com/1.json" --collection <COL>
+
+# Creator splits without --royalties also opt out of inherit (explicit 0% leaf rate)
+mplx bg nft create <tree> --name "cNFT" --uri "https://example.com/1.json" \
+  --collection <COL> --creator <ADDR1>:60 --creator <ADDR2>:40
 
 # Or force inherit
 mplx bg nft create <tree> --name "cNFT" --uri "https://example.com/1.json" \

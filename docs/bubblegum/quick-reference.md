@@ -270,7 +270,7 @@ mplx bg nft burn <assetId>
 --animation <path>       # Animation file (video/audio/3D)
 --royalties <number>     # Explicit leaf royalty % (0-100; decimals ok e.g. 7.5). Opts out of inherit
 --inherit-royalties      # Leaf stores 65535 + empty creators (requires collection Royalties plugin)
---creator <addr>:<share> # Leaf payout split (repeatable; shares sum to 100)
+--creator <addr>:<share> # Leaf payout split (repeatable; shares sum to 100). Opts out of inherit
 --collection <address>   # Core collection ID (must have BubblegumV2)
 --owner <address>        # Recipient address
 --wizard                 # Interactive mode
@@ -279,8 +279,12 @@ mplx bg nft burn <assetId>
 Inherited royalties (when the collection has a Royalties plugin):
 
 ```bash
-# Auto-inherit (omit --royalties)
+# Auto-inherit (omit --royalties, --creator, and JSON seller_fee_basis_points)
 mplx bg nft create my-tree --name "cNFT" --uri https://example.com/1.json --collection $COLLECTION
+
+# --creator without --royalties also opts out of inherit (explicit 0% leaf rate)
+mplx bg nft create my-tree --name "cNFT" --uri https://example.com/1.json \
+  --collection $COLLECTION --creator <ADDR1>:60 --creator <ADDR2>:40
 
 # Force inherit
 mplx bg nft create my-tree --name "cNFT" --uri https://example.com/1.json \

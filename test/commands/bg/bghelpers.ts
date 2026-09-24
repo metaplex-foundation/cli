@@ -1,5 +1,5 @@
 import { expect } from "chai"
-import { mplBubblegum, parseLeafFromMintV2Transaction } from '@metaplex-foundation/mpl-bubblegum'
+import { getMintV2InstructionDataSerializer, mplBubblegum, MPL_BUBBLEGUM_PROGRAM_ID } from '@metaplex-foundation/mpl-bubblegum'
 import type { TransactionSignature } from '@metaplex-foundation/umi'
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
 import { base58 } from '@metaplex-foundation/umi/serializers'
@@ -180,13 +180,43 @@ const createCompressedNFT = async (options: {
 }
 
 /**
- * Read minted Bubblegum V2 leaf metadata from the mint transaction.
+ * Read minted Bubblegum V2 metadata from the mintV2 instruction.
  * Prefer this over `bg nft fetch` in local tests — DAS is not available on the validator.
+ * (The emitted leaf schema only stores hashes, not sellerFeeBasisPoints/creators.)
  */
 const fetchMintedLeaf = async (signature: string) => {
-    const umi = createUmi(TEST_RPC).use(mplBubblegum())
-    const [sigBytes] = base58.deserialize(signature)
-    return parseLeafFromMintV2Transaction(umi, sigBytes as TransactionSignature)
+    const umi = createUmi(TEST_RPC, { commitment: 'confirmed' }).use(mplBubblegum())
+    // CLI prints a base58 string; Umi signatures are the decoded bytes.
+    const sigBytes = base58.serialize(signature) as TransactionSignature
+    if (sigBytes.length !== 64) {
+        throw new Error(`Expected a 64-byte transaction signature, got ${sigBytes.length} bytes from "${signature}"`)
+    }
+
+    let lastError: unknown
+    for (let attempt = 0; attempt < 10; attempt++) {
+        try {
+            const transaction = await umi.rpc.getTransaction(sigBytes)
+            if (!transaction) {
+                throw new Error('Could not get transaction from signature')
+            }
+
+            const bubblegumProgramId = umi.programs.getPublicKey('mplBubblegum', MPL_BUBBLEGUM_PROGRAM_ID)
+            const instruction = transaction.message.instructions.find(
+                (ix) => transaction.message.accounts[ix.programIndex] === bubblegumProgramId
+            )
+            if (!instruction) {
+                throw new Error('Could not find mplBubblegum instruction')
+            }
+
+            const [data] = getMintV2InstructionDataSerializer().deserialize(instruction.data)
+            return { metadata: data.metadata }
+        } catch (error) {
+            lastError = error
+            await new Promise((resolve) => setTimeout(resolve, 400))
+        }
+    }
+
+    throw lastError
 }
 
 export {

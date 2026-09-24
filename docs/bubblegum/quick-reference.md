@@ -159,15 +159,15 @@ mplx core collection create --wizard
 # 1. Create tree
 mplx bg tree create --name "my-collection" --wizard
 
-# 2. Create Core collection (optional)
-COLLECTION=$(mplx core collection create --wizard | grep "Collection ID" | awk '{print $3}')
+# 2. Create Bubblegum-ready Core collection (optional)
+COLLECTION=$(mplx bg collection create --name "Col" --uri https://example.com/c.json --royalties 5 \
+  | grep "Collection:" | awk '{print $2}')
 
-# 3. Mint NFTs
+# 3. Mint NFTs (auto-inherits collection royalties when --royalties is omitted)
 mplx bg nft create my-collection \
   --name "NFT #1" \
   --image ./1.png \
-  --collection $COLLECTION \
-  --royalties 5
+  --collection $COLLECTION
 ```
 
 ### Bulk Minting
@@ -181,11 +181,9 @@ for i in {1..100}; do
   mplx bg nft create $TREE \
     --name "NFT #$i" \
     --image "./images/$i.png" \
-    --collection $COLLECTION \
-    --royalties 5
+    --collection $COLLECTION
 done
 ```
-
 ### Transfer Workflow
 
 ```bash
@@ -270,10 +268,28 @@ mplx bg nft burn <assetId>
 --description <string>   # NFT description
 --attributes <json>      # Trait attributes
 --animation <path>       # Animation file (video/audio/3D)
---royalties <number>     # Royalty percentage (0-100)
---collection <address>   # Core collection ID
+--royalties <number>     # Explicit leaf royalty % (0-100; decimals ok e.g. 7.5). Opts out of inherit
+--inherit-royalties      # Leaf stores 65535 + empty creators (requires collection Royalties plugin)
+--creator <addr>:<share> # Leaf payout split (repeatable; shares sum to 100)
+--collection <address>   # Core collection ID (must have BubblegumV2)
 --owner <address>        # Recipient address
 --wizard                 # Interactive mode
+```
+
+Inherited royalties (when the collection has a Royalties plugin):
+
+```bash
+# Auto-inherit (omit --royalties)
+mplx bg nft create my-tree --name "cNFT" --uri https://example.com/1.json --collection $COLLECTION
+
+# Force inherit
+mplx bg nft create my-tree --name "cNFT" --uri https://example.com/1.json \
+  --collection $COLLECTION --inherit-royalties
+
+# Explicit leaf rate + creator splits
+mplx bg nft create my-tree --name "cNFT" --uri https://example.com/1.json \
+  --collection $COLLECTION --royalties 7.5 \
+  --creator <ADDR1>:60 --creator <ADDR2>:40
 ```
 
 ### NFT Update Flags
@@ -286,6 +302,9 @@ mplx bg nft burn <assetId>
 --image <path>           # Update image
 --editor                 # Interactive editor mode
 ```
+
+> Updates of inherited-royalty cNFTs use leaf-canonical metadata (`currentMetadata` /
+> DAS `basis_points_raw` / empty `creators_raw`) so the leaf hash stays consistent.
 
 ### NFT Fetch Flags
 

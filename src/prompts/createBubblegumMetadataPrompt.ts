@@ -222,6 +222,9 @@ const createBubblegumMetadataPrompt = async (umi: Umi): Promise<CreateBubblegumM
   })
 
   if (hasCollection) {
+    // Cached by the validator below so a valid collection is only fetched once.
+    let validated: { hasRoyalties: boolean; basisPoints?: number; address: string } | undefined
+
     result.collection = await input({
       message: 'Metaplex Core Collection ID?',
       validate: async (value) => {
@@ -239,11 +242,15 @@ const createBubblegumMetadataPrompt = async (umi: Umi): Promise<CreateBubblegumM
         if (typeof validationResult === 'string') {
           return validationResult
         }
+        validated = { address: value, hasRoyalties: validationResult.hasRoyalties, basisPoints: validationResult.basisPoints }
         return true
       },
     })
 
-    const info = await inspectBubblegumCollection(umi, result.collection)
+    const info =
+      validated?.address === result.collection
+        ? validated
+        : await inspectBubblegumCollection(umi, result.collection)
     collectionHasRoyalties = info.hasRoyalties
     collectionBasisPoints = info.basisPoints
   }

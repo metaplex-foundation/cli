@@ -31,8 +31,18 @@ describe('bubblegum royalties helpers', () => {
       identity
     )
     expect(creators.map((c) => c.share)).to.deep.equal([60, 40])
+    expect(creators.map((c) => c.verified)).to.deep.equal([true, false])
     expect(() => parseCreatorFlags([`${identity}:50`], identity)).to.throw(
       /sum to 100/
+    )
+  })
+
+  it('rejects malformed creator flags', () => {
+    expect(() => parseCreatorFlags(['missing-share'], identity)).to.throw(
+      /Expected format/
+    )
+    expect(() => parseCreatorFlags([`${identity}:abc`], identity)).to.throw(
+      /integer from 0 to 100/
     )
   })
 
@@ -59,6 +69,36 @@ describe('bubblegum royalties helpers', () => {
     }
   })
 
+  it('uses explicit 0% when only creators are passed', () => {
+    const creators = parseCreatorFlags([`${identity}:60`, `${other}:40`], identity)
+    const mode = resolveRoyaltyMode({
+      creators,
+      hasCollection: true,
+      collectionHasRoyalties: true,
+      identity,
+    })
+    expect(mode.kind).to.equal('explicit')
+    if (mode.kind === 'explicit') {
+      expect(mode.sellerFeeBasisPoints).to.equal(0)
+      expect(mode.creators).to.deep.equal(creators)
+    }
+  })
+
+  it('defaults to explicit 0% when the collection has no royalties', () => {
+    const mode = resolveRoyaltyMode({
+      hasCollection: true,
+      collectionHasRoyalties: false,
+      identity,
+    })
+    expect(mode.kind).to.equal('explicit')
+    if (mode.kind === 'explicit') {
+      expect(mode.sellerFeeBasisPoints).to.equal(0)
+      expect(mode.creators).to.deep.equal([
+        { address: identity, share: 100, verified: true },
+      ])
+    }
+  })
+
   it('rejects inherit without royalties plugin', () => {
     expect(() =>
       resolveRoyaltyMode({
@@ -68,6 +108,39 @@ describe('bubblegum royalties helpers', () => {
         identity,
       })
     ).to.throw(/does not have a Royalties plugin/)
+  })
+
+  it('rejects inherit without a collection', () => {
+    expect(() =>
+      resolveRoyaltyMode({
+        inheritRoyalties: true,
+        hasCollection: false,
+        collectionHasRoyalties: false,
+        identity,
+      })
+    ).to.throw(/requires --collection/)
+  })
+
+  it('rejects inherit combined with royalties or creators', () => {
+    expect(() =>
+      resolveRoyaltyMode({
+        inheritRoyalties: true,
+        royaltyPercentage: 5,
+        hasCollection: true,
+        collectionHasRoyalties: true,
+        identity,
+      })
+    ).to.throw(/cannot be combined/)
+
+    expect(() =>
+      resolveRoyaltyMode({
+        inheritRoyalties: true,
+        creators: parseCreatorFlags([`${identity}:100`], identity),
+        hasCollection: true,
+        collectionHasRoyalties: true,
+        identity,
+      })
+    ).to.throw(/cannot be combined/)
   })
 
   it('exports inherit sentinel', () => {

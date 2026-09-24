@@ -150,6 +150,85 @@ describe('bg nft create command', () => {
         expect(signature).to.match(/^[a-zA-Z0-9]{32,}$/)
     })
 
+    it('inherits royalties from a collection with a Royalties plugin', async () => {
+        const { collectionId } = await createBubblegumCollection({ royalties: 5 })
+        await new Promise(resolve => setTimeout(resolve, 2000))
+
+        const { signature, royaltyMode } = await createCompressedNFT({
+            tree: testTree,
+            name: 'Auto Inherit NFT',
+            uri: 'https://example.com/auto-inherit.json',
+            collection: collectionId,
+        })
+
+        expect(signature).to.match(/^[a-zA-Z0-9]{32,}$/)
+        expect(royaltyMode).to.equal('inherited (leaf sentinel 65535)')
+    })
+
+    it('inherits royalties when --inherit-royalties is passed', async () => {
+        const { collectionId } = await createBubblegumCollection({ royalties: 8 })
+        await new Promise(resolve => setTimeout(resolve, 2000))
+
+        const { signature, royaltyMode } = await createCompressedNFT({
+            tree: testTree,
+            name: 'Force Inherit NFT',
+            uri: 'https://example.com/force-inherit.json',
+            collection: collectionId,
+            inheritRoyalties: true,
+        })
+
+        expect(signature).to.match(/^[a-zA-Z0-9]{32,}$/)
+        expect(royaltyMode).to.equal('inherited (leaf sentinel 65535)')
+    })
+
+    it('creates explicit leaf royalties with creator splits', async () => {
+        const { collectionId } = await createBubblegumCollection({ royalties: 5 })
+        await new Promise(resolve => setTimeout(resolve, 2000))
+
+        const { signature, royaltyMode } = await createCompressedNFT({
+            tree: testTree,
+            name: 'Creator Split NFT',
+            uri: 'https://example.com/creator-split.json',
+            collection: collectionId,
+            royalties: 7.5,
+            creators: [
+                'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx:60',
+                '11111111111111111111111111111111:40',
+            ],
+        })
+
+        expect(signature).to.match(/^[a-zA-Z0-9]{32,}$/)
+        expect(royaltyMode).to.equal('explicit 750 bps')
+    })
+
+    it('rejects --inherit-royalties when the collection has no Royalties plugin', async () => {
+        const { collectionId } = await createBubblegumCollection()
+        await new Promise(resolve => setTimeout(resolve, 2000))
+
+        const cliInput = [
+            'bg',
+            'nft',
+            'create',
+            testTree,
+            '--name',
+            'Bad Inherit NFT',
+            '--uri',
+            'https://example.com/bad-inherit.json',
+            '--collection',
+            collectionId,
+            '--inherit-royalties',
+        ]
+
+        try {
+            await runCli(cliInput)
+            expect.fail('Should have thrown an error')
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error)
+            expect(errorMessage).to.match(/Process failed with code \d+/)
+            expect(stripAnsi(errorMessage)).to.match(/does not have a Royalties plugin/)
+        }
+    })
+
     it('creates NFT with all optional parameters', async () => {
         const { collectionId } = await createBubblegumCollection()
         await new Promise(resolve => setTimeout(resolve, 2000))

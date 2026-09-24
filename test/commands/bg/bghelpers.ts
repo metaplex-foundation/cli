@@ -110,8 +110,10 @@ const createCompressedNFT = async (options: {
     uri: string
     collection?: string
     royalties?: number
+    inheritRoyalties?: boolean
+    creators?: string[]
     symbol?: string
-}): Promise<{ assetId: string | null; signature: string; owner: string }> => {
+}): Promise<{ assetId: string | null; signature: string; owner: string; royaltyMode: string | null }> => {
     const cliInput = [
         'bg',
         'nft',
@@ -131,6 +133,14 @@ const createCompressedNFT = async (options: {
         cliInput.push('--royalties', String(options.royalties))
     }
 
+    if (options.inheritRoyalties) {
+        cliInput.push('--inherit-royalties')
+    }
+
+    for (const creator of options.creators ?? []) {
+        cliInput.push('--creator', creator)
+    }
+
     if (options.symbol) {
         cliInput.push('--symbol', options.symbol)
     }
@@ -148,6 +158,9 @@ const createCompressedNFT = async (options: {
     const ownerMatch = combined.match(/Owner: ([a-zA-Z0-9]+)/)
     const owner = ownerMatch ? ownerMatch[1] : ''
 
+    const royaltyMatch = combined.match(/Royalties: (.+)/)
+    const royaltyMode = royaltyMatch ? royaltyMatch[1].trim() : null
+
     if (!signature) {
         console.log('NFT creation output:', combined)
         throw new Error('Signature not found in output')
@@ -159,7 +172,7 @@ const createCompressedNFT = async (options: {
     // Note: assetId might be null if we can't derive it without DAS
     // This is acceptable for testing as we're primarily verifying the transaction
 
-    return { assetId, signature, owner }
+    return { assetId, signature, owner, royaltyMode }
 }
 
 export {

@@ -7,6 +7,7 @@ import { join } from 'node:path'
 
 import { BaseCommand } from '../../../BaseCommand.js'
 import type { Flags as CommandFlags } from '../../../BaseCommand.js'
+import { SELLER_FEE_BASIS_POINTS_INHERIT } from '../../../lib/bubblegum/royalties.js'
 import { jsonStringify } from '../../../lib/util.js'
 import { ensureDirectoryExists } from '../../../lib/file.js'
 
@@ -323,8 +324,8 @@ Merkle Proof:
 Royalty:
   Basis Points: ${asset.royalty.basis_points} (${asset.royalty.percent}%)
 ${
-  asset.royalty.inherited || asset.royalty.basis_points_raw === 65535
-    ? `  Inherited: Yes (leaf sentinel ${asset.royalty.basis_points_raw ?? 65535})\n`
+  asset.royalty.inherited || asset.royalty.basis_points_raw === SELLER_FEE_BASIS_POINTS_INHERIT
+    ? `  Inherited: Yes (leaf sentinel ${asset.royalty.basis_points_raw ?? SELLER_FEE_BASIS_POINTS_INHERIT})\n`
     : asset.royalty.basis_points_raw != null
       ? `  Leaf Basis Points (raw): ${asset.royalty.basis_points_raw}\n`
       : ''

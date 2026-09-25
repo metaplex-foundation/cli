@@ -182,17 +182,17 @@ Verified: true
 
 ### Royalty Information
 
-- **Royalty %**: Creator royalty percentage
+- **Basis Points / %**: Effective royalty (may be the collection rate when inherited)
+- **Inherited**: When the leaf stores sentinel `65535`, fetch shows inherited + leaf raw SFBP
+- **Leaf Basis Points (raw)**: On-chain leaf value when not inherited
 - **Primary Sale**: Whether initial sale happened
 - **Locked**: Whether royalties are locked
 
 ### Creators
 
-List of creators with:
-- Address
-- Share percentage
-- Verification status
+**Creators (display):** Effective creator list (may be filled from the collection when inherited).
 
+**Creators (leaf / raw):** On-chain leaf creators. Empty is typical when SFBP is inherited.
 ## Troubleshooting
 
 ### "Asset not found"

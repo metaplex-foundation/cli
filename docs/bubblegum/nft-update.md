@@ -115,6 +115,17 @@ mplx bg nft update <assetId> --uri "https://example.com/new-metadata.json"
 
 **Note:** Skips fetch and merge, uses new URI directly.
 
+## Inherited royalties
+
+For cNFTs minted with inherited royalties (leaf SFBP `65535`, empty leaf creators),
+`update` rebuilds leaf-canonical `currentMetadata` from:
+
+- SDK `currentMetadata` when the Bubblegum client provides it, or
+- DAS `royalty.basis_points_raw` / `inherited` plus `creators_raw`
+
+Do not manually put the display royalty % into the leaf — that would break the hash
+and cause update verification failures.
+
 ## Examples
 
 ### Fix Typo in Name

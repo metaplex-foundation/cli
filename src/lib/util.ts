@@ -132,6 +132,6 @@ export const chain = async (rpcUrl: string): Promise<RpcChain> => {
     const genesisHash = await connection.getGenesisHash()
     return GENESIS_HASH_MAP.get(genesisHash) ?? RpcChain.Localnet
   } catch (error) {
-    throw new Error('Could not determine a genesis hash from RPC URL: ' + rpcUrl + '\nPlease set a different RPC URL in your config file or use the --rpc-url flag')
+    throw new Error('Could not determine a genesis hash from RPC URL: ' + rpcUrl + '\nPlease set a different RPC URL in your config file or use the --rpc flag')
   }
 }

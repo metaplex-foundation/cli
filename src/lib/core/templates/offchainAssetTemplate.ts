@@ -1,9 +1,10 @@
 const assetTemplate = {
   name: 'My Asset',
+  description: '',
   image: 'https://example.com/image.png',
-  animation: '',
-  website: '',
-  traits: [
+  animation_url: '',
+  external_url: '',
+  attributes: [
     {
       trait_type: 'Color',
       value: 'Blue',

@@ -76,6 +76,24 @@ describe('bg tree create command', () => {
         expect(combined).to.contain('Canopy Depth: 8')
     })
 
+    it('accepts a canopy depth of 0', async () => {
+        const cliInput = [
+            'bg',
+            'tree',
+            'create',
+            '--maxDepth', '14',
+            '--maxBufferSize', '64',
+            '--canopyDepth', '0',
+        ]
+
+        const { stdout, stderr, code } = await runCli(cliInput)
+        const combined = stripAnsi(stdout + '\n' + stderr)
+
+        expect(code).to.equal(0)
+        expect(combined).to.not.contain('You must either use --wizard')
+        expect(combined).to.contain('Canopy Depth: 0')
+    })
+
     it('includes explorer links in output', async () => {
         const cliInput = [
             'bg',

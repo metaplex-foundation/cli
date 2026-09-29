@@ -28,7 +28,7 @@ export default class DistroWithdraw extends TransactionCommand<typeof DistroWith
 
 This command withdraws tokens from a distribution back to the authority or a specified recipient.
 Only the distribution authority can withdraw tokens.
-Withdrawals may be restricted during active distribution periods depending on the distribution settings.`
+Withdrawals are rejected while the claim window is active (startTime through endTime).`
 
   static override examples = [
     '$ mplx distro withdraw DistroAddress123... --amount 1.0',

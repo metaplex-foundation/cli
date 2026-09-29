@@ -1,7 +1,7 @@
 import { Args, Flags } from '@oclif/core'
 import ora from 'ora'
-import { publicKey, PublicKey, some, unwrapOptionRecursively } from '@metaplex-foundation/umi'
-import { getAssetWithProof, updateMetadataV2, UpdateArgsArgs, MetadataArgsV2Args } from '@metaplex-foundation/mpl-bubblegum'
+import { publicKey, PublicKey, some } from '@metaplex-foundation/umi'
+import { getAssetWithProof, updateMetadataV2, UpdateArgsArgs } from '@metaplex-foundation/mpl-bubblegum'
 import { fetchJsonMetadata } from '@metaplex-foundation/mpl-token-metadata'
 import mime from 'mime'
 import fs from 'node:fs'
@@ -16,6 +16,7 @@ import { txSignatureToString } from '../../../lib/util.js'
 import { TransactionSignature } from '@metaplex-foundation/umi'
 import imageUploader from '../../../lib/uploader/imageUploader.js'
 import uploadJson from '../../../lib/uploader/uploadJson.js'
+import { resolveCurrentMetadataForUpdate } from '../../../lib/bubblegum/resolveCurrentMetadata.js'
 
 export default class BgNftUpdate extends TransactionCommand<typeof BgNftUpdate> {
   static override description = `Update a Bubblegum compressed NFT's metadata.
@@ -25,25 +26,8 @@ Use --editor to edit the metadata JSON in your default editor, or provide
 individual flags to update specific fields.
 
 Note: The signer must be either the tree authority (if no collection) or the
-collection update authority (if part of a collection).`
-
-  private convertToV2Metadata(metadata: any): MetadataArgsV2Args {
-    // Extract collection key if present
-    const collectionData = unwrapOptionRecursively(metadata.collection)
-    const collection = collectionData?.key ? some(collectionData.key) : null
-
-    return {
-      name: metadata.name,
-      symbol: metadata.symbol,
-      uri: metadata.uri,
-      sellerFeeBasisPoints: metadata.sellerFeeBasisPoints,
-      primarySaleHappened: metadata.primarySaleHappened,
-      isMutable: metadata.isMutable,
-      tokenStandard: metadata.tokenStandard,
-      collection,
-      creators: metadata.creators,
-    }
-  }
+collection update authority (if part of a collection). For inherited-royalty
+cNFTs, leaf verification uses getAssetWithProof.currentMetadata (or DAS _raw).`
 
   static override summary = 'Update a compressed NFT metadata'
 
@@ -212,7 +196,7 @@ collection update authority (if part of a collection).`
     const updateBuilder = updateMetadataV2(umi, {
       ...assetWithProof,
       leafOwner: assetWithProof.leafOwner,
-      currentMetadata: this.convertToV2Metadata(assetWithProof.metadata),
+      currentMetadata: resolveCurrentMetadataForUpdate(assetWithProof),
       updateArgs,
     })
 
@@ -332,7 +316,7 @@ collection update authority (if part of a collection).`
     const updateBuilder = updateMetadataV2(umi, {
       ...assetWithProof,
       leafOwner: assetWithProof.leafOwner,
-      currentMetadata: this.convertToV2Metadata(assetWithProof.metadata),
+      currentMetadata: resolveCurrentMetadataForUpdate(assetWithProof),
       updateArgs,
     })
 

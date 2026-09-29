@@ -1,10 +1,11 @@
 import { expect } from 'chai'
 import { runCli } from '../../runCli'
-import { createGenesisAccount, addPresaleBucket, getGenesisTimestamps, stripAnsi } from './genesishelpers'
+import { createGenesisAccount, addPresaleBucket, addUnlockedBucket, getGenesisTimestamps, stripAnsi } from './genesishelpers'
 
 describe('genesis presale workflow', () => {
     let genesisAddress: string
     let bucketAddress: string
+    let unlockedBucketAddress: string
     let depositStart: string
     let depositEnd: string
     let claimStart: string
@@ -45,6 +46,22 @@ describe('genesis presale workflow', () => {
         expect(genesisAddress).to.match(/^[a-zA-Z0-9]+$/)
     })
 
+    it('adds an unlocked bucket as graduation destination', async () => {
+        const result = await addUnlockedBucket(
+            genesisAddress,
+            'TESTfCYwTPxME2cAnPcKvvF5xdPah3PY7naYQEP2kkx',
+            {
+                allocation: '0',
+                claimStart,
+                claimEnd,
+            }
+        )
+
+        unlockedBucketAddress = result.bucketAddress
+
+        expect(unlockedBucketAddress).to.match(/^[a-zA-Z0-9]+$/)
+    })
+
     it('adds a presale bucket to the genesis account', async () => {
         const result = await addPresaleBucket(genesisAddress, {
             allocation: '1000000000',
@@ -53,6 +70,7 @@ describe('genesis presale workflow', () => {
             depositEnd,
             claimStart,
             claimEnd,
+            endBehavior: [`${unlockedBucketAddress}:10000`],
         })
 
         bucketAddress = result.bucketAddress

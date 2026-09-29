@@ -4,9 +4,10 @@ export default class Distro extends Command {
   static override description = 'MPL Distro Program - Token distribution management'
 
   static override examples = [
-    '<%= config.bin %> distro create --config ./distribution-config.json',
-    '<%= config.bin %> distro deposit DistroAddress123... --amount 1000000',
-    '<%= config.bin %> distro withdraw DistroAddress123... --amount 500000',
+    '<%= config.bin %> distro create --distroConfig ./distribution-config.json',
+    '<%= config.bin %> distro deposit DistroAddress123... --amount 1.0',
+    '<%= config.bin %> distro withdraw DistroAddress123... --amount 0.5',
+    '<%= config.bin %> distro fetch DistroAddress123...',
   ]
 
   public async run(): Promise<void> {
@@ -19,6 +20,7 @@ export default class Distro extends Command {
     this.log('  distro create    Create a new token distribution')
     this.log('  distro deposit   Deposit tokens into a distribution')
     this.log('  distro withdraw  Withdraw tokens from a distribution')
+    this.log('  distro fetch     Fetch an existing distribution')
     this.log('')
     this.log('Run "mplx distro <command> --help" for more information about a command.')
   }

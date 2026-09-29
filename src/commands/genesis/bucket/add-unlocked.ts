@@ -2,6 +2,7 @@ import {
   addUnlockedBucketV2,
   safeFetchGenesisAccountV2,
   findUnlockedBucketV2Pda,
+  createTimeAbsoluteCondition,
 } from '@metaplex-foundation/genesis'
 import { publicKey, none } from '@metaplex-foundation/umi'
 import { Args, Flags } from '@oclif/core'
@@ -93,22 +94,8 @@ Instead, they allocate base tokens directly to a recipient.`
       // Parse allocation
       const allocation = BigInt(flags.allocation)
 
-      // Build conditions (padding must be 47 bytes as required by the Genesis program)
-      const conditionPadding = new Array(47).fill(0)
-
-      const claimStartCondition = {
-        __kind: 'TimeAbsolute' as const,
-        padding: conditionPadding,
-        time: claimStart,
-        triggeredTimestamp: BigInt(0),
-      }
-
-      const claimEndCondition = {
-        __kind: 'TimeAbsolute' as const,
-        padding: conditionPadding,
-        time: claimEnd,
-        triggeredTimestamp: BigInt(0),
-      }
+      const claimStartCondition = createTimeAbsoluteCondition(claimStart)
+      const claimEndCondition = createTimeAbsoluteCondition(claimEnd)
 
       // Build the add unlocked bucket transaction
       spinner.text = 'Adding unlocked bucket...'

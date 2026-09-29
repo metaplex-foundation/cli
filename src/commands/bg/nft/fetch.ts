@@ -7,6 +7,7 @@ import { join } from 'node:path'
 
 import { BaseCommand } from '../../../BaseCommand.js'
 import type { Flags as CommandFlags } from '../../../BaseCommand.js'
+import { SELLER_FEE_BASIS_POINTS_INHERIT } from '../../../lib/bubblegum/royalties.js'
 import { jsonStringify } from '../../../lib/util.js'
 import { ensureDirectoryExists } from '../../../lib/file.js'
 
@@ -51,6 +52,8 @@ interface DasAsset {
     target: null | string
     percent: number
     basis_points: number
+    basis_points_raw?: number | null
+    inherited?: boolean | null
     primary_sale_happened: boolean
     locked: boolean
   }
@@ -59,6 +62,11 @@ interface DasAsset {
     share: number
     verified: boolean
   }>
+  creators_raw?: Array<{
+    address: string
+    share: number
+    verified: boolean
+  }> | null
   ownership: {
     frozen: boolean
     delegated: boolean
@@ -315,10 +323,27 @@ Merkle Proof:
 
 Royalty:
   Basis Points: ${asset.royalty.basis_points} (${asset.royalty.percent}%)
-  Primary Sale: ${asset.royalty.primary_sale_happened ? 'Yes' : 'No'}
+${
+  asset.royalty.inherited || asset.royalty.basis_points_raw === SELLER_FEE_BASIS_POINTS_INHERIT
+    ? `  Inherited: Yes${asset.royalty.basis_points_raw != null ? ` (leaf sentinel ${asset.royalty.basis_points_raw})` : ''}\n`
+    : asset.royalty.basis_points_raw != null
+      ? `  Leaf Basis Points (raw): ${asset.royalty.basis_points_raw}\n`
+      : ''
+}  Primary Sale: ${asset.royalty.primary_sale_happened ? 'Yes' : 'No'}
 
-Creators:
-${asset.creators.map((c) => `  ${c.address} (${c.share}%) ${c.verified ? '✓' : '✗'}`).join('\n')}
+Creators (display):
+${asset.creators.map((c) => `  ${c.address} (${c.share}%) ${c.verified ? '✓' : '✗'}`).join('\n') || '  (none)'}
+${
+  asset.creators_raw
+    ? `\nCreators (leaf / raw):\n${
+        asset.creators_raw.length
+          ? asset.creators_raw
+              .map((c) => `  ${c.address} (${c.share}%) ${c.verified ? '✓' : '✗'}`)
+              .join('\n')
+          : '  (empty — typical when SFBP is inherited)'
+      }`
+    : ''
+}
 
 --------------------------------`)
   }

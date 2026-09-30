@@ -184,6 +184,11 @@ export async function addLaunchPoolBucket(
   const claimStartCondition = createTimeAbsoluteCondition(BigInt(params.claimStart))
   const claimEndCondition = createTimeAbsoluteCondition(BigInt(params.claimEnd))
 
+  // Validate before any transaction is sent so an invalid soft cap cannot leave a bucket behind
+  if (params.softCap) {
+    validateSoftCap(params.softCap, params.minimumQuoteTokenThreshold)
+  }
+
   const [bucketPda] = findLaunchPoolBucketV2Pda(umi, {
     genesisAccount,
     bucketIndex: params.bucketIndex,
@@ -220,7 +225,6 @@ export async function addLaunchPoolBucket(
     extensions.push({ __kind: 'MinimumQuoteTokenThreshold' as const, minimumQuoteTokenThreshold: { amount: BigInt(params.minimumQuoteTokenThreshold) } })
   }
   if (params.softCap) {
-    validateSoftCap(params.softCap, params.minimumQuoteTokenThreshold)
     extensions.push({ __kind: 'SoftCap' as const, softCap: { amount: BigInt(params.softCap) } })
   }
 

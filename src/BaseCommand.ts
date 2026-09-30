@@ -4,6 +4,7 @@ import { Command, Flags, Interfaces } from '@oclif/core'
 
 import { Context, createContext, getDefaultConfigPath } from './lib/Context.js'
 import { StandardColors } from './lib/StandardColors.js'
+import { sanitizeBigInts } from './lib/util.js'
 
 export type Flags<T extends typeof Command> = Interfaces.InferredFlags<T['flags'] & (typeof BaseCommand)['baseFlags']>
 export type Args<T extends typeof Command> = Interfaces.InferredArgs<T['args']>
@@ -89,5 +90,12 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
 
   public logSuccess(message: string): void {
     this.log(StandardColors.success(message))
+  }
+
+  // The value returned from run() is serialized by oclif when --json is set.
+  // umi/mpl-core objects contain BigInt (u64) fields that crash JSON.stringify,
+  // so convert them to strings before oclif serializes the result.
+  protected toSuccessJson(result: unknown): unknown {
+    return sanitizeBigInts(result)
   }
 }

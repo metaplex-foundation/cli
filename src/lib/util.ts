@@ -32,6 +32,17 @@ export const jsonParse = (str: string, parseBigint: boolean = false) => {
   return JSON.parse(str)
 }
 
+/**
+ * Recursively replace BigInt values with strings so the result can be passed to
+ * `JSON.stringify` safely. u64 fields on umi/mpl-core objects (e.g. a
+ * collection's account `lamports.basisPoints`) are BigInts, which crash
+ * `JSON.stringify` with "Do not know how to serialize a BigInt".
+ *
+ * Uses the same `"<value>n"` convention as `jsonStringify`, so the output is
+ * consistent across commands and round-trippable via `jsonParse(str, true)`.
+ */
+export const sanitizeBigInts = <T>(value: T): T => jsonParse(jsonStringify(value))
+
 export const DEVNET_RPC_URL = 'https://api.devnet.solana.com'
 
 // create a temporary umi to access eddsa/keygen methods

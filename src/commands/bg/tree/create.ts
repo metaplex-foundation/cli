@@ -263,7 +263,7 @@ Tree Explorer: ${generateExplorerUrl(explorer, this.context.chain, treeAddress.t
 
     if (flags.wizard) {
       return await this.runWizard()
-    } else if (flags.maxDepth && flags.maxBufferSize && flags.canopyDepth) {
+    } else if (flags.maxDepth !== undefined && flags.maxBufferSize !== undefined && flags.canopyDepth !== undefined) {
       // Validate the configuration exists in our recommended configs
       const validConfig = TREE_CONFIGS.find(config =>
         config.maxDepth === flags.maxDepth &&

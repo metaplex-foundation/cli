@@ -458,11 +458,12 @@ export async function promptLaunchPoolBucket(nextIndex: number): Promise<LaunchP
   }
 
   // Optional extensions
-  const addExtensions = await confirm({ message: 'Add optional extensions (minimum deposit, deposit limit, quote threshold)?', default: false })
+  const addExtensions = await confirm({ message: 'Add optional extensions (minimum deposit, deposit limit, quote threshold, soft cap)?', default: false })
 
   let minimumDeposit: string | undefined
   let depositLimit: string | undefined
   let minimumQuoteTokenThreshold: string | undefined
+  let softCap: string | undefined
 
   if (addExtensions) {
     const minDep = await input({ message: 'Minimum deposit amount (press Enter to skip):', validate: validateOptionalNonNegativeInt })
@@ -473,6 +474,22 @@ export async function promptLaunchPoolBucket(nextIndex: number): Promise<LaunchP
 
     const minThresh = await input({ message: 'Minimum quote token threshold (press Enter to skip):', validate: validateOptionalNonNegativeInt })
     if (minThresh.trim()) minimumQuoteTokenThreshold = minThresh.trim()
+
+    const cap = await input({
+      message: 'Soft cap — max quote tokens kept, excess refunded pro-rata (press Enter to skip):',
+      validate: (v: string) => {
+        const base = validateOptionalNonNegativeInt(v)
+        if (base !== true) return base
+        if (!v.trim()) return true
+        const value = BigInt(v.trim())
+        if (value <= 0n) return 'Soft cap must be greater than zero. Press Enter to skip instead.'
+        if (minimumQuoteTokenThreshold && value < BigInt(minimumQuoteTokenThreshold)) {
+          return `Soft cap must be greater than or equal to the minimum quote token threshold (${minimumQuoteTokenThreshold}).`
+        }
+        return true
+      },
+    })
+    if (cap.trim()) softCap = cap.trim()
   }
 
   return {
@@ -485,6 +502,7 @@ export async function promptLaunchPoolBucket(nextIndex: number): Promise<LaunchP
     ...(minimumDeposit && { minimumDeposit }),
     ...(depositLimit && { depositLimit }),
     ...(minimumQuoteTokenThreshold && { minimumQuoteTokenThreshold }),
+    ...(softCap && { softCap }),
   }
 }
 

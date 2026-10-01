@@ -18,6 +18,7 @@ import ora from 'ora'
 import { TransactionCommand } from '../../../TransactionCommand.js'
 import { generateExplorerUrl } from '../../../explorers.js'
 import { txSignatureToString } from '../../../lib/util.js'
+import { validateSoftCap } from '../../../lib/genesis/softCap.js'
 import umiSendAndConfirmTransaction from '../../../lib/umi/sendAndConfirm.js'
 
 export default class AddLaunchPool extends TransactionCommand<typeof AddLaunchPool> {
@@ -29,11 +30,19 @@ Launch pools use a pro-rata allocation model where:
 - No frontrunning or sniping possible
 
 The bucket requires start/end conditions for deposits and claims.
-Use Unix timestamps for absolute times.`
+Use Unix timestamps for absolute times.
+
+Optional floor and ceiling:
+- --minimumQuoteTokenThreshold sets a floor. If total deposits fall below it the
+  launch fails and every depositor can take a full refund.
+- --softCap sets a ceiling. Deposits above it are still accepted and the launch
+  still succeeds, but the excess is refunded pro-rata and the bucket keeps at
+  most the cap. Use "mplx genesis refund" to recover the excess.`
 
   static override examples = [
     '$ mplx genesis bucket add-launch-pool GenesisAddress... --allocation 500000000 --depositStart 1704067200 --depositEnd 1704153600 --claimStart 1704153600 --claimEnd 1704240000',
     '$ mplx genesis bucket add-launch-pool GenesisAddress... --allocation 1000000000 --depositStart 1704067200 --depositEnd 1704153600 --claimStart 1704153600 --claimEnd 1704240000 --endBehavior "<BUCKET_ADDRESS>:10000"',
+    '$ mplx genesis bucket add-launch-pool GenesisAddress... --allocation 1000000000 --depositStart 1704067200 --depositEnd 1704153600 --claimStart 1704153600 --claimEnd 1704240000 --minimumQuoteTokenThreshold 10000000000 --softCap 100000000000',
   ]
 
   static override usage = 'genesis bucket add-launch-pool [GENESIS] [FLAGS]'
@@ -86,7 +95,11 @@ Use Unix timestamps for absolute times.`
       required: false,
     }),
     minimumQuoteTokenThreshold: Flags.string({
-      description: 'Minimum total quote tokens required for the bucket to succeed',
+      description: 'Minimum total quote tokens required for the bucket to succeed (floor)',
+      required: false,
+    }),
+    softCap: Flags.string({
+      description: 'Maximum total quote tokens the bucket keeps (ceiling). Deposits above this are refunded pro-rata',
       required: false,
     }),
     depositPenalty: Flags.string({
@@ -149,6 +162,10 @@ Use Unix timestamps for absolute times.`
 
       // Parse allocation
       const allocation = BigInt(flags.allocation)
+
+      // Validate the soft cap locally so users get a clear message instead of
+      // InvalidSoftCap (221) / SoftCapBelowThreshold (222) from the program.
+      validateSoftCap(flags.softCap, flags.minimumQuoteTokenThreshold)
 
       // Build conditions using SDK helper
       const depositStartCondition = createTimeAbsoluteCondition(depositStart)
@@ -323,6 +340,12 @@ Use Unix timestamps for absolute times.`
       this.log(`  Bucket Address: ${bucketPda}`)
       this.log(`  Bucket Index: ${bucketIndex}`)
       this.log(`  Token Allocation: ${flags.allocation}`)
+      if (flags.minimumQuoteTokenThreshold) {
+        this.log(`  Minimum Quote Token Threshold: ${flags.minimumQuoteTokenThreshold}`)
+      }
+      if (flags.softCap) {
+        this.log(`  Soft Cap: ${flags.softCap}`)
+      }
       this.log('')
       this.log('Schedule:')
       this.log(`  Deposit Start: ${new Date(Number(depositStart) * 1000).toISOString()}`)
@@ -396,6 +419,7 @@ function buildExtensions(
     depositPenalty?: string
     minimumDeposit?: string
     minimumQuoteTokenThreshold?: string
+    softCap?: string
     withdrawPenalty?: string
   },
   parseLinearBpsSchedule: (json: string) => LinearBpsScheduleV2Args,
@@ -434,6 +458,10 @@ function buildExtensions(
 
   if (flags.minimumQuoteTokenThreshold) {
     extensions.push({ __kind: 'MinimumQuoteTokenThreshold', minimumQuoteTokenThreshold: { amount: BigInt(flags.minimumQuoteTokenThreshold) } })
+  }
+
+  if (flags.softCap) {
+    extensions.push({ __kind: 'SoftCap', softCap: { amount: BigInt(flags.softCap) } })
   }
 
   return extensions

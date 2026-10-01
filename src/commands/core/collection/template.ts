@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import ora from 'ora'
 import { BaseCommand } from '../../../BaseCommand.js'
+import collectionTemplate from '../../../lib/core/templates/offchainCollectionTemplate.js'
 import { openDirectory } from '../../../lib/util.js'
 
 export default class CoreCollectionTemplate extends BaseCommand<typeof CoreCollectionTemplate> {
@@ -24,17 +25,6 @@ export default class CoreCollectionTemplate extends BaseCommand<typeof CoreColle
     // eslint-disable-next-line no-warning-comments
     // TODO create different assets types
 
-    const metadata = {
-      name: 'My Collection',
-      image: 'https://example.com/collection-image.png',
-      animation: '',
-      website: '',
-      properties: {
-        files: [],
-        category: 'image',
-      },
-    }
-
     const directory = output || process.cwd()
     const collectionPath = path.join(directory, 'collection')
 
@@ -49,7 +39,7 @@ export default class CoreCollectionTemplate extends BaseCommand<typeof CoreColle
 
       spinner.text = 'Writing Collection template files...'
       fs.mkdirSync(collectionPath, { recursive: true })
-      fs.writeFileSync(path.join(collectionPath, 'metadata.json'), JSON.stringify(metadata, null, 2))
+      fs.writeFileSync(path.join(collectionPath, 'metadata.json'), JSON.stringify(collectionTemplate, null, 2))
 
       spinner.text = 'Opening directory...'
       openDirectory(collectionPath)

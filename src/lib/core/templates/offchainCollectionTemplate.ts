@@ -1,8 +1,9 @@
 const collectionTemplate = {
   name: 'My Collection',
+  description: '',
   image: 'https://example.com/collection-image.png',
-  animation: '',
-  website: '',
+  animation_url: '',
+  external_url: '',
   properties: {
     files: [],
     category: 'image',

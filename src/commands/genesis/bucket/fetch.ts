@@ -363,7 +363,6 @@ all known types at the given index.`
     this.log('')
     this.log('Fees:')
     this.log(`  Deposit Fee: ${bucket.depositFee.toString()}`)
-    this.log(`  Claim Fee: ${bucket.claimFee.toString()}`)
     this.log('')
     this.log('View on Explorer:')
     this.log(

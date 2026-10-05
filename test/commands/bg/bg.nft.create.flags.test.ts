@@ -44,4 +44,24 @@ describe('bg nft create flag handling', () => {
 
     expect(output).to.contain('--image')
   })
+
+  it('does not show the --json hint when no path follows --json', async () => {
+    const output = await runExpectingFailure([
+      'bg', 'nft', 'create', 'some-tree', 'stray-argument', '--json',
+    ])
+
+    expect(output).to.contain('Unexpected argument')
+    expect(output).to.not.contain('--offchain <path>')
+  })
+
+  it('does not show the --json hint when --offchain is already used', async () => {
+    const output = await runExpectingFailure([
+      'bg', 'nft', 'create', 'some-tree',
+      '--image', './image.png', '--offchain', './metadata.json',
+      '--json', 'stray-argument',
+    ])
+
+    expect(output).to.contain('Unexpected argument')
+    expect(output).to.not.contain('Pass the metadata file with --offchain <path>')
+  })
 })

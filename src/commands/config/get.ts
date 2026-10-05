@@ -28,7 +28,7 @@ export default class ConfigGetCommand extends Command {
 
     const config = readConfig(path);
 
-    const value = (config as any)[key];
+    const value = (config as any)[key] ?? null;
 
     this.log(`${key}: ${value}`);
 

@@ -162,7 +162,14 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
   // `--json` used to take the metadata file path on this command. It is now the
   // standard boolean output flag, so a leftover path is parsed as a stray argument.
   protected override async catch(err: { exitCode?: number } & Error): Promise<unknown> {
-    if (/unexpected argument/i.test(err.message) && this.argv.includes('--json')) {
+    const jsonIndex = this.argv.indexOf('--json')
+    const next = jsonIndex === -1 ? undefined : this.argv[jsonIndex + 1]
+    if (
+      /unexpected argument/i.test(err.message) &&
+      next !== undefined &&
+      !next.startsWith('-') &&
+      !this.argv.includes('--offchain')
+    ) {
       err.message +=
         '\nHint: --json is now the machine-readable output flag. ' +
         'Pass the metadata file with --offchain <path> instead (e.g. --image ./nft.png --offchain ./metadata.json).'

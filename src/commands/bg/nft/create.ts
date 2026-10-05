@@ -57,7 +57,7 @@ export default class BgNftCreate extends TransactionCommand<typeof BgNftCreate> 
 
 Supports the same creation flows as 'tm create':
   • Wizard mode (uploads assets & metadata for you)
-  • File-based creation (--image + --json)
+  • File-based creation (--image + --offchain)
   • URI-based creation (--name + --uri)
   • Manual metadata assembly (--name + --image + other flags)
 
@@ -83,7 +83,7 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
     '$ mplx bg nft create my-tree --name "cNFT" --uri https://example.com/1.json --collection <COL> --inherit-royalties',
     '',
     '# Create with local files',
-    '$ mplx bg nft create dev-tree --image ./nft.png --json ./metadata.json',
+    '$ mplx bg nft create dev-tree --image ./nft.png --offchain ./metadata.json',
   ]
 
   static override args = {
@@ -101,13 +101,13 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
     // Manual creation flags
     name: OclifFlags.string({
       description: 'NFT name (required for non-wizard flows)',
-      exclusive: ['wizard', 'json'],
+      exclusive: ['wizard', 'offchain'],
     }),
     uri: OclifFlags.string({
       description: 'Existing metadata URI',
-      exclusive: ['wizard', 'json', 'image', 'attributes', 'description', 'animation', 'project-url'],
+      exclusive: ['wizard', 'offchain', 'image', 'attributes', 'description', 'animation', 'project-url'],
     }),
-    json: OclifFlags.string({
+    offchain: OclifFlags.string({
       description: 'Path to JSON metadata file (requires --image to upload media)',
       exclusive: ['wizard', 'name', 'uri', 'attributes', 'description', 'project-url', 'animation'],
       dependsOn: ['image'],
@@ -118,19 +118,19 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
     }),
     attributes: OclifFlags.string({
       description: 'Attributes in "trait:value,trait:value" format (manual mode)',
-      exclusive: ['wizard', 'uri', 'json'],
+      exclusive: ['wizard', 'uri', 'offchain'],
     }),
     description: OclifFlags.string({
       description: 'NFT description (manual mode)',
-      exclusive: ['wizard', 'uri', 'json'],
+      exclusive: ['wizard', 'uri', 'offchain'],
     }),
     animation: OclifFlags.string({
       description: 'Optional animation/media file path',
-      exclusive: ['wizard', 'uri', 'json'],
+      exclusive: ['wizard', 'uri', 'offchain'],
     }),
     'project-url': OclifFlags.string({
       description: 'External project URL',
-      exclusive: ['wizard', 'uri', 'json'],
+      exclusive: ['wizard', 'uri', 'offchain'],
     }),
     symbol: OclifFlags.string({
       description: 'Optional symbol stored on-chain (defaults to empty)',
@@ -157,6 +157,18 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
     owner: OclifFlags.string({
       description: 'Leaf owner public key (defaults to payer)',
     }),
+  }
+
+  // `--json` used to take the metadata file path on this command. It is now the
+  // standard boolean output flag, so a leftover path is parsed as a stray argument.
+  protected override async catch(err: { exitCode?: number } & Error): Promise<unknown> {
+    if (/unexpected argument/i.test(err.message) && this.argv.includes('--json')) {
+      err.message +=
+        '\nHint: --json is now the machine-readable output flag. ' +
+        'Pass the metadata file with --offchain <path> instead (e.g. --image ./nft.png --offchain ./metadata.json).'
+    }
+
+    return super.catch(err)
   }
 
   public async run(): Promise<unknown> {
@@ -361,8 +373,8 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
       }
     }
 
-    if (flags.json) {
-      return await this.handleFileBasedCreation(this.context.umi, flags.image!, flags.json, flags.collection)
+    if (flags.offchain) {
+      return await this.handleFileBasedCreation(this.context.umi, flags.image!, flags.offchain, flags.collection)
     }
 
     let royaltyPercentage: number | undefined
@@ -394,7 +406,7 @@ Note: Bubblegum V2 uses Metaplex Core collections. To create a Core collection:
     this.error(
       'You must provide one of the following combinations:\n' +
         '  --wizard\n' +
-        '  --image and --json\n' +
+        '  --image and --offchain\n' +
         '  --name and --uri\n' +
         '  --name and --image (with metadata flags)',
     )

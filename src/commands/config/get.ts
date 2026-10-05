@@ -1,5 +1,5 @@
 import { Args, Command, Flags } from '@oclif/core'
-import { ConfigJson, getDefaultConfigPath, readConfig } from '../../lib/Context.js'
+import { getDefaultConfigPath, readConfig } from '../../lib/Context.js'
 
 export default class ConfigGetCommand extends Command {
   static override description = 'Get a config value from a key'
@@ -15,10 +15,12 @@ export default class ConfigGetCommand extends Command {
     '<%= config.bin %> <%= command.id %> commitment'
   ]
 
+  static enableJsonFlag = true
+
   static override flags = {
     config: Flags.file({ char: 'c', description: 'path to config file. Default is ~/.config/mplx/config.json' }),
   }
-  public async run(): Promise<ConfigJson> {
+  public async run(): Promise<{ key: string; value: unknown }> {
     const { flags, args } = await this.parse(ConfigGetCommand);
     const { key } = args;
 
@@ -26,8 +28,10 @@ export default class ConfigGetCommand extends Command {
 
     const config = readConfig(path);
 
-    this.log(`${key}: ${(config as any)[key]}`);
+    const value = (config as any)[key];
 
-    return config;
+    this.log(`${key}: ${value}`);
+
+    return { key, value };
   }
 }

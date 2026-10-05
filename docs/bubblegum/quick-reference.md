@@ -264,7 +264,7 @@ mplx bg nft burn <assetId>
 --symbol <string>        # NFT symbol
 --uri <url>              # Pre-uploaded metadata URI
 --image <path>           # Local image file
---json <path>            # Local metadata JSON
+--offchain <path>        # Local metadata JSON
 --description <string>   # NFT description
 --attributes <json>      # Trait attributes
 --animation <path>       # Animation file (video/audio/3D)

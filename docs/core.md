@@ -22,7 +22,7 @@ mplx core asset create [options]
   --collection <id>      # Collection ID (optional)
   --files                # Upload files mode
   --image <path>         # Path to image file (with --files)
-  --json <path>         # Path to JSON metadata file (with --files)
+  --offchain <path>     # Path to JSON metadata file (with --files)
   --directory <path>    # Create multiple assets from a directory
   --plugins <path>      # Path to plugin configuration file
 
@@ -33,7 +33,7 @@ mplx core asset burn <assetId> [options]
 
 # Examples:
 mplx core asset create --name "My Asset" --uri "https://example.com/metadata.json"
-mplx core asset create --files --image ./asset/image.png --json ./asset/metadata.json
+mplx core asset create --files --image ./asset/image.png --offchain ./asset/metadata.json
 mplx core asset create --directory ./assets
 mplx core asset burn <assetId>
 ```
@@ -50,7 +50,7 @@ mplx core collection create [options]
   --symbol <symbol>    # Collection symbol
   --files              # Upload files mode
   --image <path>       # Path to image file (with --files)
-  --json <path>       # Path to JSON metadata file (with --files)
+  --offchain <path>   # Path to JSON metadata file (with --files)
 ```
 
 ### Plugin Commands

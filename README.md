@@ -81,7 +81,7 @@ mplx config wallets set
 mplx core collection create --name "My Collection" --uri "https://example.com/collection-metadata.json"
 
 # Or create with local files
-mplx core collection create --files --image ./image.png --json ./collection-metadata.json
+mplx core collection create --files --image ./image.png --offchain ./collection-metadata.json
 
 # Generate template files
 mplx core collection template
@@ -93,7 +93,7 @@ mplx core collection template
 mplx core asset create --name "My Asset" --uri "https://example.com/metadata.json"
 
 # Or create with local files
-mplx core asset create --files --image ./image.png --json ./metadata.json
+mplx core asset create --files --image ./image.png --offchain ./metadata.json
 
 # Generate template files
 mplx core asset template

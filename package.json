@@ -29,7 +29,7 @@
     "@metaplex-foundation/digital-asset-standard-api": "^2.1.1",
     "@metaplex-foundation/genesis": "^0.43.2",
     "@metaplex-foundation/mpl-agent-registry": "^0.2.6",
-    "@metaplex-foundation/mpl-bubblegum": "^5.1.0",
+    "@metaplex-foundation/mpl-bubblegum": "^6.0.0",
     "@metaplex-foundation/mpl-core": "^1.10.0",
     "@metaplex-foundation/mpl-core-candy-machine": "^0.3.0",
     "@metaplex-foundation/mpl-distro": "^0.4.0",

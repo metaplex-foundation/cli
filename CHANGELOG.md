@@ -5,6 +5,14 @@ All notable changes to the Metaplex CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **BREAKING: `mplx bg nft create`**: the metadata-file flag is now `--offchain <path>` (was `--json <path>`), matching `core asset create`, `core collection create` and `tm create`. `--json` is now the standard machine-readable output flag on this command, so `--json ./metadata.json` fails with a hint to use `--offchain`.
+
+### Added
+- `--json` output on `mplx config get`, `mplx toolbox template program` and `mplx toolbox template website`, so every command supports `--json`. A unit test now enforces this.
+
 ## [Unreleased] - Core Candy Machine Implementation
 
 ### Added

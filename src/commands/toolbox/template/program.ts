@@ -13,6 +13,8 @@ export default class ToolboxProgramTemplate extends Command {
 
     static override description = 'Download a MPLX program template'
 
+    static enableJsonFlag = true
+
     static override args = {
         template: Args.string({
             description: 'The template to download',
@@ -21,7 +23,7 @@ export default class ToolboxProgramTemplate extends Command {
         })
     }
 
-    public async run(): Promise<void> {
+    public async run(): Promise<{ repository: string; template: string }> {
         const { args, flags } = await this.parse(ToolboxProgramTemplate)
 
         let template = args.template || undefined
@@ -47,6 +49,8 @@ export default class ToolboxProgramTemplate extends Command {
             }
 
             this.log(`Template '${template}' cloned successfully`)
+
+            return { repository: templates[template as keyof typeof templates], template: template as string }
         } catch (error) {
             this.error(`Failed to clone template '${template}': ${error instanceof Error ? error.message : 'Unknown error'}`)
         }

@@ -67,7 +67,7 @@ mplx bg nft create <tree> \
 mplx bg nft create <tree> \
   --name "My NFT" \
   --image ./image.png \
-  --json ./metadata.json
+  --offchain ./metadata.json
 ```
 
 **Process:**
@@ -104,7 +104,7 @@ mplx bg nft create <tree> \
 ### Asset Options (choose one)
 
 - `--uri <url>` - Pre-uploaded metadata URI
-- `--json <path>` + `--image <path>` - Local metadata + image
+- `--offchain <path>` + `--image <path>` - Local metadata + image
 - `--image <path>` - Local image (generates metadata)
 
 ### Metadata Fields
@@ -396,7 +396,8 @@ mplx bg nft create <tree> --name "My NFT" --uri "..." --json
   "explorer": "https://explorer.solana.com/tx/5J7zKX9...",
   "assetId": "B85zgpJnegSbFck28ddnLg4d9HH2g4ZpnL2qrK9oMBdj",
   "owner": "A37BMLuGtSNkjheuJWmfRrYDEerdctbsGLe43Luz6sVG",
-  "tree": "BjgAh5ig1LTKbTCwA4rieiNpKQVjEzw9KVLnCptPWsKu"
+  "tree": "BjgAh5ig1LTKbTCwA4rieiNpKQVjEzw9KVLnCptPWsKu",
+  "royaltyMode": "inherited (leaf sentinel 65535)"
 }
 ```
 

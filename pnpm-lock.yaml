@@ -30,8 +30,8 @@ importers:
         specifier: ^0.2.6
         version: 0.2.6(@metaplex-foundation/umi@1.6.0)(@noble/hashes@1.8.0)
       '@metaplex-foundation/mpl-bubblegum':
-        specifier: ^5.1.0
-        version: 5.1.0(@metaplex-foundation/umi@1.6.0)
+        specifier: ^6.0.0
+        version: 6.0.0(@metaplex-foundation/umi@1.6.0)
       '@metaplex-foundation/mpl-core':
         specifier: ^1.10.0
         version: 1.10.0(@metaplex-foundation/umi@1.6.0)(@noble/hashes@1.8.0)
@@ -847,8 +847,8 @@ packages:
     peerDependencies:
       '@metaplex-foundation/umi': ^1.0
 
-  '@metaplex-foundation/mpl-bubblegum@5.1.0':
-    resolution: {integrity: sha512-nr2JAIXV8fIcc04pnnQJWVRr1+XG0eRJkQYcg/iVAgN46waJZrX643PwTBpFx3X/r2iCMOmqBEF8S4l94bV99Q==}
+  '@metaplex-foundation/mpl-bubblegum@6.0.0':
+    resolution: {integrity: sha512-ybdyQg5en2klkHkxPiMUQ2XJfmQonRYHgkMSA37ExYslOrb1Pa28E0wOaBvcIykOjgwXPP2+t8ZWgm1//yU+Cg==}
     peerDependencies:
       '@metaplex-foundation/umi': '>= 0.8.9 <= 2.0.0'
 
@@ -5570,7 +5570,7 @@ snapshots:
     transitivePeerDependencies:
       - '@noble/hashes'
 
-  '@metaplex-foundation/mpl-bubblegum@5.1.0(@metaplex-foundation/umi@1.6.0)':
+  '@metaplex-foundation/mpl-bubblegum@6.0.0(@metaplex-foundation/umi@1.6.0)':
     dependencies:
       '@metaplex-foundation/digital-asset-standard-api': 2.1.1(@metaplex-foundation/umi@1.6.0)
       '@metaplex-foundation/mpl-account-compression': 0.0.1(@metaplex-foundation/umi@1.6.0)

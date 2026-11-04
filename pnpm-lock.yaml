@@ -25,7 +25,7 @@ importers:
         version: 2.1.1(@metaplex-foundation/umi@1.6.0)
       '@metaplex-foundation/genesis':
         specifier: ^0.43.2
-        version: 0.43.2(@metaplex-foundation/umi@1.6.0)
+        version: 0.43.6(@metaplex-foundation/umi@1.6.0)
       '@metaplex-foundation/mpl-agent-registry':
         specifier: ^0.2.6
         version: 0.2.6(@metaplex-foundation/umi@1.6.0)(@noble/hashes@1.8.0)
@@ -793,15 +793,18 @@ packages:
 
   '@ledgerhq/errors@6.37.0':
     resolution: {integrity: sha512-T5yiKI5UX7ugeocdTF3TUsCIN2BH41Bio4ZeN410YFjFOf3es08n/5JyMzzKwzRgP0blG3HfBf7s7vJKqCSAeg==}
+    deprecated: This package is no longer maintained and will not receive updates. Published versions remain available.
 
   '@ledgerhq/hw-app-solana@7.4.0':
     resolution: {integrity: sha512-UO7jX9K4Y5Clr2sDiUZb2TOWJraFIFiEXFu/WrWGLlOL86gqaM86uBN4fIs1dvQGKefOlvv+Sd/Y2JrvVK84zg==}
 
   '@ledgerhq/hw-transport-node-hid-noevents@6.36.0':
     resolution: {integrity: sha512-hsqybDCDtpNWeWVY2b/emrsFDqVfc3Rkv4+2b6h5ubPGsKWFd+7t0u6oy0sJEl5v6C+V/uxl03shBjWEcSoxgw==}
+    deprecated: This package is no longer maintained. Use @ledgerhq/device-transport-kit-node-hid instead.
 
   '@ledgerhq/hw-transport-node-hid-singleton@6.31.5':
     resolution: {integrity: sha512-dpi0cWwS9SejKIosFPCn6XvYQgqm8LUKVyN5CD8fDmdpwHoSRWVPNqWAiYXlUN7L/udzY8HgdORGJ4hyY2xgvw==}
+    deprecated: This package is no longer maintained. Use @ledgerhq/device-transport-kit-node-hid instead.
 
   '@ledgerhq/hw-transport@6.31.4':
     resolution: {integrity: sha512-6c1ir/cXWJm5dCWdq55NPgCJ3UuKuuxRvf//Xs36Bq9BwkV2YaRQhZITAkads83l07NAdR16hkTWqqpwFMaI6A==}
@@ -832,8 +835,8 @@ packages:
     peerDependencies:
       '@metaplex-foundation/umi': '>= 0.8.2 <= 1'
 
-  '@metaplex-foundation/genesis@0.43.2':
-    resolution: {integrity: sha512-HtEWDa0lMxW1r776pHi6zUuT7uUjk9VYa6AyFJcVIyjvlUjAyyueeC2n7hLQiPJZCVLiQA9enZqbnI+leu7ByA==}
+  '@metaplex-foundation/genesis@0.43.6':
+    resolution: {integrity: sha512-8LcnMWSogN54jURBG85BVWAmPUozWyOhOu81YDmsMwQzSIyDFd56ILnuUerlAoL2JollAsEIXLkfR19KMRwHEg==}
     peerDependencies:
       '@metaplex-foundation/umi': ^1.4.1
 
@@ -1141,6 +1144,7 @@ packages:
   '@smithy/core@3.35.1':
     resolution: {integrity: sha512-i4YPS4B6ts7bjn7UwLnGjiZdprOvHvgGobFZsYK3GIY3E5hIqtj0rReU69BcTpGp+fvtraSNXeG1l+jtJvF55w==}
     engines: {node: '>=18.0.0'}
+    deprecated: Deprecated due to a bug in custom logger data redaction. See https://github.com/aws/aws-sdk-js-v3/issues/8393.
 
   '@smithy/credential-provider-imds@4.5.2':
     resolution: {integrity: sha512-A9uSdn72ozbRUSit0eib0TW7nXuNPlaeM0zcGkJ+nE6tFcSDbnmtwoxbTCFBukVQcszDAyvsd7+rTduPTXpygg==}
@@ -2783,6 +2787,7 @@ packages:
   http-call@5.3.0:
     resolution: {integrity: sha512-ahwimsC23ICE4kPl9xTBjKB4inbRaeLyZeRunC/1Jy/Z6X8tv22MEAjK+KBOMSVLaqXPTTmd8638waVIKLGx2w==}
     engines: {node: '>=8.0.0'}
+    deprecated: Renamed to @heroku/http-call — please install @heroku/http-call instead.
 
   http2-wrapper@2.2.1:
     resolution: {integrity: sha512-V5nVw1PAOgfI3Lmeaj2Exmeg7fenjhRUgz1lPSezy1CuhPYbgQtbQj4jZfEAEMlaL+vupsvhjqCyjzob0yxsmQ==}
@@ -5548,7 +5553,7 @@ snapshots:
     dependencies:
       '@metaplex-foundation/umi': 1.6.0
 
-  '@metaplex-foundation/genesis@0.43.2(@metaplex-foundation/umi@1.6.0)':
+  '@metaplex-foundation/genesis@0.43.6(@metaplex-foundation/umi@1.6.0)':
     dependencies:
       '@metaplex-foundation/mpl-token-metadata': 3.4.0(@metaplex-foundation/umi@1.6.0)
       '@metaplex-foundation/mpl-toolbox': 0.10.0(@metaplex-foundation/umi@1.6.0)

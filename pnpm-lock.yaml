@@ -42,8 +42,8 @@ importers:
         specifier: ^0.4.0
         version: 0.4.0(@metaplex-foundation/mpl-core@1.10.0(@metaplex-foundation/umi@1.6.0)(@noble/hashes@1.8.0))(@metaplex-foundation/mpl-toolbox@0.10.0(@metaplex-foundation/umi@1.6.0))(@metaplex-foundation/umi@1.6.0)
       '@metaplex-foundation/mpl-token-metadata':
-        specifier: ^3.4.0
-        version: 3.4.0(@metaplex-foundation/umi@1.6.0)
+        specifier: ^4.0.0
+        version: 4.0.0(@metaplex-foundation/umi@1.6.0)
       '@metaplex-foundation/mpl-toolbox':
         specifier: 0.10.0
         version: 0.10.0(@metaplex-foundation/umi@1.6.0)
@@ -793,15 +793,18 @@ packages:
 
   '@ledgerhq/errors@6.37.0':
     resolution: {integrity: sha512-T5yiKI5UX7ugeocdTF3TUsCIN2BH41Bio4ZeN410YFjFOf3es08n/5JyMzzKwzRgP0blG3HfBf7s7vJKqCSAeg==}
+    deprecated: This package is no longer maintained and will not receive updates. Published versions remain available.
 
   '@ledgerhq/hw-app-solana@7.4.0':
     resolution: {integrity: sha512-UO7jX9K4Y5Clr2sDiUZb2TOWJraFIFiEXFu/WrWGLlOL86gqaM86uBN4fIs1dvQGKefOlvv+Sd/Y2JrvVK84zg==}
 
   '@ledgerhq/hw-transport-node-hid-noevents@6.36.0':
     resolution: {integrity: sha512-hsqybDCDtpNWeWVY2b/emrsFDqVfc3Rkv4+2b6h5ubPGsKWFd+7t0u6oy0sJEl5v6C+V/uxl03shBjWEcSoxgw==}
+    deprecated: This package is no longer maintained. Use @ledgerhq/device-transport-kit-node-hid instead.
 
   '@ledgerhq/hw-transport-node-hid-singleton@6.31.5':
     resolution: {integrity: sha512-dpi0cWwS9SejKIosFPCn6XvYQgqm8LUKVyN5CD8fDmdpwHoSRWVPNqWAiYXlUN7L/udzY8HgdORGJ4hyY2xgvw==}
+    deprecated: This package is no longer maintained. Use @ledgerhq/device-transport-kit-node-hid instead.
 
   '@ledgerhq/hw-transport@6.31.4':
     resolution: {integrity: sha512-6c1ir/cXWJm5dCWdq55NPgCJ3UuKuuxRvf//Xs36Bq9BwkV2YaRQhZITAkads83l07NAdR16hkTWqqpwFMaI6A==}
@@ -892,8 +895,18 @@ packages:
     peerDependencies:
       '@metaplex-foundation/umi': '>= 0.8.2 <= 1'
 
+  '@metaplex-foundation/mpl-token-metadata@4.0.0':
+    resolution: {integrity: sha512-LEHu0JbJ6rNRhYZLG3EqBd5B8MrdqlHiJMhKan19BzBYozM0HfwPv1GN+LstXvnCgzWikrulnDdyI/MH5gqvXw==}
+    peerDependencies:
+      '@metaplex-foundation/umi': '>= 0.8.2 <= 1'
+
   '@metaplex-foundation/mpl-toolbox@0.10.0':
     resolution: {integrity: sha512-84KD1L5cFyw5xnntHwL4uPwfcrkKSiwuDeypiVr92qCUFuF3ZENa2zlFVPu+pQcjTlod2LmEX3MhBmNjRMpdKg==}
+    peerDependencies:
+      '@metaplex-foundation/umi': '>= 0.8.2 <= 1'
+
+  '@metaplex-foundation/mpl-toolbox@0.12.0':
+    resolution: {integrity: sha512-Ar5OITCzsIWFCTD8W+5NdkaAkHGp79Hh96FI2xMu1qqTh2JvnXc+fEFs7u8AzUJf5YurT4Yhacm+UW8R+x3ztQ==}
     peerDependencies:
       '@metaplex-foundation/umi': '>= 0.8.2 <= 1'
 
@@ -1141,6 +1154,9 @@ packages:
   '@smithy/core@3.35.1':
     resolution: {integrity: sha512-i4YPS4B6ts7bjn7UwLnGjiZdprOvHvgGobFZsYK3GIY3E5hIqtj0rReU69BcTpGp+fvtraSNXeG1l+jtJvF55w==}
     engines: {node: '>=18.0.0'}
+    deprecated: |-
+      Deprecated due to a bug in custom logger data redaction. Upgrade to the latest version. If you used a custom logger with this
+        version, review your logs and rotate any credentials or other secrets. See https://github.com/aws/aws-sdk-js-v3/issues/8393.
 
   '@smithy/credential-provider-imds@4.5.2':
     resolution: {integrity: sha512-A9uSdn72ozbRUSit0eib0TW7nXuNPlaeM0zcGkJ+nE6tFcSDbnmtwoxbTCFBukVQcszDAyvsd7+rTduPTXpygg==}
@@ -2783,6 +2799,7 @@ packages:
   http-call@5.3.0:
     resolution: {integrity: sha512-ahwimsC23ICE4kPl9xTBjKB4inbRaeLyZeRunC/1Jy/Z6X8tv22MEAjK+KBOMSVLaqXPTTmd8638waVIKLGx2w==}
     engines: {node: '>=8.0.0'}
+    deprecated: Renamed to @heroku/http-call — please install @heroku/http-call instead.
 
   http2-wrapper@2.2.1:
     resolution: {integrity: sha512-V5nVw1PAOgfI3Lmeaj2Exmeg7fenjhRUgz1lPSezy1CuhPYbgQtbQj4jZfEAEMlaL+vupsvhjqCyjzob0yxsmQ==}
@@ -5624,7 +5641,16 @@ snapshots:
       '@metaplex-foundation/mpl-toolbox': 0.10.0(@metaplex-foundation/umi@1.6.0)
       '@metaplex-foundation/umi': 1.6.0
 
+  '@metaplex-foundation/mpl-token-metadata@4.0.0(@metaplex-foundation/umi@1.6.0)':
+    dependencies:
+      '@metaplex-foundation/mpl-toolbox': 0.12.0(@metaplex-foundation/umi@1.6.0)
+      '@metaplex-foundation/umi': 1.6.0
+
   '@metaplex-foundation/mpl-toolbox@0.10.0(@metaplex-foundation/umi@1.6.0)':
+    dependencies:
+      '@metaplex-foundation/umi': 1.6.0
+
+  '@metaplex-foundation/mpl-toolbox@0.12.0(@metaplex-foundation/umi@1.6.0)':
     dependencies:
       '@metaplex-foundation/umi': 1.6.0
 
